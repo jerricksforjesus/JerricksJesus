@@ -6,12 +6,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Upload, Cloud, FileVideo } from "lucide-react";
+import { Plus, Trash2, Save, Upload, Pencil, Play } from "lucide-react";
 import { useState } from "react";
 import { ObjectUploader } from "@/components/ObjectUploader";
+import { VideoPlayerModal } from "@/components/VideoPlayerModal";
+import { VideoEditModal } from "@/components/VideoEditModal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { Video, Verse, InsertVideo } from "@shared/schema";
 import type { UploadResult } from "@uppy/core";
+import thumb1 from "@assets/generated_images/preacher_at_podium.png";
+import thumb2 from "@assets/generated_images/open_bible_on_table.png";
+import thumb3 from "@assets/generated_images/warm_limestone_wall_texture.png";
+
+const fallbackImages = [thumb1, thumb2, thumb3];
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -22,6 +29,9 @@ export default function AdminDashboard() {
   const [videoTitle, setVideoTitle] = useState("");
   const [videoDate, setVideoDate] = useState("");
   const [videoDuration, setVideoDuration] = useState("");
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+  const [isEditOpen, setIsEditOpen] = useState(false);
 
   const { data: activeVerse } = useQuery<Verse>({
     queryKey: ["active-verse"],
@@ -30,13 +40,12 @@ export default function AdminDashboard() {
       if (!response.ok) throw new Error("Failed to fetch verse");
       return response.json();
     },
-    onSuccess: (data) => {
-      if (data) {
-        setVerse(data.verseText);
-        setReference(data.reference);
-      }
-    },
   });
+
+  if (activeVerse && !verse && !reference) {
+    setVerse(activeVerse.verseText);
+    setReference(activeVerse.reference);
+  }
 
   const { data: videos = [] } = useQuery<Video[]>({
     queryKey: ["videos"],
@@ -109,13 +118,13 @@ export default function AdminDashboard() {
     }
 
     const uploadedFile = result.successful[0];
-    const objectPath = uploadedFile.uploadURL;
+    const objectPath = uploadedFile.uploadURL || "";
 
     const videoData: InsertVideo = {
-      title: videoTitle || uploadedFile.name,
+      title: videoTitle || uploadedFile.name || "Untitled Sermon",
       objectPath: objectPath,
       recordedDate: videoDate || new Date().toISOString().split('T')[0],
-      duration: videoDuration,
+      duration: videoDuration || undefined,
     };
 
     try {
@@ -144,6 +153,26 @@ export default function AdminDashboard() {
         variant: "destructive",
       });
     }
+  };
+
+  const handlePlayVideo = async (video: Video) => {
+    await fetch(`/api/videos/${video.id}/view`, { method: "POST" });
+    setSelectedVideo(video);
+    setIsPlayerOpen(true);
+  };
+
+  const handleEditVideo = (video: Video) => {
+    setSelectedVideo(video);
+    setIsEditOpen(true);
+  };
+
+  const getThumbnail = (video: Video, index: number) => {
+    if (video.thumbnailPath) {
+      return video.thumbnailPath.startsWith('/objects/') 
+        ? video.thumbnailPath 
+        : `/objects/${video.thumbnailPath}`;
+    }
+    return fallbackImages[index % fallbackImages.length];
   };
 
   return (
@@ -202,7 +231,7 @@ export default function AdminDashboard() {
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle>Sermon Replays</CardTitle>
-                    <CardDescription>Add or remove past sermon videos.</CardDescription>
+                    <CardDescription>Add, edit, or remove past sermon videos.</CardDescription>
                   </div>
                 </div>
                 
@@ -255,29 +284,50 @@ export default function AdminDashboard() {
                   {videos.length === 0 ? (
                     <p className="text-center text-muted-foreground py-8">No videos uploaded yet.</p>
                   ) : (
-                    videos.map((video) => (
+                    videos.map((video, index) => (
                       <div key={video.id} className="flex items-center justify-between p-4 border rounded-lg bg-card hover:shadow-sm transition-shadow" data-testid={`video-item-${video.id}`}>
-                        <div className="flex gap-4 items-center">
-                          <div className="w-16 h-10 bg-muted rounded overflow-hidden">
-                            <div className="w-full h-full bg-zinc-200" />
+                        <div className="flex gap-4 items-center flex-1 min-w-0">
+                          <div 
+                            className="w-20 h-12 bg-muted rounded overflow-hidden flex-shrink-0 cursor-pointer group relative"
+                            onClick={() => handlePlayVideo(video)}
+                          >
+                            <img 
+                              src={getThumbnail(video, index)} 
+                              alt={video.title}
+                              className="w-full h-full object-cover"
+                            />
+                            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                              <Play className="w-5 h-5 text-white" fill="white" />
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="font-medium" data-testid={`text-video-title-${video.id}`}>{video.title}</h4>
+                          <div className="min-w-0 flex-1">
+                            <h4 className="font-medium truncate" data-testid={`text-video-title-${video.id}`}>{video.title}</h4>
                             <p className="text-xs text-muted-foreground">
-                              {video.duration && `Duration: ${video.duration} • `}
-                              Views: {video.views}
+                              {new Date(video.recordedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                              {video.duration && ` • ${video.duration}`}
+                              {` • ${video.views} views`}
                             </p>
                           </div>
                         </div>
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                          onClick={() => deleteVideoMutation.mutate(video.id)}
-                          data-testid={`button-delete-${video.id}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        <div className="flex gap-2 flex-shrink-0">
+                          <Button 
+                            variant="ghost" 
+                            size="icon"
+                            onClick={() => handleEditVideo(video)}
+                            data-testid={`button-edit-${video.id}`}
+                          >
+                            <Pencil className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                            onClick={() => deleteVideoMutation.mutate(video.id)}
+                            data-testid={`button-delete-${video.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     ))
                   )}
@@ -287,6 +337,24 @@ export default function AdminDashboard() {
           </TabsContent>
         </Tabs>
       </div>
+
+      <VideoPlayerModal 
+        video={selectedVideo} 
+        open={isPlayerOpen} 
+        onClose={() => {
+          setIsPlayerOpen(false);
+          setSelectedVideo(null);
+        }} 
+      />
+
+      <VideoEditModal 
+        video={selectedVideo} 
+        open={isEditOpen} 
+        onClose={() => {
+          setIsEditOpen(false);
+          setSelectedVideo(null);
+        }} 
+      />
     </div>
   );
 }

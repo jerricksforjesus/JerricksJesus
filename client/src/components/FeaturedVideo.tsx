@@ -1,14 +1,15 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import type { Video } from "@shared/schema";
 import { Play } from "lucide-react";
 import thumb1 from "@assets/generated_images/preacher_at_podium.png";
-import thumb2 from "@assets/generated_images/open_bible_on_table.png";
-import thumb3 from "@assets/generated_images/warm_limestone_wall_texture.png";
-
-const fallbackImages = [thumb1, thumb2, thumb3];
+import { VideoPlayerModal } from "@/components/VideoPlayerModal";
 
 export function FeaturedVideo() {
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+
   const { data: videos = [] } = useQuery<Video[]>({
     queryKey: ["videos"],
     queryFn: async () => {
@@ -26,6 +27,17 @@ export function FeaturedVideo() {
 
   const handlePlay = async () => {
     await fetch(`/api/videos/${latestVideo.id}/view`, { method: "POST" });
+    setSelectedVideo(latestVideo);
+    setIsPlayerOpen(true);
+  };
+
+  const getThumbnail = () => {
+    if (latestVideo.thumbnailPath) {
+      return latestVideo.thumbnailPath.startsWith('/objects/') 
+        ? latestVideo.thumbnailPath 
+        : `/objects/${latestVideo.thumbnailPath}`;
+    }
+    return thumb1;
   };
 
   return (
@@ -51,7 +63,7 @@ export function FeaturedVideo() {
               </div>
             </div>
             <img 
-              src={fallbackImages[0]} 
+              src={getThumbnail()} 
               alt={latestVideo.title}
               className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
             />
@@ -73,6 +85,15 @@ export function FeaturedVideo() {
           </div>
         </motion.div>
       </div>
+
+      <VideoPlayerModal 
+        video={selectedVideo} 
+        open={isPlayerOpen} 
+        onClose={() => {
+          setIsPlayerOpen(false);
+          setSelectedVideo(null);
+        }} 
+      />
     </section>
   );
 }

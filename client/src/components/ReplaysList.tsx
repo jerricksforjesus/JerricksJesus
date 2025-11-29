@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { useQuery } from "@tanstack/react-query";
 import type { Video } from "@shared/schema";
@@ -7,10 +8,14 @@ import thumb2 from "@assets/generated_images/open_bible_on_table.png";
 import thumb3 from "@assets/generated_images/warm_limestone_wall_texture.png";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { VideoPlayerModal } from "@/components/VideoPlayerModal";
 
 const fallbackImages = [thumb1, thumb2, thumb3];
 
 export function ReplaysList() {
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+
   const { data: videos = [] } = useQuery<Video[]>({
     queryKey: ["videos"],
     queryFn: async () => {
@@ -20,15 +25,30 @@ export function ReplaysList() {
     },
   });
 
-  const handleVideoClick = async (videoId: number) => {
-    await fetch(`/api/videos/${videoId}/view`, { method: "POST" });
+  const handleVideoClick = async (video: Video) => {
+    await fetch(`/api/videos/${video.id}/view`, { method: "POST" });
+    setSelectedVideo(video);
+    setIsPlayerOpen(true);
+  };
+
+  const getThumbnail = (video: Video, index: number) => {
+    if (video.thumbnailPath) {
+      return video.thumbnailPath.startsWith('/objects/') 
+        ? video.thumbnailPath 
+        : `/objects/${video.thumbnailPath}`;
+    }
+    return fallbackImages[index % fallbackImages.length];
   };
 
   if (videos.length === 0) {
     return null;
   }
 
-  const displayVideos = videos.slice(1); // Skip the first one since it's featured
+  const displayVideos = videos.slice(1);
+
+  if (displayVideos.length === 0) {
+    return null;
+  }
 
   return (
     <section className="py-24 bg-card">
@@ -54,7 +74,7 @@ export function ReplaysList() {
               transition={{ duration: 0.5, delay: index * 0.1 }}
               viewport={{ once: true }}
               className="group cursor-pointer"
-              onClick={() => handleVideoClick(video.id)}
+              onClick={() => handleVideoClick(video)}
               data-testid={`replay-card-${video.id}`}
             >
               <div className="overflow-hidden rounded-lg aspect-[16/9] mb-4 relative bg-zinc-200">
@@ -64,7 +84,7 @@ export function ReplaysList() {
                   </div>
                 </div>
                 <img 
-                  src={fallbackImages[index % fallbackImages.length]} 
+                  src={getThumbnail(video, index)} 
                   alt={video.title}
                   className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
                 />
@@ -95,6 +115,15 @@ export function ReplaysList() {
           </Link>
         </div>
       </div>
+
+      <VideoPlayerModal 
+        video={selectedVideo} 
+        open={isPlayerOpen} 
+        onClose={() => {
+          setIsPlayerOpen(false);
+          setSelectedVideo(null);
+        }} 
+      />
     </section>
   );
 }

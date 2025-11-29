@@ -53,6 +53,44 @@ export async function registerRoutes(
     }
   });
 
+  app.get("/api/videos/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const video = await storage.getVideo(id);
+      if (!video) {
+        return res.status(404).json({ error: "Video not found" });
+      }
+      res.json(video);
+    } catch (error) {
+      console.error("Error fetching video:", error);
+      res.status(500).json({ error: "Failed to fetch video" });
+    }
+  });
+
+  app.put("/api/videos/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { title, thumbnailPath } = req.body;
+      
+      const updateData: { title?: string; thumbnailPath?: string } = {};
+      if (title) updateData.title = title;
+      if (thumbnailPath !== undefined) {
+        updateData.thumbnailPath = thumbnailPath ? 
+          objectStorageService.normalizeObjectEntityPath(thumbnailPath) : 
+          thumbnailPath;
+      }
+      
+      const video = await storage.updateVideo(id, updateData);
+      if (!video) {
+        return res.status(404).json({ error: "Video not found" });
+      }
+      res.json(video);
+    } catch (error) {
+      console.error("Error updating video:", error);
+      res.status(500).json({ error: "Failed to update video" });
+    }
+  });
+
   app.delete("/api/videos/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);

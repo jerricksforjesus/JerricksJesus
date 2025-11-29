@@ -12,6 +12,7 @@ import DashboardModal from "@uppy/react/dashboard-modal";
 interface ObjectUploaderProps {
   maxNumberOfFiles?: number;
   maxFileSize?: number;
+  allowedFileTypes?: string[];
   onGetUploadParameters: () => Promise<{
     method: "PUT";
     url: string;
@@ -26,6 +27,7 @@ interface ObjectUploaderProps {
 export function ObjectUploader({
   maxNumberOfFiles = 1,
   maxFileSize = 2147483648, // 2GB default for videos
+  allowedFileTypes = ['video/*'],
   onGetUploadParameters,
   onComplete,
   buttonClassName,
@@ -37,7 +39,7 @@ export function ObjectUploader({
       restrictions: {
         maxNumberOfFiles,
         maxFileSize,
-        allowedFileTypes: ['video/*'],
+        allowedFileTypes,
       },
       autoProceed: false,
     })

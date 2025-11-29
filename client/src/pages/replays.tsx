@@ -1,4 +1,6 @@
+import { useState } from "react";
 import { Navigation } from "@/components/Navigation";
+import { VideoPlayerModal } from "@/components/VideoPlayerModal";
 import { useQuery } from "@tanstack/react-query";
 import type { Video } from "@shared/schema";
 import thumb1 from "@assets/generated_images/preacher_at_podium.png";
@@ -9,6 +11,9 @@ import { Play } from "lucide-react";
 const fallbackImages = [thumb1, thumb2, thumb3];
 
 export default function Replays() {
+  const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
+  const [isPlayerOpen, setIsPlayerOpen] = useState(false);
+
   const { data: videos = [] } = useQuery<Video[]>({
     queryKey: ["videos"],
     queryFn: async () => {
@@ -18,8 +23,19 @@ export default function Replays() {
     },
   });
 
-  const handleVideoClick = async (videoId: number) => {
-    await fetch(`/api/videos/${videoId}/view`, { method: "POST" });
+  const handleVideoClick = async (video: Video) => {
+    await fetch(`/api/videos/${video.id}/view`, { method: "POST" });
+    setSelectedVideo(video);
+    setIsPlayerOpen(true);
+  };
+
+  const getThumbnail = (video: Video, index: number) => {
+    if (video.thumbnailPath) {
+      return video.thumbnailPath.startsWith('/objects/') 
+        ? video.thumbnailPath 
+        : `/objects/${video.thumbnailPath}`;
+    }
+    return fallbackImages[index % fallbackImages.length];
   };
 
   return (
@@ -42,7 +58,7 @@ export default function Replays() {
               <div 
                 key={video.id} 
                 className="group cursor-pointer"
-                onClick={() => handleVideoClick(video.id)}
+                onClick={() => handleVideoClick(video)}
                 data-testid={`video-card-${video.id}`}
               >
                 <div className="overflow-hidden rounded-lg aspect-[16/9] mb-4 relative bg-zinc-200">
@@ -52,7 +68,7 @@ export default function Replays() {
                     </div>
                   </div>
                   <img 
-                    src={fallbackImages[index % fallbackImages.length]} 
+                    src={getThumbnail(video, index)} 
                     alt={video.title}
                     className="w-full h-full object-cover transform group-hover:scale-105 transition-transform duration-700 ease-out"
                   />
@@ -76,6 +92,15 @@ export default function Replays() {
           </div>
         )}
       </div>
+
+      <VideoPlayerModal 
+        video={selectedVideo} 
+        open={isPlayerOpen} 
+        onClose={() => {
+          setIsPlayerOpen(false);
+          setSelectedVideo(null);
+        }} 
+      />
     </div>
   );
 }

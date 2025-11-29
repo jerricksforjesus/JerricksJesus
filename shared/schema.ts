@@ -13,6 +13,7 @@ export const videos = pgTable("videos", {
   id: serial("id").primaryKey(),
   title: text("title").notNull(),
   objectPath: text("object_path").notNull(),
+  thumbnailPath: text("thumbnail_path"),
   recordedDate: text("recorded_date").notNull(),
   duration: text("duration"),
   views: integer("views").default(0).notNull(),
