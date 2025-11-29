@@ -177,11 +177,11 @@ export async function registerRoutes(
     }
   });
 
-  // Object Storage Serving Route (public access)
+  // Object Storage Serving Route (public access with range request support for video seeking)
   app.get("/objects/:objectPath(*)", async (req, res) => {
     try {
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      objectStorageService.downloadObject(objectFile, res);
+      objectStorageService.downloadObject(objectFile, res, req);
     } catch (error) {
       console.error("Error serving object:", error);
       if (error instanceof ObjectNotFoundError) {
