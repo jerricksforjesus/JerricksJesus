@@ -16,11 +16,10 @@ export default function Home() {
       <LiveStreamSection />
       <ReplaysList />
       <MinistryAccordion />
-      
       <footer className="bg-foreground text-background py-16 px-6">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12">
           <div>
-            <h2 className="text-4xl font-serif font-bold mb-6">JERRICKS</h2>
+            <h2 className="text-4xl font-serif font-bold mb-6">JERRICKS FOR JESUS</h2>
             <p className="text-background/60 max-w-md">
               A sanctuary for the digital age. Bringing the word of God to wherever you are.
             </p>
