@@ -19,6 +19,7 @@ export function Navigation() {
   const navLinks = [
     { href: "/", label: "Sanctuary" },
     { href: "/live", label: "Live Stream" },
+    { href: "/replays", label: "Replays" },
     { href: "/admin", label: "Admin" }, // For demo purposes
   ];
 

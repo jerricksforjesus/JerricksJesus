@@ -1,7 +1,8 @@
 import { Navigation } from "@/components/Navigation";
 import { Hero } from "@/components/Hero";
 import { VerseDisplay } from "@/components/VerseDisplay";
-import { ReplayGallery } from "@/components/ReplayGallery";
+import { FeaturedVideo } from "@/components/FeaturedVideo";
+import { LiveStreamSection } from "@/components/LiveStreamSection";
 import { MinistryAccordion } from "@/components/MinistryAccordion";
 
 export default function Home() {
@@ -10,7 +11,8 @@ export default function Home() {
       <Navigation />
       <Hero />
       <VerseDisplay />
-      <ReplayGallery />
+      <FeaturedVideo />
+      <LiveStreamSection />
       <MinistryAccordion />
       
       <footer className="bg-foreground text-background py-16 px-6">
