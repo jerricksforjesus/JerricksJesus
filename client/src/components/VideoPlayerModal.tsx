@@ -23,6 +23,8 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
   const [showControls, setShowControls] = useState(true);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
+  const [isSeeking, setIsSeeking] = useState(false);
+  const [seekValue, setSeekValue] = useState(0);
 
   const getVideoUrl = useCallback(() => {
     if (!video) return '';
@@ -77,7 +79,7 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
   };
 
   const handleTimeUpdate = () => {
-    if (videoRef.current) {
+    if (videoRef.current && !isSeeking) {
       setCurrentTime(videoRef.current.currentTime);
     }
   };
@@ -88,12 +90,22 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
     }
   };
 
+  const handleSeekStart = () => {
+    setIsSeeking(true);
+  };
+
   const handleSeekChange = (value: number[]) => {
+    setSeekValue(value[0]);
+    setCurrentTime(value[0] * duration);
+  };
+
+  const handleSeekEnd = (value: number[]) => {
     const newTime = value[0] * duration;
-    setCurrentTime(newTime);
     if (videoRef.current) {
       videoRef.current.currentTime = newTime;
     }
+    setCurrentTime(newTime);
+    setIsSeeking(false);
   };
 
   const handleSkipBack = () => {
@@ -135,7 +147,7 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
   };
 
   const playbackRates = [0.5, 0.75, 1, 1.25, 1.5, 2];
-  const progress = duration > 0 ? currentTime / duration : 0;
+  const progress = isSeeking ? seekValue : (duration > 0 ? currentTime / duration : 0);
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onClose()}>
@@ -187,7 +199,9 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
                     min={0}
                     max={1}
                     step={0.001}
+                    onPointerDown={handleSeekStart}
                     onValueChange={handleSeekChange}
+                    onValueCommit={handleSeekEnd}
                     className="cursor-pointer [&>span:first-child]:h-1.5 [&>span:first-child]:bg-white/30 [&_[role=slider]]:h-4 [&_[role=slider]]:w-4 [&_[role=slider]]:border-0 [&>span:first-child_span]:bg-primary"
                     data-testid="slider-timeline"
                   />
