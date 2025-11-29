@@ -18,6 +18,7 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
   const [playing, setPlaying] = useState(false);
   const [volume, setVolume] = useState(0.8);
   const [muted, setMuted] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [showControls, setShowControls] = useState(true);
@@ -46,8 +47,26 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
 
   useEffect(() => {
     if (open && videoRef.current) {
-      videoRef.current.play().catch(() => {});
-      setPlaying(true);
+      const playVideo = async () => {
+        try {
+          await videoRef.current?.play();
+          setPlaying(true);
+        } catch (error) {
+          videoRef.current!.muted = true;
+          setMuted(true);
+          try {
+            await videoRef.current?.play();
+            setPlaying(true);
+          } catch (e) {
+            setPlaying(false);
+          }
+        }
+      };
+      playVideo();
+    }
+    
+    if (!open) {
+      setHasInteracted(false);
     }
   }, [open]);
 
@@ -115,10 +134,21 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
 
   const handlePlayPause = () => {
     if (videoRef.current) {
+      if (muted && playing && !hasInteracted) {
+        setHasInteracted(true);
+        videoRef.current.muted = false;
+        setMuted(false);
+        return;
+      }
+      
+      if (!hasInteracted) {
+        setHasInteracted(true);
+      }
+      
       if (playing) {
         videoRef.current.pause();
       } else {
-        videoRef.current.play();
+        videoRef.current.play().catch(() => {});
       }
       setPlaying(!playing);
     }
@@ -240,6 +270,8 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
                   onPause={() => setPlaying(false)}
                   onEnded={() => setPlaying(false)}
                   crossOrigin="anonymous"
+                  playsInline
+                  webkit-playsinline="true"
                   data-testid="video-player"
                 >
                   {hasCaptions && getCaptionsUrl() && (
@@ -260,6 +292,13 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
                         {currentCaption}
                       </span>
                     </div>
+                  </div>
+                )}
+                
+                {muted && playing && !hasInteracted && (
+                  <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-2 rounded-lg flex items-center gap-2 animate-pulse">
+                    <VolumeX className="w-4 h-4" />
+                    <span className="text-sm">Tap to unmute</span>
                   </div>
                 )}
               </div>
