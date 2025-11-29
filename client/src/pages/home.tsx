@@ -3,6 +3,7 @@ import { Hero } from "@/components/Hero";
 import { VerseDisplay } from "@/components/VerseDisplay";
 import { FeaturedVideo } from "@/components/FeaturedVideo";
 import { LiveStreamSection } from "@/components/LiveStreamSection";
+import { ReplaysList } from "@/components/ReplaysList";
 import { MinistryAccordion } from "@/components/MinistryAccordion";
 
 export default function Home() {
@@ -13,6 +14,7 @@ export default function Home() {
       <VerseDisplay />
       <FeaturedVideo />
       <LiveStreamSection />
+      <ReplaysList />
       <MinistryAccordion />
       
       <footer className="bg-foreground text-background py-16 px-6">
