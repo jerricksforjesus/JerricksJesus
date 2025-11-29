@@ -247,7 +247,7 @@ export async function registerRoutes(
         return res.json({ isLive: false, videoId: null, title: null });
       }
       
-      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=UC${channelId}&eventType=live&type=video&key=${apiKey}`;
+      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video&key=${apiKey}`;
       
       const response = await fetch(searchUrl);
       if (!response.ok) {
