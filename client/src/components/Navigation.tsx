@@ -32,9 +32,7 @@ export function Navigation() {
     >
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <Link href="/">
-          <span className="cursor-pointer font-serif text-2xl md:text-3xl font-bold tracking-tighter hover:opacity-80 transition-opacity">
-            JERRICKS
-          </span>
+          <span className="cursor-pointer font-serif text-2xl md:text-3xl font-bold tracking-tighter hover:opacity-80 transition-opacity">JERRICKS FOR JESUS</span>
         </Link>
 
         {/* Desktop Nav */}
@@ -66,7 +64,6 @@ export function Navigation() {
           {mobileMenuOpen ? <X /> : <Menu />}
         </button>
       </div>
-
       {/* Mobile Nav */}
       {mobileMenuOpen && (
         <div className="absolute top-full left-0 right-0 bg-background border-b p-6 md:hidden flex flex-col gap-4 animate-in slide-in-from-top-5">
