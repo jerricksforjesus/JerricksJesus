@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { X, Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward, Settings } from "lucide-react";
+import { X, Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward, Settings, Subtitles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import type { Video } from "@shared/schema";
@@ -25,6 +25,8 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
   const [showSpeedMenu, setShowSpeedMenu] = useState(false);
   const [isSeeking, setIsSeeking] = useState(false);
   const [seekValue, setSeekValue] = useState(0);
+  const [captionsEnabled, setCaptionsEnabled] = useState(false);
+  const [currentCaption, setCurrentCaption] = useState("");
 
   const getVideoUrl = useCallback(() => {
     if (!video) return '';
@@ -32,6 +34,15 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
       ? video.objectPath 
       : `/objects/${video.objectPath}`;
   }, [video]);
+
+  const getCaptionsUrl = useCallback(() => {
+    if (!video?.captionsPath) return null;
+    return video.captionsPath.startsWith('/objects/') 
+      ? video.captionsPath 
+      : `/objects/${video.captionsPath}`;
+  }, [video]);
+
+  const hasCaptions = video?.captionStatus === 'ready' && video?.captionsPath;
 
   useEffect(() => {
     if (open && videoRef.current) {
@@ -57,6 +68,50 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
       videoRef.current.playbackRate = playbackRate;
     }
   }, [playbackRate]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !hasCaptions) return;
+    
+    const handleCueChange = (e: Event) => {
+      const track = e.target as TextTrack;
+      if (track.activeCues && track.activeCues.length > 0) {
+        const cue = track.activeCues[0] as VTTCue;
+        setCurrentCaption(cue.text);
+      } else {
+        setCurrentCaption("");
+      }
+    };
+
+    const setupTrack = () => {
+      const track = video.textTracks[0];
+      if (track) {
+        track.mode = captionsEnabled ? "showing" : "disabled";
+        if (track.mode === "showing") {
+          track.mode = "hidden";
+        }
+        track.addEventListener("cuechange", handleCueChange);
+      }
+    };
+
+    if (video.textTracks.length > 0) {
+      setupTrack();
+    } else {
+      video.addEventListener("loadedmetadata", setupTrack, { once: true });
+    }
+
+    return () => {
+      const track = video.textTracks[0];
+      if (track) {
+        track.removeEventListener("cuechange", handleCueChange);
+      }
+      video.removeEventListener("loadedmetadata", setupTrack);
+    };
+  }, [captionsEnabled, hasCaptions, open]);
+
+  const handleToggleCaptions = () => {
+    setCaptionsEnabled(!captionsEnabled);
+  };
 
   const handlePlayPause = () => {
     if (videoRef.current) {
@@ -184,8 +239,29 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
                   onPlay={() => setPlaying(true)}
                   onPause={() => setPlaying(false)}
                   onEnded={() => setPlaying(false)}
+                  crossOrigin="anonymous"
                   data-testid="video-player"
-                />
+                >
+                  {hasCaptions && getCaptionsUrl() && (
+                    <track
+                      kind="captions"
+                      src={getCaptionsUrl()!}
+                      srcLang="en"
+                      label="English"
+                      default
+                    />
+                  )}
+                </video>
+                
+                {captionsEnabled && currentCaption && (
+                  <div className="absolute bottom-20 left-0 right-0 flex justify-center pointer-events-none">
+                    <div className="bg-black/80 px-4 py-2 rounded-lg max-w-[80%] text-center">
+                      <span className="text-white text-lg font-medium" data-testid="text-caption">
+                        {currentCaption}
+                      </span>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div 
@@ -266,6 +342,19 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
                   </div>
 
                   <div className="flex items-center gap-2">
+                    {hasCaptions && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`text-white hover:bg-white/20 h-9 w-9 ${captionsEnabled ? 'bg-white/30' : ''}`}
+                        onClick={handleToggleCaptions}
+                        data-testid="button-captions"
+                        title={captionsEnabled ? "Disable captions" : "Enable captions"}
+                      >
+                        <Subtitles className="w-5 h-5" />
+                      </Button>
+                    )}
+                    
                     <div className="relative">
                       <Button
                         variant="ghost"

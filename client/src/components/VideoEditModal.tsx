@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { Upload, Image as ImageIcon } from "lucide-react";
+import { useMutation, useQueryClient, useQuery } from "@tanstack/react-query";
+import { Upload, Image as ImageIcon, Subtitles, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import type { Video } from "@shared/schema";
 import { ObjectUploader } from "./ObjectUploader";
 
@@ -35,6 +35,24 @@ export function VideoEditModal({ video, open, onClose }: VideoEditModalProps) {
     }
   }, [video]);
 
+  const { data: captionStatus, refetch: refetchCaptionStatus } = useQuery({
+    queryKey: ["caption-status", video?.id],
+    queryFn: async () => {
+      const response = await fetch(`/api/videos/${video?.id}/caption-status`);
+      if (!response.ok) throw new Error("Failed to fetch caption status");
+      const data = await response.json();
+      if (data.status === "ready") {
+        queryClient.invalidateQueries({ queryKey: ["videos"] });
+      }
+      return data;
+    },
+    enabled: !!video && open,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      return data?.status === "generating" ? 3000 : false;
+    },
+  });
+
   const updateMutation = useMutation({
     mutationFn: async (data: { title?: string; thumbnailPath?: string }) => {
       const response = await fetch(`/api/videos/${video?.id}`, {
@@ -57,6 +75,30 @@ export function VideoEditModal({ video, open, onClose }: VideoEditModalProps) {
       toast({
         title: "Update Failed",
         description: "Failed to update the video. Please try again.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const generateCaptionsMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/videos/${video?.id}/generate-captions`, {
+        method: "POST",
+      });
+      if (!response.ok) throw new Error("Failed to start caption generation");
+      return response.json();
+    },
+    onSuccess: () => {
+      refetchCaptionStatus();
+      toast({
+        title: "Caption Generation Started",
+        description: "AI is generating captions for this video. This may take a few minutes.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Caption Generation Failed",
+        description: "Failed to start caption generation. Please try again.",
         variant: "destructive",
       });
     },
@@ -136,6 +178,67 @@ export function VideoEditModal({ video, open, onClose }: VideoEditModalProps) {
                 <Upload className="w-4 h-4 mr-2" /> 
                 {thumbnailUrl ? "Change Thumbnail" : "Upload Thumbnail"}
               </ObjectUploader>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label>Closed Captions</Label>
+            <div className="border rounded-lg p-4 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <Subtitles className="w-5 h-5 text-muted-foreground" />
+                  <div>
+                    {captionStatus?.status === "ready" && (
+                      <div className="flex items-center gap-1.5 text-green-600">
+                        <CheckCircle className="w-4 h-4" />
+                        <span className="text-sm font-medium">Captions Available</span>
+                      </div>
+                    )}
+                    {captionStatus?.status === "generating" && (
+                      <div className="flex items-center gap-1.5 text-blue-600">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="text-sm font-medium">Generating Captions...</span>
+                      </div>
+                    )}
+                    {captionStatus?.status === "failed" && (
+                      <div className="flex items-center gap-1.5 text-red-600">
+                        <AlertCircle className="w-4 h-4" />
+                        <span className="text-sm font-medium">Caption Generation Failed</span>
+                      </div>
+                    )}
+                    {(!captionStatus || captionStatus?.status === "none") && (
+                      <span className="text-sm text-muted-foreground">No captions generated</span>
+                    )}
+                  </div>
+                </div>
+                
+                {captionStatus?.status !== "generating" && (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => generateCaptionsMutation.mutate()}
+                    disabled={generateCaptionsMutation.isPending}
+                    data-testid="button-generate-captions"
+                  >
+                    {generateCaptionsMutation.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Starting...
+                      </>
+                    ) : (
+                      <>
+                        <Subtitles className="w-4 h-4 mr-2" />
+                        {captionStatus?.status === "ready" || captionStatus?.status === "failed" 
+                          ? "Regenerate" 
+                          : "Generate Captions"}
+                      </>
+                    )}
+                  </Button>
+                )}
+              </div>
+              <p className="text-xs text-muted-foreground mt-2">
+                AI-powered captions are generated from the audio. This may take a few minutes for longer videos.
+              </p>
             </div>
           </div>
         </div>

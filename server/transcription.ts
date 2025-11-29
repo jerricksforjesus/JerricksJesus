@@ -32,9 +32,25 @@ function isRateLimitError(error: any): boolean {
   );
 }
 
+function isTransientError(error: any): boolean {
+  const errorMsg = error?.message || String(error);
+  const statusMatch = errorMsg.match(/(\d{3})/);
+  if (statusMatch) {
+    const status = parseInt(statusMatch[1], 10);
+    if (status >= 500 && status < 600) return true;
+    if (status === 429) return true;
+  }
+  if (isRateLimitError(error)) return true;
+  if (errorMsg.includes("ECONNRESET") || 
+      errorMsg.includes("ETIMEDOUT") || 
+      errorMsg.includes("network") ||
+      errorMsg.includes("fetch failed")) return true;
+  return false;
+}
+
 async function retryWithBackoff<T>(
   fn: () => Promise<T>,
-  maxRetries: number = 5,
+  maxRetries: number = 7,
   initialDelay: number = 2000
 ): Promise<T> {
   let lastError: Error | undefined;
@@ -44,11 +60,19 @@ async function retryWithBackoff<T>(
       return await fn();
     } catch (error: any) {
       lastError = error;
-      if (!isRateLimitError(error) && attempt > 0) {
+      
+      if (!isTransientError(error)) {
+        console.log(`Non-retryable error encountered: ${error.message}`);
         throw error;
       }
+      
+      if (attempt === maxRetries - 1) {
+        console.log(`Max retries (${maxRetries}) exceeded`);
+        throw error;
+      }
+      
       const delay = initialDelay * Math.pow(2, attempt);
-      console.log(`Retry attempt ${attempt + 1}/${maxRetries}, waiting ${delay}ms...`);
+      console.log(`Transient error, retry attempt ${attempt + 1}/${maxRetries}, waiting ${delay}ms...`);
       await new Promise(resolve => setTimeout(resolve, delay));
     }
   }
@@ -210,6 +234,8 @@ export async function transcribeVideo(objectPath: string): Promise<string> {
     const chunks = await chunkAudio(audioPath, tempDir);
     console.log(`Processing ${chunks.length} audio chunk(s)...`);
     
+    const totalDuration = await getAudioDuration(audioPath);
+    
     const limit = pLimit(2);
     const allSegments: TranscriptionSegment[] = [];
     
@@ -230,9 +256,15 @@ export async function transcribeVideo(objectPath: string): Promise<string> {
     
     allSegments.sort((a, b) => a.startTime - b.startTime);
     
-    console.log(`Generated ${allSegments.length} caption segments`);
+    const clampedSegments = allSegments.map(seg => ({
+      ...seg,
+      startTime: Math.max(0, Math.min(seg.startTime, totalDuration)),
+      endTime: Math.max(0, Math.min(seg.endTime, totalDuration))
+    })).filter(seg => seg.startTime < seg.endTime);
     
-    const vttContent = generateVTT(allSegments);
+    console.log(`Generated ${clampedSegments.length} caption segments`);
+    
+    const vttContent = generateVTT(clampedSegments);
     return vttContent;
     
   } finally {
