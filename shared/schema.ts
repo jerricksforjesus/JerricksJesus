@@ -14,6 +14,8 @@ export const videos = pgTable("videos", {
   title: text("title").notNull(),
   objectPath: text("object_path").notNull(),
   thumbnailPath: text("thumbnail_path"),
+  captionsPath: text("captions_path"),
+  captionStatus: text("caption_status").default("none").notNull(),
   recordedDate: text("recorded_date").notNull(),
   duration: text("duration"),
   views: integer("views").default(0).notNull(),
