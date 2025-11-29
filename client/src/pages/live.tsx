@@ -1,11 +1,33 @@
 import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { useState } from "react";
-import { Video, Users, MessageCircle, Heart } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Video, Heart, Calendar, Clock, Radio } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+
+interface LiveStatus {
+  isLive: boolean;
+  videoId: string | null;
+  title: string | null;
+}
 
 export default function LiveStream() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [chatKey, setChatKey] = useState(0);
+
+  const { data: liveStatus, isLoading } = useQuery<LiveStatus>({
+    queryKey: ["live-status"],
+    queryFn: async () => {
+      const response = await fetch("/api/youtube/live-status");
+      if (!response.ok) throw new Error("Failed to fetch live status");
+      return response.json();
+    },
+    refetchInterval: 30000,
+  });
+
+  const isLive = liveStatus?.isLive ?? false;
+  const videoId = liveStatus?.videoId;
+  const streamTitle = liveStatus?.title || "Live Service";
+
+  const embedDomain = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -15,35 +37,48 @@ export default function LiveStream() {
         {/* Main Video Area */}
         <div className="lg:col-span-3 space-y-6">
           <div className="aspect-video bg-black rounded-xl overflow-hidden relative shadow-2xl">
-            {!isLoggedIn ? (
+            {isLoading ? (
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 text-white">
+                <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+                <p className="text-zinc-400">Checking stream status...</p>
+              </div>
+            ) : isLive && videoId ? (
+              <>
+                <div className="absolute top-4 left-4 z-10 bg-red-600 px-3 py-1 rounded-full text-white text-sm font-bold flex items-center gap-2">
+                  <Radio className="w-4 h-4 animate-pulse" /> LIVE
+                </div>
+                <iframe
+                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+                  className="w-full h-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                  title="Live Stream"
+                  data-testid="youtube-live-embed"
+                />
+              </>
+            ) : (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 text-white p-6 text-center">
                 <Video className="w-16 h-16 mb-6 text-primary opacity-80" />
-                <h2 className="text-3xl font-serif mb-4">Join the Live Sanctuary</h2>
+                <h2 className="text-3xl font-serif mb-4">We're Currently Offline</h2>
                 <p className="text-zinc-400 max-w-md mb-8">
-                  Connect with your Zoom account to participate in the service, chat with members, and be part of the fellowship.
+                  Join us for our next live service. The stream will appear here automatically when we go live.
                 </p>
-                <Button 
-                  size="lg" 
-                  className="bg-[#2D8CFF] hover:bg-[#2D8CFF]/90 text-white font-bold px-8 py-6 text-lg rounded-full"
-                  onClick={() => setIsLoggedIn(true)}
-                >
-                  Sign in with Zoom
-                </Button>
-              </div>
-            ) : (
-              <div className="relative w-full h-full bg-zinc-800">
-                {/* Mock Zoom Interface */}
-                <div className="absolute top-4 right-4 z-10 bg-black/50 px-3 py-1 rounded text-white text-sm flex items-center gap-2">
-                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse"/> LIVE
-                </div>
-                <div className="w-full h-full flex items-center justify-center text-white/20">
-                  <span className="text-2xl font-serif">Stream Feed Connected...</span>
-                </div>
                 
-                {/* Mock Controls */}
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 flex justify-center gap-4">
-                   <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center text-red-500"><Video className="w-5 h-5" /></div>
-                   <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white"><Users className="w-5 h-5" /></div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg w-full">
+                  <div className="bg-zinc-800/50 rounded-xl p-4 text-left">
+                    <div className="flex items-center gap-2 text-primary mb-2">
+                      <Calendar className="w-4 h-4" />
+                      <span className="text-sm font-medium">Sunday Service</span>
+                    </div>
+                    <p className="text-lg font-serif">10:00 AM EST</p>
+                  </div>
+                  <div className="bg-zinc-800/50 rounded-xl p-4 text-left">
+                    <div className="flex items-center gap-2 text-primary mb-2">
+                      <Clock className="w-4 h-4" />
+                      <span className="text-sm font-medium">Wednesday Bible Study</span>
+                    </div>
+                    <p className="text-lg font-serif">7:00 PM EST</p>
+                  </div>
                 </div>
               </div>
             )}
@@ -51,58 +86,57 @@ export default function LiveStream() {
 
           <div className="flex justify-between items-start">
             <div>
-              <h1 className="text-2xl md:text-3xl font-serif font-bold">Sunday Morning Service</h1>
-              <p className="text-muted-foreground mt-2">Started streaming 15 minutes ago</p>
+              <h1 className="text-2xl md:text-3xl font-serif font-bold" data-testid="text-stream-title">
+                {isLive ? streamTitle : "Live Stream"}
+              </h1>
+              <p className="text-muted-foreground mt-2">
+                {isLive ? "Currently streaming live" : "Check back during service times"}
+              </p>
             </div>
-            <Button variant="outline" className="gap-2">
+            <Button variant="outline" className="gap-2" data-testid="button-offering">
               <Heart className="w-4 h-4 text-primary" /> Give Offering
             </Button>
           </div>
         </div>
 
         {/* Chat Sidebar */}
-        <div className="lg:col-span-1 h-[600px] lg:h-auto bg-card rounded-xl border border-border/50 flex flex-col shadow-lg">
-          <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/30 rounded-t-xl">
+        <div className="lg:col-span-1 h-[600px] lg:h-auto bg-card rounded-xl border border-border/50 flex flex-col shadow-lg overflow-hidden">
+          <div className="p-4 border-b border-border/50 flex items-center justify-between bg-muted/30">
             <h3 className="font-bold text-sm uppercase tracking-wider flex items-center gap-2">
-              <MessageCircle className="w-4 h-4" /> Live Chat
+              Live Chat
             </h3>
-            <span className="text-xs text-green-600 font-medium flex items-center gap-1">
-              <span className="w-1.5 h-1.5 bg-green-600 rounded-full" /> 124 Online
-            </span>
+            {isLive && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                className="text-xs"
+                onClick={() => setChatKey(k => k + 1)}
+              >
+                Refresh
+              </Button>
+            )}
           </div>
           
-          <div className="flex-1 p-4 space-y-4 overflow-y-auto">
-            {/* Mock Chat Messages */}
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">SJ</div>
-              <div>
-                <span className="text-xs font-bold text-foreground/80">Sarah Jenkins</span>
-                <p className="text-sm text-muted-foreground">Good morning everyone! Blessed to be here.</p>
+          <div className="flex-1 relative">
+            {isLive && videoId ? (
+              <iframe
+                key={chatKey}
+                src={`https://www.youtube.com/live_chat?v=${videoId}&embed_domain=${embedDomain}`}
+                className="w-full h-full border-0"
+                title="Live Chat"
+                data-testid="youtube-chat-embed"
+              />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center">
+                <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center mb-4">
+                  <Video className="w-8 h-8 text-muted-foreground" />
+                </div>
+                <h4 className="font-serif text-lg mb-2">Chat Unavailable</h4>
+                <p className="text-sm text-muted-foreground">
+                  Live chat will be available when we go live. Join us during service times!
+                </p>
               </div>
-            </div>
-            <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-secondary/20 flex items-center justify-center text-xs font-bold text-secondary">MK</div>
-              <div>
-                <span className="text-xs font-bold text-foreground/80">Mike K.</span>
-                <p className="text-sm text-muted-foreground">Amen! The choir sounds beautiful today.</p>
-              </div>
-            </div>
-             <div className="flex gap-3">
-              <div className="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-xs font-bold text-blue-600">PA</div>
-              <div>
-                <span className="text-xs font-bold text-foreground/80">Pastor Adams</span>
-                <p className="text-sm text-muted-foreground">Welcome to all our online visitors!</p>
-              </div>
-            </div>
-          </div>
-
-          <div className="p-4 border-t border-border/50 bg-background rounded-b-xl">
-            <form className="flex gap-2" onSubmit={(e) => e.preventDefault()}>
-              <Input placeholder="Type a message..." className="flex-1" />
-              <Button type="submit" size="icon" className="shrink-0">
-                <MessageCircle className="w-4 h-4" />
-              </Button>
-            </form>
+            )}
           </div>
         </div>
       </div>

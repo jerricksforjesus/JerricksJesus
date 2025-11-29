@@ -232,6 +232,47 @@ export async function registerRoutes(
     }
   });
 
+  // YouTube Live Status Route
+  app.get("/api/youtube/live-status", async (req, res) => {
+    try {
+      const channelId = process.env.YOUTUBE_CHANNEL_ID;
+      const apiKey = process.env.YOUTUBE_API_KEY;
+      
+      if (!channelId) {
+        return res.json({ isLive: false, videoId: null, title: null });
+      }
+      
+      if (!apiKey) {
+        console.log("YouTube API key not configured, returning offline status");
+        return res.json({ isLive: false, videoId: null, title: null });
+      }
+      
+      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=UC${channelId}&eventType=live&type=video&key=${apiKey}`;
+      
+      const response = await fetch(searchUrl);
+      if (!response.ok) {
+        console.error("YouTube API error:", await response.text());
+        return res.json({ isLive: false, videoId: null, title: null });
+      }
+      
+      const data = await response.json();
+      
+      if (data.items && data.items.length > 0) {
+        const liveVideo = data.items[0];
+        return res.json({
+          isLive: true,
+          videoId: liveVideo.id.videoId,
+          title: liveVideo.snippet.title
+        });
+      }
+      
+      return res.json({ isLive: false, videoId: null, title: null });
+    } catch (error) {
+      console.error("Error checking live status:", error);
+      return res.json({ isLive: false, videoId: null, title: null });
+    }
+  });
+
   // Object Storage Serving Route (public access with range request support for video seeking)
   app.get("/objects/:objectPath(*)", async (req, res) => {
     try {
