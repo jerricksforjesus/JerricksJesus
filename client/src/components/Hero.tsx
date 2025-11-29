@@ -1,6 +1,15 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { Radio } from "lucide-react";
+import { Link } from "wouter";
 import heroBg from "@assets/generated_images/sunlight_through_stained_glass_in_modern_church.png";
+
+interface LiveStatus {
+  isLive: boolean;
+  videoId: string | null;
+  title: string | null;
+}
 
 export function Hero() {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -12,6 +21,18 @@ export function Hero() {
   const y = useTransform(scrollYProgress, [0, 1], ["0%", "50%"]);
   const opacity = useTransform(scrollYProgress, [0, 0.8], [1, 0]);
   const scale = useTransform(scrollYProgress, [0, 1], [1, 1.1]);
+
+  const { data: liveStatus } = useQuery<LiveStatus>({
+    queryKey: ["live-status"],
+    queryFn: async () => {
+      const response = await fetch("/api/youtube/live-status");
+      if (!response.ok) throw new Error("Failed to fetch live status");
+      return response.json();
+    },
+    refetchInterval: 30000,
+  });
+
+  const isLive = liveStatus?.isLive ?? false;
 
   return (
     <div ref={containerRef} className="relative h-[100vh] w-full overflow-hidden bg-background flex items-center justify-center">
@@ -27,6 +48,25 @@ export function Hero() {
           className="w-full h-full object-cover"
         />
       </motion.div>
+
+      {/* LIVE NOW Indicator */}
+      {isLive && (
+        <Link href="/live">
+          <motion.div
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="absolute top-24 left-1/2 -translate-x-1/2 z-30 cursor-pointer"
+            data-testid="link-live-indicator"
+          >
+            <div className="bg-red-600 text-white px-6 py-3 rounded-full shadow-lg flex items-center gap-3 hover:bg-red-700 transition-colors">
+              <Radio className="w-5 h-5 animate-pulse" />
+              <span className="font-bold uppercase tracking-wider text-sm">We're Live Now</span>
+              <span className="text-white/80 text-sm">Watch Service</span>
+            </div>
+          </motion.div>
+        </Link>
+      )}
 
       {/* Content */}
       <div className="relative z-20 text-center text-white px-4 max-w-4xl mx-auto">

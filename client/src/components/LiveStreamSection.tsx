@@ -1,10 +1,28 @@
-import { useState } from "react";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { Video, Users, MessageCircle, Heart } from "lucide-react";
+import { Video, Calendar, Clock, Radio } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Link } from "wouter";
+
+interface LiveStatus {
+  isLive: boolean;
+  videoId: string | null;
+  title: string | null;
+}
 
 export function LiveStreamSection() {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const { data: liveStatus, isLoading } = useQuery<LiveStatus>({
+    queryKey: ["live-status"],
+    queryFn: async () => {
+      const response = await fetch("/api/youtube/live-status");
+      if (!response.ok) throw new Error("Failed to fetch live status");
+      return response.json();
+    },
+    refetchInterval: 30000,
+  });
+
+  const isLive = liveStatus?.isLive ?? false;
+  const streamTitle = liveStatus?.title || "Sunday Morning Service";
 
   return (
     <section className="py-24 bg-background">
@@ -16,57 +34,76 @@ export function LiveStreamSection() {
           viewport={{ once: true }}
         >
           <div className="mb-12">
-            <h2 className="text-3xl md:text-4xl font-serif font-bold mb-2">Live Stream</h2>
-            <p className="text-muted-foreground">Join us for the live service right now.</p>
-          </div>
-
-          <div className="aspect-video bg-black rounded-xl overflow-hidden relative shadow-2xl">
-            {!isLoggedIn ? (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 text-white p-6 text-center">
-                <Video className="w-16 h-16 mb-6 text-primary opacity-80" data-testid="icon-video" />
-                <h2 className="text-3xl font-serif mb-4">Join the Live Sanctuary</h2>
-                <p className="text-zinc-400 max-w-md mb-8">
-                  Connect with your Zoom account to participate in the service, chat with members, and be part of the fellowship.
-                </p>
-                <Button 
-                  size="lg" 
-                  className="bg-[#2D8CFF] hover:bg-[#2D8CFF]/90 text-white font-bold px-8 py-6 text-lg rounded-full"
-                  onClick={() => setIsLoggedIn(true)}
-                  data-testid="button-signin-zoom"
-                >
-                  Sign in with Zoom
-                </Button>
-              </div>
-            ) : (
-              <div className="relative w-full h-full bg-zinc-800">
-                <div className="absolute top-4 right-4 z-10 bg-black/50 px-3 py-1 rounded text-white text-sm flex items-center gap-2">
-                  <span className="w-2 h-2 bg-red-500 rounded-full animate-pulse" /> LIVE
-                </div>
-                <div className="w-full h-full flex items-center justify-center text-white/20">
-                  <span className="text-2xl font-serif">Stream Feed Connected...</span>
-                </div>
-                
-                <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-6 flex justify-center gap-4">
-                  <div className="w-10 h-10 rounded-full bg-red-500/20 flex items-center justify-center text-red-500">
-                    <Video className="w-5 h-5" />
-                  </div>
-                  <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white">
-                    <Users className="w-5 h-5" />
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="flex justify-between items-start mt-6">
-            <div>
-              <h3 className="text-2xl font-serif font-bold">Sunday Morning Service</h3>
-              <p className="text-muted-foreground mt-2">Started streaming 15 minutes ago</p>
+            <div className="flex items-center gap-4 mb-2">
+              <h2 className="text-3xl md:text-4xl font-serif font-bold">Live Stream</h2>
+              {isLive && (
+                <span className="bg-red-600 text-white px-3 py-1 rounded-full text-sm font-bold flex items-center gap-2">
+                  <Radio className="w-3 h-3 animate-pulse" /> LIVE
+                </span>
+              )}
             </div>
-            <Button variant="outline" className="gap-2">
-              <Heart className="w-4 h-4 text-primary" /> Give Offering
-            </Button>
+            <p className="text-muted-foreground">
+              {isLive ? "We're streaming live right now!" : "Join us for our next live service."}
+            </p>
           </div>
+
+          <Link href="/live">
+            <div className="aspect-video bg-black rounded-xl overflow-hidden relative shadow-2xl cursor-pointer group">
+              {isLoading ? (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 text-white">
+                  <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : isLive ? (
+                <div className="absolute inset-0 bg-gradient-to-br from-red-900/90 to-zinc-900 flex flex-col items-center justify-center text-white p-6 text-center">
+                  <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_white_0%,_transparent_70%)]" />
+                  
+                  <motion.div
+                    animate={{ scale: [1, 1.2, 1] }}
+                    transition={{ duration: 2, repeat: Infinity }}
+                    className="mb-6"
+                  >
+                    <Radio className="w-16 h-16 text-red-400" />
+                  </motion.div>
+                  
+                  <h3 className="text-3xl font-serif font-bold mb-2">{streamTitle}</h3>
+                  <p className="text-white/70 mb-6">Streaming live now</p>
+                  
+                  <Button 
+                    size="lg" 
+                    className="bg-white text-black hover:bg-white/90 font-bold px-8 group-hover:scale-105 transition-transform"
+                    data-testid="button-watch-live"
+                  >
+                    Watch Live
+                  </Button>
+                </div>
+              ) : (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 text-white p-6 text-center group-hover:bg-zinc-800 transition-colors">
+                  <Video className="w-16 h-16 mb-6 text-primary opacity-80" data-testid="icon-video" />
+                  <h3 className="text-3xl font-serif mb-4">Next Service</h3>
+                  <p className="text-zinc-400 max-w-md mb-8">
+                    The live stream will appear here automatically when we go live.
+                  </p>
+                  
+                  <div className="grid grid-cols-2 gap-6 max-w-md">
+                    <div className="text-left">
+                      <div className="flex items-center gap-2 text-primary mb-1">
+                        <Calendar className="w-4 h-4" />
+                        <span className="text-sm font-medium">Sunday</span>
+                      </div>
+                      <p className="text-lg font-serif">10:00 AM EST</p>
+                    </div>
+                    <div className="text-left">
+                      <div className="flex items-center gap-2 text-primary mb-1">
+                        <Clock className="w-4 h-4" />
+                        <span className="text-sm font-medium">Wednesday</span>
+                      </div>
+                      <p className="text-lg font-serif">7:00 PM EST</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+          </Link>
         </motion.div>
       </div>
     </section>
