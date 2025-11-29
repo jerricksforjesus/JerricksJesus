@@ -1,6 +1,7 @@
-import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, videos, verses } from "@shared/schema";
+import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, videos, verses, users } from "@shared/schema";
 import { db } from "./db";
 import { eq } from "drizzle-orm";
+import * as schema from "@shared/schema";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
