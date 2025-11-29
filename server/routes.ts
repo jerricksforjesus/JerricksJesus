@@ -4,6 +4,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
 import { insertVideoSchema, insertVerseSchema } from "@shared/schema";
+import { transcribeVideo, uploadCaptions } from "./transcription";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -110,6 +111,60 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error incrementing views:", error);
       res.status(500).json({ error: "Failed to increment views" });
+    }
+  });
+
+  app.post("/api/videos/:id/generate-captions", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const video = await storage.getVideo(id);
+      
+      if (!video) {
+        return res.status(404).json({ error: "Video not found" });
+      }
+      
+      if (video.captionStatus === "generating") {
+        return res.status(409).json({ error: "Caption generation already in progress" });
+      }
+      
+      await storage.updateVideoCaptionStatus(id, "generating");
+      res.json({ message: "Caption generation started", status: "generating" });
+      
+      (async () => {
+        try {
+          console.log(`Starting caption generation for video ${id}...`);
+          const vttContent = await transcribeVideo(video.objectPath);
+          const captionsPath = await uploadCaptions(vttContent, id);
+          await storage.updateVideoCaptions(id, captionsPath, "ready");
+          console.log(`Captions generated successfully for video ${id}`);
+        } catch (error) {
+          console.error(`Caption generation failed for video ${id}:`, error);
+          await storage.updateVideoCaptionStatus(id, "failed");
+        }
+      })();
+      
+    } catch (error) {
+      console.error("Error starting caption generation:", error);
+      res.status(500).json({ error: "Failed to start caption generation" });
+    }
+  });
+
+  app.get("/api/videos/:id/caption-status", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const video = await storage.getVideo(id);
+      
+      if (!video) {
+        return res.status(404).json({ error: "Video not found" });
+      }
+      
+      res.json({
+        status: video.captionStatus,
+        captionsPath: video.captionsPath
+      });
+    } catch (error) {
+      console.error("Error fetching caption status:", error);
+      res.status(500).json({ error: "Failed to fetch caption status" });
     }
   });
 
