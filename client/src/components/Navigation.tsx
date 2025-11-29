@@ -32,7 +32,10 @@ export function Navigation() {
     >
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <Link href="/">
-          <span className="cursor-pointer font-serif text-2xl md:text-3xl font-bold tracking-tighter hover:opacity-80 transition-opacity">JERRICKS FOR JESUS</span>
+          <span className={cn(
+            "cursor-pointer font-serif text-2xl md:text-3xl font-bold tracking-tighter hover:opacity-80 transition-colors duration-300",
+            isScrolled ? "text-foreground" : "text-white"
+          )}>JERRICKS FOR JESUS</span>
         </Link>
 
         {/* Desktop Nav */}
@@ -41,8 +44,10 @@ export function Navigation() {
             <Link key={link.href} href={link.href}>
               <span
                 className={cn(
-                  "cursor-pointer text-sm font-medium tracking-widest uppercase transition-colors hover:text-primary",
-                  location === link.href ? "text-primary" : "text-foreground/80"
+                  "cursor-pointer text-sm font-medium tracking-widest uppercase transition-colors duration-300 hover:text-primary",
+                  location === link.href 
+                    ? "text-primary" 
+                    : isScrolled ? "text-foreground/80" : "text-white/90"
                 )}
               >
                 {link.label}
@@ -58,7 +63,10 @@ export function Navigation() {
 
         {/* Mobile Menu Toggle */}
         <button
-          className="md:hidden"
+          className={cn(
+            "md:hidden transition-colors duration-300",
+            isScrolled ? "text-foreground" : "text-white"
+          )}
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
           {mobileMenuOpen ? <X /> : <Menu />}
