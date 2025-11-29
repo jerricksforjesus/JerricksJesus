@@ -14,6 +14,8 @@ export interface IStorage {
   updateVideo(id: number, data: Partial<InsertVideo>): Promise<Video | undefined>;
   deleteVideo(id: number): Promise<void>;
   incrementVideoViews(id: number): Promise<void>;
+  updateVideoCaptions(id: number, captionsPath: string, status: string): Promise<Video | undefined>;
+  updateVideoCaptionStatus(id: number, status: string): Promise<void>;
   
   getActiveVerse(): Promise<Verse | undefined>;
   getAllVerses(): Promise<Verse[]>;
@@ -78,6 +80,20 @@ export class DbStorage implements IStorage {
         .set({ views: video.views + 1 })
         .where(eq(videos.id, id));
     }
+  }
+
+  async updateVideoCaptions(id: number, captionsPath: string, status: string): Promise<Video | undefined> {
+    const [updated] = await db.update(videos)
+      .set({ captionsPath, captionStatus: status })
+      .where(eq(videos.id, id))
+      .returning();
+    return updated;
+  }
+
+  async updateVideoCaptionStatus(id: number, status: string): Promise<void> {
+    await db.update(videos)
+      .set({ captionStatus: status })
+      .where(eq(videos.id, id));
   }
 
   async getActiveVerse(): Promise<Verse | undefined> {
