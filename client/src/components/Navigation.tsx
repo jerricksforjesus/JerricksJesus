@@ -7,6 +7,8 @@ export function Navigation() {
   const [location] = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  
+  const isHomePage = location === "/";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -34,7 +36,7 @@ export function Navigation() {
         <Link href="/">
           <span className={cn(
             "cursor-pointer font-serif text-2xl md:text-3xl font-bold tracking-tighter hover:opacity-80 transition-colors duration-300",
-            isScrolled ? "text-foreground" : "text-white"
+            isHomePage && !isScrolled ? "text-white" : "text-foreground"
           )}>JERRICKS FOR JESUS</span>
         </Link>
 
@@ -47,7 +49,7 @@ export function Navigation() {
                   "cursor-pointer text-sm font-medium tracking-widest uppercase transition-colors duration-300 hover:text-primary",
                   location === link.href 
                     ? "text-primary" 
-                    : isScrolled ? "text-foreground/80" : "text-white/90"
+                    : isHomePage && !isScrolled ? "text-white/90" : "text-foreground/80"
                 )}
               >
                 {link.label}
@@ -65,7 +67,7 @@ export function Navigation() {
         <button
           className={cn(
             "md:hidden transition-colors duration-300",
-            isScrolled ? "text-foreground" : "text-white"
+            isHomePage && !isScrolled ? "text-white" : "text-foreground"
           )}
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
