@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect, useCallback } from "react";
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { X, Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward, Settings, Subtitles } from "lucide-react";
+import { X, Play, Pause, Volume2, VolumeX, Maximize, SkipBack, SkipForward, Settings, Subtitles, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import type { Video } from "@shared/schema";
@@ -28,25 +28,70 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
   const [seekValue, setSeekValue] = useState(0);
   const [captionsEnabled, setCaptionsEnabled] = useState(false);
   const [currentCaption, setCurrentCaption] = useState("");
+  const [signedVideoUrl, setSignedVideoUrl] = useState<string | null>(null);
+  const [signedCaptionsUrl, setSignedCaptionsUrl] = useState<string | null>(null);
+  const [isLoadingUrl, setIsLoadingUrl] = useState(false);
+  const [urlError, setUrlError] = useState<string | null>(null);
 
-  const getVideoUrl = useCallback(() => {
+  const getObjectPath = useCallback(() => {
     if (!video) return '';
     return video.objectPath.startsWith('/objects/') 
       ? video.objectPath 
       : `/objects/${video.objectPath}`;
   }, [video]);
 
-  const getCaptionsUrl = useCallback(() => {
+  const getCaptionsPath = useCallback(() => {
     if (!video?.captionsPath) return null;
     return video.captionsPath.startsWith('/objects/') 
       ? video.captionsPath 
       : `/objects/${video.captionsPath}`;
   }, [video]);
 
+  useEffect(() => {
+    if (!open || !video) {
+      setSignedVideoUrl(null);
+      setSignedCaptionsUrl(null);
+      setUrlError(null);
+      return;
+    }
+
+    const fetchSignedUrls = async () => {
+      setIsLoadingUrl(true);
+      setUrlError(null);
+      
+      try {
+        const videoPath = getObjectPath();
+        const captionsPath = getCaptionsPath();
+        
+        const videoResponse = await fetch(`/api/objects/signed-url?path=${encodeURIComponent(videoPath)}`);
+        if (!videoResponse.ok) {
+          throw new Error('Failed to get video URL');
+        }
+        const videoData = await videoResponse.json();
+        setSignedVideoUrl(videoData.url);
+        
+        if (captionsPath) {
+          const captionsResponse = await fetch(`/api/objects/signed-url?path=${encodeURIComponent(captionsPath)}`);
+          if (captionsResponse.ok) {
+            const captionsData = await captionsResponse.json();
+            setSignedCaptionsUrl(captionsData.url);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching signed URLs:', error);
+        setUrlError('Failed to load video. Please try again.');
+      } finally {
+        setIsLoadingUrl(false);
+      }
+    };
+
+    fetchSignedUrls();
+  }, [open, video, getObjectPath, getCaptionsPath]);
+
   const hasCaptions = video?.captionStatus === 'ready' && video?.captionsPath;
 
   useEffect(() => {
-    if (open && videoRef.current) {
+    if (open && videoRef.current && signedVideoUrl) {
       const playVideo = async () => {
         try {
           await videoRef.current?.play();
@@ -68,7 +113,7 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
     if (!open) {
       setHasInteracted(false);
     }
-  }, [open]);
+  }, [open, signedVideoUrl]);
 
   useEffect(() => {
     if (videoRef.current) {
@@ -251,6 +296,31 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
               <X className="w-5 h-5" />
             </Button>
             
+            {isLoadingUrl && (
+              <div className="aspect-video bg-black flex items-center justify-center">
+                <div className="text-white flex flex-col items-center gap-3">
+                  <Loader2 className="w-10 h-10 animate-spin" />
+                  <span>Loading video...</span>
+                </div>
+              </div>
+            )}
+
+            {urlError && (
+              <div className="aspect-video bg-black flex items-center justify-center">
+                <div className="text-white flex flex-col items-center gap-3 text-center p-4">
+                  <span className="text-red-400">{urlError}</span>
+                  <Button
+                    variant="outline"
+                    onClick={() => window.location.reload()}
+                    className="mt-2"
+                  >
+                    Retry
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            {!isLoadingUrl && !urlError && signedVideoUrl && (
             <div 
               className="relative group"
               onMouseEnter={() => setShowControls(true)}
@@ -262,22 +332,20 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
               >
                 <video
                   ref={videoRef}
-                  src={getVideoUrl()}
+                  src={signedVideoUrl}
                   className="w-full h-full"
                   onTimeUpdate={handleTimeUpdate}
                   onLoadedMetadata={handleLoadedMetadata}
                   onPlay={() => setPlaying(true)}
                   onPause={() => setPlaying(false)}
                   onEnded={() => setPlaying(false)}
-                  crossOrigin="anonymous"
                   playsInline
-                  webkit-playsinline="true"
                   data-testid="video-player"
                 >
-                  {hasCaptions && getCaptionsUrl() && (
+                  {hasCaptions && signedCaptionsUrl && (
                     <track
                       kind="captions"
-                      src={getCaptionsUrl()!}
+                      src={signedCaptionsUrl}
                       srcLang="en"
                       label="English"
                       default
@@ -436,6 +504,7 @@ export function VideoPlayerModal({ video, open, onClose }: VideoPlayerModalProps
                 </div>
               </div>
             </div>
+            )}
 
             <div className="p-6 bg-zinc-900 text-white">
               <h2 className="text-2xl font-serif font-bold mb-2" data-testid="text-player-title">

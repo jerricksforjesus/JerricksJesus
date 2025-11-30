@@ -308,3 +308,30 @@ async function signObjectURL({
   const { signed_url: signedURL } = await response.json();
   return signedURL;
 }
+
+// Get a signed URL for downloading/streaming an object (for production use)
+export async function getSignedDownloadURL(objectPath: string, ttlSec: number = 3600): Promise<string> {
+  if (!objectPath.startsWith("/objects/")) {
+    throw new Error("Invalid object path");
+  }
+
+  const parts = objectPath.slice(1).split("/");
+  if (parts.length < 2) {
+    throw new Error("Invalid object path format");
+  }
+
+  const entityId = parts.slice(1).join("/");
+  let entityDir = process.env.PRIVATE_OBJECT_DIR || "";
+  if (!entityDir.endsWith("/")) {
+    entityDir = `${entityDir}/`;
+  }
+  const objectEntityPath = `${entityDir}${entityId}`;
+  const { bucketName, objectName } = parseObjectPath(objectEntityPath);
+
+  return signObjectURL({
+    bucketName,
+    objectName,
+    method: "GET",
+    ttlSec,
+  });
+}

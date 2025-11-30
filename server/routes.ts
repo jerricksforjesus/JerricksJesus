@@ -2,7 +2,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { ObjectStorageService, ObjectNotFoundError } from "./objectStorage";
+import { ObjectStorageService, ObjectNotFoundError, getSignedDownloadURL } from "./objectStorage";
 import { insertVideoSchema, insertVerseSchema } from "@shared/schema";
 import { transcribeVideo, uploadCaptions } from "./transcription";
 
@@ -232,6 +232,23 @@ export async function registerRoutes(
     }
   });
 
+  // Get signed URL for video streaming (works in production without sidecar)
+  app.get("/api/objects/signed-url", async (req, res) => {
+    try {
+      const objectPath = req.query.path as string;
+      if (!objectPath || !objectPath.startsWith("/objects/")) {
+        return res.status(400).json({ error: "Invalid object path" });
+      }
+      
+      // Generate a signed URL valid for 1 hour (videos can be long)
+      const signedUrl = await getSignedDownloadURL(objectPath, 3600);
+      res.json({ url: signedUrl });
+    } catch (error: any) {
+      console.error("Error generating signed URL:", error?.message || error);
+      res.status(500).json({ error: "Failed to generate signed URL" });
+    }
+  });
+
   // YouTube Live Status Route
   app.get("/api/youtube/live-status", async (req, res) => {
     try {
@@ -287,23 +304,54 @@ export async function registerRoutes(
 
   // Object Storage Serving Route (public access with range request support for video seeking)
   app.get("/objects/:objectPath(*)", async (req, res) => {
+    const startTime = Date.now();
+    console.log(`[Object Serve] Starting request for: ${req.path}`);
+    
     try {
-      console.log("Serving object:", req.path);
-      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
-      console.log("Object file found, streaming...");
-      objectStorageService.downloadObject(objectFile, res, req);
-    } catch (error: any) {
-      console.error("Error serving object:", req.path);
-      console.error("Error details:", error?.message || error);
-      console.error("Stack:", error?.stack);
-      if (error instanceof ObjectNotFoundError) {
-        return res.sendStatus(404);
+      // Check environment variables first
+      const privateDir = process.env.PRIVATE_OBJECT_DIR;
+      console.log(`[Object Serve] PRIVATE_OBJECT_DIR: ${privateDir ? 'set' : 'NOT SET'}`);
+      
+      if (!privateDir) {
+        console.error("[Object Serve] PRIVATE_OBJECT_DIR environment variable is not set!");
+        return res.status(500).json({ 
+          error: "Server misconfigured",
+          message: "Storage configuration missing"
+        });
       }
-      return res.status(500).json({ 
-        error: "Failed to serve object",
-        path: req.path,
-        message: error?.message || "Unknown error"
-      });
+      
+      console.log(`[Object Serve] Getting object entity file...`);
+      const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      console.log(`[Object Serve] Object file found, streaming... (${Date.now() - startTime}ms)`);
+      
+      await objectStorageService.downloadObject(objectFile, res, req);
+      console.log(`[Object Serve] Stream started (${Date.now() - startTime}ms)`);
+    } catch (error: any) {
+      console.error(`[Object Serve] Error for ${req.path}:`, error?.message || error);
+      console.error(`[Object Serve] Stack:`, error?.stack);
+      
+      if (error instanceof ObjectNotFoundError) {
+        return res.status(404).json({ error: "Object not found", path: req.path });
+      }
+      
+      // More specific error messages
+      let errorMessage = "Unknown error";
+      if (error?.message?.includes("ECONNREFUSED")) {
+        errorMessage = "Storage service unavailable";
+      } else if (error?.message?.includes("token")) {
+        errorMessage = "Storage authentication failed";
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      if (!res.headersSent) {
+        return res.status(500).json({ 
+          error: "Failed to serve object",
+          path: req.path,
+          message: errorMessage,
+          timestamp: new Date().toISOString()
+        });
+      }
     }
   });
 
