@@ -288,14 +288,22 @@ export async function registerRoutes(
   // Object Storage Serving Route (public access with range request support for video seeking)
   app.get("/objects/:objectPath(*)", async (req, res) => {
     try {
+      console.log("Serving object:", req.path);
       const objectFile = await objectStorageService.getObjectEntityFile(req.path);
+      console.log("Object file found, streaming...");
       objectStorageService.downloadObject(objectFile, res, req);
-    } catch (error) {
-      console.error("Error serving object:", error);
+    } catch (error: any) {
+      console.error("Error serving object:", req.path);
+      console.error("Error details:", error?.message || error);
+      console.error("Stack:", error?.stack);
       if (error instanceof ObjectNotFoundError) {
         return res.sendStatus(404);
       }
-      return res.sendStatus(500);
+      return res.status(500).json({ 
+        error: "Failed to serve object",
+        path: req.path,
+        message: error?.message || "Unknown error"
+      });
     }
   });
 
