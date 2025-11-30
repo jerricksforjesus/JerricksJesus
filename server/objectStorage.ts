@@ -85,13 +85,21 @@ export class ObjectStorageService {
     return null;
   }
 
-  async downloadObject(file: File, res: Response, req?: { headers?: { range?: string } }, cacheTtlSec: number = 3600) {
+  async downloadObject(file: File, res: Response, req?: { headers?: { range?: string; origin?: string } }, cacheTtlSec: number = 3600) {
     try {
       const [metadata] = await file.getMetadata();
       const aclPolicy = await getObjectAclPolicy(file);
       const isPublic = aclPolicy?.visibility === "public";
       const fileSize = parseInt(metadata.size as string, 10);
       const contentType = metadata.contentType || "application/octet-stream";
+      
+      // Set CORS headers for video/audio playback with crossOrigin attribute
+      res.set({
+        "Access-Control-Allow-Origin": "*",
+        "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+        "Access-Control-Allow-Headers": "Range, Content-Type",
+        "Access-Control-Expose-Headers": "Content-Length, Content-Range, Accept-Ranges",
+      });
       
       const rangeHeader = req?.headers?.range;
       

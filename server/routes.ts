@@ -273,6 +273,18 @@ export async function registerRoutes(
     }
   });
 
+  // CORS preflight handler for object storage
+  app.options("/objects/:objectPath(*)", (req, res) => {
+    res.set({
+      "Access-Control-Allow-Origin": "*",
+      "Access-Control-Allow-Methods": "GET, HEAD, OPTIONS",
+      "Access-Control-Allow-Headers": "Range, Content-Type",
+      "Access-Control-Expose-Headers": "Content-Length, Content-Range, Accept-Ranges",
+      "Access-Control-Max-Age": "86400",
+    });
+    res.sendStatus(204);
+  });
+
   // Object Storage Serving Route (public access with range request support for video seeking)
   app.get("/objects/:objectPath(*)", async (req, res) => {
     try {
