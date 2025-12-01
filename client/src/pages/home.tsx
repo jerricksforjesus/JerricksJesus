@@ -28,7 +28,7 @@ export default function Home() {
             <div>
               <h4 className="font-bold uppercase tracking-widest mb-4 text-sm text-primary">Visit</h4>
               <p className="text-background/60">123 Faith Ave</p>
-              <p className="text-background/60">Grace City, GC 40291</p>
+              <p className="text-background/60">Williston Park NY 11596</p>
             </div>
             <div>
               <h4 className="font-bold uppercase tracking-widest mb-4 text-sm text-primary">Connect</h4>
