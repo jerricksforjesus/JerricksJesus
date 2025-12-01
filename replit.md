@@ -39,9 +39,14 @@ Preferred communication style: Simple, everyday language.
 - Custom scrolling behaviors and viewport-based animations throughout
 
 **Key Pages**
-1. Home (`/`) - Hero section, verse display, sermon gallery, family photo carousel, ministry accordion
+1. Home (`/`) - Hero section, verse display, sermon gallery, family photo carousel, ministry accordion with YouTube playlist integration
 2. Live Stream (`/live`) - Zoom integration placeholder for live services
 3. Admin Dashboard (`/admin`) - Content management for videos, verses, and family photos
+
+**YouTube Integration**
+- Worship & Music section displays videos from YouTube playlist (PLkDsdLHKY8laSsy8xYfILnVzFMedR0Rgy)
+- Videos fetched via YouTube Data API v3 with 5-minute caching to minimize API calls
+- Embedded YouTube player in modal for video playback
 
 ### Backend Architecture
 
