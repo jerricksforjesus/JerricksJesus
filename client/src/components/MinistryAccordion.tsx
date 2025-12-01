@@ -7,6 +7,7 @@ import {
 import { motion } from "framer-motion";
 import { WorshipMusicSection } from "./WorshipMusicSection";
 import { FamilyPhotoGallery } from "./FamilyPhotoGallery";
+import { CharityComingSoon } from "./CharityComingSoon";
 
 const ministries = [
   {
@@ -61,6 +62,7 @@ export function MinistryAccordion() {
                 </p>
                 {item.id === "item-1" && <WorshipMusicSection />}
                 {item.id === "item-2" && <FamilyPhotoGallery />}
+                {item.id === "item-3" && <CharityComingSoon />}
               </AccordionContent>
             </AccordionItem>
           ))}
