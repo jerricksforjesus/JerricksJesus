@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/accordion";
 import { motion } from "framer-motion";
 import { WorshipMusicSection } from "./WorshipMusicSection";
+import { FamilyPhotoGallery } from "./FamilyPhotoGallery";
 
 const ministries = [
   {
@@ -59,6 +60,7 @@ export function MinistryAccordion() {
                   {item.description}
                 </p>
                 {item.id === "item-1" && <WorshipMusicSection />}
+                {item.id === "item-2" && <FamilyPhotoGallery />}
               </AccordionContent>
             </AccordionItem>
           ))}
