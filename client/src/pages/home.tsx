@@ -33,7 +33,7 @@ export default function Home() {
             <div>
               <h4 className="font-bold uppercase tracking-widest mb-4 text-sm text-primary">Connect</h4>
               <p className="text-background/60">info@jerricks.church</p>
-              <p className="text-background/60">(555) 123-4567</p>
+              <p className="text-background/60">516-240-5503</p>
             </div>
           </div>
         </div>
