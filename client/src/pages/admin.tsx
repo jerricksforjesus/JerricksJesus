@@ -164,6 +164,60 @@ export default function AdminDashboard() {
     },
   });
 
+  const [bulkGenerating, setBulkGenerating] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<string | null>(null);
+
+  const generateAllMutation = useMutation({
+    mutationFn: async () => {
+      setBulkGenerating(true);
+      setBulkProgress("Starting bulk generation for all 66 books...");
+      
+      const response = await fetch("/api/admin/quiz/generate-all", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ skipExisting: true }),
+      });
+      
+      if (!response.ok) throw new Error("Failed to generate all questions");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["quiz-books"] });
+      toast({
+        title: "Bulk Generation Complete",
+        description: `Generated questions for ${data.successCount} books. ${data.failCount} failed, ${data.skippedCount} skipped.`,
+      });
+      setBulkGenerating(false);
+      setBulkProgress(null);
+    },
+    onError: () => {
+      toast({
+        title: "Bulk Generation Failed",
+        description: "Failed to generate questions. Please try again.",
+        variant: "destructive",
+      });
+      setBulkGenerating(false);
+      setBulkProgress(null);
+    },
+  });
+
+  const approveAllBooksMutation = useMutation({
+    mutationFn: async () => {
+      // Approve all questions for all books
+      const unapprovedBooks = quizBooks.filter(b => b.questionCount > 0 && b.approvedCount < b.questionCount);
+      for (const book of unapprovedBooks) {
+        await fetch(`/api/admin/quiz/approve-book/${encodeURIComponent(book.name)}`, { method: "POST" });
+      }
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quiz-books"] });
+      toast({
+        title: "All Questions Approved",
+        description: "All questions across all books are now live.",
+      });
+    },
+  });
+
   useEffect(() => {
     const fetchSignedUrls = async () => {
       const urls: Record<number, string> = {};
@@ -620,6 +674,55 @@ export default function AdminDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
+                {/* Bulk Actions */}
+                <div className="mb-6 p-4 bg-muted/50 rounded-lg border">
+                  <div className="flex flex-wrap items-center gap-4">
+                    <div className="flex-1 min-w-[200px]">
+                      <h3 className="font-semibold text-sm">Bulk Actions</h3>
+                      <p className="text-xs text-muted-foreground">
+                        Generate questions for all 66 books at once (one-time API cost)
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        onClick={() => generateAllMutation.mutate()}
+                        disabled={bulkGenerating}
+                        data-testid="button-generate-all-books"
+                      >
+                        {bulkGenerating ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Generating...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Generate All Books
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => approveAllBooksMutation.mutate()}
+                        disabled={quizBooks.every(b => b.approvedCount >= b.questionCount) || bulkGenerating}
+                        data-testid="button-approve-all-books"
+                      >
+                        <Check className="w-4 h-4 mr-2" />
+                        Approve All Books
+                      </Button>
+                    </div>
+                  </div>
+                  {bulkProgress && (
+                    <div className="mt-3 p-2 bg-blue-50 rounded text-sm text-blue-700">
+                      {bulkProgress}
+                    </div>
+                  )}
+                  <div className="mt-3 text-xs text-muted-foreground">
+                    Status: {quizBooks.filter(b => b.questionCount > 0).length}/66 books have questions | 
+                    {' '}{quizBooks.reduce((sum, b) => sum + b.approvedCount, 0)} approved questions total
+                  </div>
+                </div>
+
                 <div className="grid md:grid-cols-2 gap-6">
                   {/* Book Selection */}
                   <div>

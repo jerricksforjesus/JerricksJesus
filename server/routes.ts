@@ -569,6 +569,70 @@ export async function registerRoutes(
     }
   });
 
+  // Admin: Bulk generate questions for all books
+  app.post("/api/admin/quiz/generate-all", async (req, res) => {
+    try {
+      const { skipExisting = true } = req.body;
+      
+      console.log("Starting bulk question generation for all 66 books...");
+      
+      // Get current question counts to skip books that already have questions
+      const existingCounts = await storage.getQuestionCountByBook();
+      const existingBooks = new Set(
+        existingCounts
+          .filter((b: { book: string; count: number }) => b.count >= 10)
+          .map((b: { book: string; count: number }) => b.book)
+      );
+      
+      const booksToGenerate = skipExisting 
+        ? ALL_BIBLE_BOOKS.filter(book => !existingBooks.has(book))
+        : ALL_BIBLE_BOOKS;
+      
+      console.log(`Will generate for ${booksToGenerate.length} books (skipping ${existingBooks.size} with existing questions)`);
+      
+      const results: { book: string; success: boolean; count?: number; error?: string }[] = [];
+      let successCount = 0;
+      let failCount = 0;
+      
+      // Process books sequentially with small delay to avoid rate limiting
+      for (const book of booksToGenerate) {
+        try {
+          console.log(`Generating questions for ${book} (${results.length + 1}/${booksToGenerate.length})...`);
+          
+          const questions = await generateQuestionsForBook(book, 10);
+          const savedQuestions = await storage.createQuestions(questions);
+          
+          results.push({ book, success: true, count: savedQuestions.length });
+          successCount++;
+          
+          console.log(`✓ ${book}: Generated ${savedQuestions.length} questions`);
+          
+          // Small delay between books to avoid overwhelming the API
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : "Unknown error";
+          console.error(`✗ ${book}: Failed - ${errorMessage}`);
+          results.push({ book, success: false, error: errorMessage });
+          failCount++;
+        }
+      }
+      
+      console.log(`Bulk generation complete: ${successCount} success, ${failCount} failed`);
+      
+      res.json({
+        message: `Generated questions for ${successCount} books (${failCount} failed)`,
+        totalBooks: booksToGenerate.length,
+        successCount,
+        failCount,
+        skippedCount: existingBooks.size,
+        results,
+      });
+    } catch (error) {
+      console.error("Error in bulk generation:", error);
+      res.status(500).json({ error: "Failed to generate questions" });
+    }
+  });
+
   // Admin: Approve a single question
   app.post("/api/admin/quiz/approve/:id", async (req, res) => {
     try {
