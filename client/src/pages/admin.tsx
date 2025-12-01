@@ -460,6 +460,7 @@ export default function AdminDashboard() {
                   <ObjectUploader
                     maxNumberOfFiles={1}
                     maxFileSize={52428800}
+                    allowedFileTypes={['image/*', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif', '.avif']}
                     onGetUploadParameters={handleGetUploadParameters}
                     onComplete={handlePhotoUploadComplete}
                     buttonClassName="w-full md:w-auto"
