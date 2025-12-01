@@ -27,7 +27,7 @@ export default function Home() {
           <div className="grid grid-cols-2 gap-8">
             <div>
               <h4 className="font-bold uppercase tracking-widest mb-4 text-sm text-primary">Visit</h4>
-              <p className="text-background/60">123 Faith Ave</p>
+              <p className="text-background/60">99 Hillside Avenue Suite F</p>
               <p className="text-background/60">Williston Park NY 11596</p>
             </div>
             <div>
