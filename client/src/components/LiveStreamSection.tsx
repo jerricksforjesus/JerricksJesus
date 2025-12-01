@@ -88,16 +88,16 @@ export function LiveStreamSection() {
                     <div className="text-left">
                       <div className="flex items-center gap-2 text-primary mb-1">
                         <Calendar className="w-4 h-4" />
-                        <span className="text-sm font-medium">Sunday</span>
+                        <span className="text-sm font-medium">Friday</span>
                       </div>
-                      <p className="text-lg font-serif">10:00 AM EST</p>
+                      <p className="text-lg font-serif">6:00 AM</p>
                     </div>
                     <div className="text-left">
                       <div className="flex items-center gap-2 text-primary mb-1">
                         <Clock className="w-4 h-4" />
-                        <span className="text-sm font-medium">Wednesday</span>
+                        <span className="text-sm font-medium">Friday</span>
                       </div>
-                      <p className="text-lg font-serif">7:00 PM EST</p>
+                      <p className="text-lg font-serif">6:00 PM</p>
                     </div>
                   </div>
                 </div>
