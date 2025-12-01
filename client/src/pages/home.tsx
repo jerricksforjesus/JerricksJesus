@@ -5,6 +5,7 @@ import { FeaturedVideo } from "@/components/FeaturedVideo";
 import { LiveStreamSection } from "@/components/LiveStreamSection";
 import { ReplaysList } from "@/components/ReplaysList";
 import { FamilyPhotoCarousel } from "@/components/FamilyPhotoCarousel";
+import { BibleQuizSection } from "@/components/BibleQuizSection";
 import { MinistryAccordion } from "@/components/MinistryAccordion";
 
 export default function Home() {
@@ -17,6 +18,7 @@ export default function Home() {
       <LiveStreamSection />
       <ReplaysList />
       <FamilyPhotoCarousel />
+      <BibleQuizSection />
       <MinistryAccordion />
       <footer className="bg-foreground text-background py-16 px-6">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12">

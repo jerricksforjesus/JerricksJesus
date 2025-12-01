@@ -6,13 +6,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Upload, Pencil, Play, Image } from "lucide-react";
+import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2 } from "lucide-react";
 import { useState, useEffect } from "react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { VideoPlayerModal } from "@/components/VideoPlayerModal";
 import { VideoEditModal } from "@/components/VideoEditModal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Video, Verse, InsertVideo, Photo, InsertPhoto } from "@shared/schema";
+import type { Video, Verse, InsertVideo, Photo, InsertPhoto, QuizQuestion } from "@shared/schema";
+import { ALL_BIBLE_BOOKS, BIBLE_BOOKS } from "@shared/schema";
 import type { UploadResult } from "@uppy/core";
 import thumb1 from "@assets/generated_images/preacher_at_podium.png";
 import thumb2 from "@assets/generated_images/open_bible_on_table.png";
@@ -33,6 +34,8 @@ export default function AdminDashboard() {
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [photoCaption, setPhotoCaption] = useState("");
+  const [selectedQuizBook, setSelectedQuizBook] = useState<string | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const { data: activeVerse } = useQuery<Verse>({
     queryKey: ["active-verse"],
@@ -67,6 +70,99 @@ export default function AdminDashboard() {
   });
 
   const [photoSignedUrls, setPhotoSignedUrls] = useState<Record<number, string>>({});
+
+  interface BookStatus {
+    name: string;
+    questionCount: number;
+    approvedCount: number;
+    hasQuiz: boolean;
+  }
+
+  const { data: quizBooks = [] } = useQuery<BookStatus[]>({
+    queryKey: ["quiz-books"],
+    queryFn: async () => {
+      const response = await fetch("/api/quiz/books");
+      if (!response.ok) throw new Error("Failed to fetch books");
+      return response.json();
+    },
+  });
+
+  const { data: bookQuestions = [], refetch: refetchQuestions } = useQuery<QuizQuestion[]>({
+    queryKey: ["admin-quiz-questions", selectedQuizBook],
+    queryFn: async () => {
+      const response = await fetch(`/api/admin/quiz/questions/${encodeURIComponent(selectedQuizBook!)}`);
+      if (!response.ok) throw new Error("Failed to fetch questions");
+      return response.json();
+    },
+    enabled: !!selectedQuizBook,
+  });
+
+  const generateQuestionsMutation = useMutation({
+    mutationFn: async (book: string) => {
+      setIsGenerating(true);
+      const response = await fetch(`/api/admin/quiz/generate/${encodeURIComponent(book)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ count: 10 }),
+      });
+      if (!response.ok) throw new Error("Failed to generate questions");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quiz-books"] });
+      refetchQuestions();
+      toast({
+        title: "Questions Generated",
+        description: "AI has generated quiz questions. Review and approve them.",
+      });
+      setIsGenerating(false);
+    },
+    onError: () => {
+      toast({
+        title: "Generation Failed",
+        description: "Failed to generate questions. Please try again.",
+        variant: "destructive",
+      });
+      setIsGenerating(false);
+    },
+  });
+
+  const approveQuestionMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/admin/quiz/approve/${id}`, { method: "POST" });
+      if (!response.ok) throw new Error("Failed to approve");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quiz-books"] });
+      refetchQuestions();
+    },
+  });
+
+  const approveAllMutation = useMutation({
+    mutationFn: async (book: string) => {
+      const response = await fetch(`/api/admin/quiz/approve-book/${encodeURIComponent(book)}`, { method: "POST" });
+      if (!response.ok) throw new Error("Failed to approve");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quiz-books"] });
+      refetchQuestions();
+      toast({
+        title: "All Questions Approved",
+        description: "All questions for this book are now live.",
+      });
+    },
+  });
+
+  const deleteQuestionMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/admin/quiz/questions/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["quiz-books"] });
+      refetchQuestions();
+    },
+  });
 
   useEffect(() => {
     const fetchSignedUrls = async () => {
@@ -285,10 +381,11 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="verse" className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="verse" data-testid="tab-verse">Verse of the Day</TabsTrigger>
-            <TabsTrigger value="replays" data-testid="tab-replays">Manage Replays</TabsTrigger>
-            <TabsTrigger value="photos" data-testid="tab-photos">Family Photos</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 mb-8">
+            <TabsTrigger value="verse" data-testid="tab-verse">Verse</TabsTrigger>
+            <TabsTrigger value="replays" data-testid="tab-replays">Replays</TabsTrigger>
+            <TabsTrigger value="photos" data-testid="tab-photos">Photos</TabsTrigger>
+            <TabsTrigger value="quiz" data-testid="tab-quiz">Bible Quiz</TabsTrigger>
           </TabsList>
 
           <TabsContent value="verse">
@@ -506,6 +603,195 @@ export default function AdminDashboard() {
                       </div>
                     ))
                   )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="quiz">
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <BookOpen className="w-5 h-5" />
+                  Bible Quiz Management
+                </CardTitle>
+                <CardDescription>
+                  Generate and manage quiz questions for each book of the Bible.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="grid md:grid-cols-2 gap-6">
+                  {/* Book Selection */}
+                  <div>
+                    <h3 className="font-semibold mb-3">Select a Book</h3>
+                    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                      <div>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-2">Old Testament</h4>
+                        <div className="grid grid-cols-3 gap-1">
+                          {quizBooks.filter(b => (BIBLE_BOOKS.oldTestament as readonly string[]).includes(b.name)).map((book) => (
+                            <button
+                              key={book.name}
+                              onClick={() => setSelectedQuizBook(book.name)}
+                              className={`text-xs p-2 rounded border transition-all ${
+                                selectedQuizBook === book.name
+                                  ? "border-primary bg-primary/10 text-primary"
+                                  : book.questionCount > 0
+                                  ? "border-green-500/50 bg-green-50"
+                                  : "border-border hover:border-primary/50"
+                              }`}
+                              data-testid={`admin-quiz-book-${book.name}`}
+                            >
+                              <span className="line-clamp-1">{book.name}</span>
+                              {book.questionCount > 0 && (
+                                <span className="text-[10px] text-muted-foreground block">
+                                  {book.approvedCount}/{book.questionCount}
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div>
+                        <h4 className="text-sm font-medium text-muted-foreground mb-2">New Testament</h4>
+                        <div className="grid grid-cols-3 gap-1">
+                          {quizBooks.filter(b => (BIBLE_BOOKS.newTestament as readonly string[]).includes(b.name)).map((book) => (
+                            <button
+                              key={book.name}
+                              onClick={() => setSelectedQuizBook(book.name)}
+                              className={`text-xs p-2 rounded border transition-all ${
+                                selectedQuizBook === book.name
+                                  ? "border-primary bg-primary/10 text-primary"
+                                  : book.questionCount > 0
+                                  ? "border-green-500/50 bg-green-50"
+                                  : "border-border hover:border-primary/50"
+                              }`}
+                              data-testid={`admin-quiz-book-${book.name}`}
+                            >
+                              <span className="line-clamp-1">{book.name}</span>
+                              {book.questionCount > 0 && (
+                                <span className="text-[10px] text-muted-foreground block">
+                                  {book.approvedCount}/{book.questionCount}
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Question Management */}
+                  <div>
+                    {selectedQuizBook ? (
+                      <div>
+                        <div className="flex items-center justify-between mb-4">
+                          <h3 className="font-semibold">{selectedQuizBook}</h3>
+                          <div className="flex gap-2">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => generateQuestionsMutation.mutate(selectedQuizBook)}
+                              disabled={isGenerating}
+                              data-testid="button-generate-questions"
+                            >
+                              {isGenerating ? (
+                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                              ) : (
+                                <RefreshCw className="w-4 h-4 mr-1" />
+                              )}
+                              Generate
+                            </Button>
+                            {bookQuestions.some(q => q.isApproved === 0) && (
+                              <Button
+                                size="sm"
+                                onClick={() => approveAllMutation.mutate(selectedQuizBook)}
+                                data-testid="button-approve-all"
+                              >
+                                <Check className="w-4 h-4 mr-1" />
+                                Approve All
+                              </Button>
+                            )}
+                          </div>
+                        </div>
+
+                        {bookQuestions.length === 0 ? (
+                          <div className="text-center py-8 text-muted-foreground">
+                            <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                            <p>No questions yet.</p>
+                            <p className="text-sm">Click "Generate" to create questions using AI.</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                            {bookQuestions.map((question, index) => (
+                              <div
+                                key={question.id}
+                                className={`p-3 rounded-lg border ${
+                                  question.isApproved === 1
+                                    ? "border-green-500/50 bg-green-50/50"
+                                    : "border-yellow-500/50 bg-yellow-50/50"
+                                }`}
+                                data-testid={`question-item-${question.id}`}
+                              >
+                                <div className="flex justify-between items-start gap-2">
+                                  <div className="flex-1">
+                                    <p className="text-sm font-medium mb-1">
+                                      {index + 1}. {question.questionText}
+                                    </p>
+                                    <div className="grid grid-cols-2 gap-1 text-xs text-muted-foreground">
+                                      <span className={question.correctAnswer === "A" ? "text-green-600 font-medium" : ""}>
+                                        A: {question.optionA}
+                                      </span>
+                                      <span className={question.correctAnswer === "B" ? "text-green-600 font-medium" : ""}>
+                                        B: {question.optionB}
+                                      </span>
+                                      <span className={question.correctAnswer === "C" ? "text-green-600 font-medium" : ""}>
+                                        C: {question.optionC}
+                                      </span>
+                                      <span className={question.correctAnswer === "D" ? "text-green-600 font-medium" : ""}>
+                                        D: {question.optionD}
+                                      </span>
+                                    </div>
+                                    {question.scriptureReference && (
+                                      <p className="text-xs text-muted-foreground mt-1">
+                                        Ref: {question.scriptureReference}
+                                      </p>
+                                    )}
+                                  </div>
+                                  <div className="flex gap-1">
+                                    {question.isApproved === 0 && (
+                                      <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-7 w-7"
+                                        onClick={() => approveQuestionMutation.mutate(question.id)}
+                                        data-testid={`approve-question-${question.id}`}
+                                      >
+                                        <Check className="w-4 h-4 text-green-600" />
+                                      </Button>
+                                    )}
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-7 w-7"
+                                      onClick={() => deleteQuestionMutation.mutate(question.id)}
+                                      data-testid={`delete-question-${question.id}`}
+                                    >
+                                      <Trash2 className="w-4 h-4 text-red-600" />
+                                    </Button>
+                                  </div>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <div className="text-center py-12 text-muted-foreground">
+                        <BookOpen className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                        <p>Select a book from the left to manage its quiz questions.</p>
+                      </div>
+                    )}
+                  </div>
                 </div>
               </CardContent>
             </Card>

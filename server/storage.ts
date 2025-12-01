@@ -1,6 +1,6 @@
-import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, videos, verses, users, photos } from "@shared/schema";
+import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, type QuizQuestion, type InsertQuizQuestion, type QuizAttempt, type InsertQuizAttempt, videos, verses, users, photos, quizQuestions, quizAttempts } from "@shared/schema";
 import { db } from "./db";
-import { eq, asc } from "drizzle-orm";
+import { eq, asc, and, sql } from "drizzle-orm";
 import * as schema from "@shared/schema";
 
 export interface IStorage {
@@ -28,6 +28,22 @@ export interface IStorage {
   createPhoto(photo: InsertPhoto): Promise<Photo>;
   updatePhoto(id: number, data: Partial<InsertPhoto>): Promise<Photo | undefined>;
   deletePhoto(id: number): Promise<void>;
+  
+  // Quiz methods
+  getQuestionsByBook(book: string, approvedOnly?: boolean): Promise<QuizQuestion[]>;
+  getAllQuestions(): Promise<QuizQuestion[]>;
+  getQuestionCountByBook(): Promise<{ book: string; count: number; approvedCount: number }[]>;
+  createQuestion(question: InsertQuizQuestion): Promise<QuizQuestion>;
+  createQuestions(questions: InsertQuizQuestion[]): Promise<QuizQuestion[]>;
+  updateQuestion(id: number, data: Partial<InsertQuizQuestion>): Promise<QuizQuestion | undefined>;
+  deleteQuestion(id: number): Promise<void>;
+  deleteQuestionsByBook(book: string): Promise<void>;
+  approveQuestion(id: number): Promise<void>;
+  approveQuestionsByBook(book: string): Promise<void>;
+  
+  createQuizAttempt(attempt: InsertQuizAttempt): Promise<QuizAttempt>;
+  getQuizAttemptsByBook(book: string): Promise<QuizAttempt[]>;
+  getAllQuizAttempts(): Promise<QuizAttempt[]>;
 }
 
 export class DbStorage implements IStorage {
@@ -165,6 +181,100 @@ export class DbStorage implements IStorage {
 
   async deletePhoto(id: number): Promise<void> {
     await db.delete(photos).where(eq(photos.id, id));
+  }
+
+  // Quiz methods
+  async getQuestionsByBook(book: string, approvedOnly: boolean = true): Promise<QuizQuestion[]> {
+    if (approvedOnly) {
+      return await db.query.quizQuestions.findMany({
+        where: (q, { eq, and }) => and(eq(q.book, book), eq(q.isApproved, 1)),
+        orderBy: (q, { asc }) => [asc(q.id)],
+      });
+    }
+    return await db.query.quizQuestions.findMany({
+      where: (q, { eq }) => eq(q.book, book),
+      orderBy: (q, { asc }) => [asc(q.id)],
+    });
+  }
+
+  async getAllQuestions(): Promise<QuizQuestion[]> {
+    return await db.query.quizQuestions.findMany({
+      orderBy: (q, { asc }) => [asc(q.book), asc(q.id)],
+    });
+  }
+
+  async getQuestionCountByBook(): Promise<{ book: string; count: number; approvedCount: number }[]> {
+    const questions = await this.getAllQuestions();
+    const bookCounts = new Map<string, { count: number; approvedCount: number }>();
+    
+    for (const q of questions) {
+      const existing = bookCounts.get(q.book) || { count: 0, approvedCount: 0 };
+      existing.count++;
+      if (q.isApproved === 1) existing.approvedCount++;
+      bookCounts.set(q.book, existing);
+    }
+    
+    return Array.from(bookCounts.entries()).map(([book, counts]) => ({
+      book,
+      ...counts,
+    }));
+  }
+
+  async createQuestion(question: InsertQuizQuestion): Promise<QuizQuestion> {
+    const [newQuestion] = await db.insert(quizQuestions).values(question).returning();
+    return newQuestion;
+  }
+
+  async createQuestions(questions: InsertQuizQuestion[]): Promise<QuizQuestion[]> {
+    if (questions.length === 0) return [];
+    const newQuestions = await db.insert(quizQuestions).values(questions).returning();
+    return newQuestions;
+  }
+
+  async updateQuestion(id: number, data: Partial<InsertQuizQuestion>): Promise<QuizQuestion | undefined> {
+    const [updated] = await db.update(quizQuestions)
+      .set(data)
+      .where(eq(quizQuestions.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteQuestion(id: number): Promise<void> {
+    await db.delete(quizQuestions).where(eq(quizQuestions.id, id));
+  }
+
+  async deleteQuestionsByBook(book: string): Promise<void> {
+    await db.delete(quizQuestions).where(eq(quizQuestions.book, book));
+  }
+
+  async approveQuestion(id: number): Promise<void> {
+    await db.update(quizQuestions)
+      .set({ isApproved: 1 })
+      .where(eq(quizQuestions.id, id));
+  }
+
+  async approveQuestionsByBook(book: string): Promise<void> {
+    await db.update(quizQuestions)
+      .set({ isApproved: 1 })
+      .where(eq(quizQuestions.book, book));
+  }
+
+  async createQuizAttempt(attempt: InsertQuizAttempt): Promise<QuizAttempt> {
+    const [newAttempt] = await db.insert(quizAttempts).values(attempt).returning();
+    return newAttempt;
+  }
+
+  async getQuizAttemptsByBook(book: string): Promise<QuizAttempt[]> {
+    return await db.query.quizAttempts.findMany({
+      where: (a, { eq }) => eq(a.book, book),
+      orderBy: (a, { desc }) => [desc(a.completedAt)],
+    });
+  }
+
+  async getAllQuizAttempts(): Promise<QuizAttempt[]> {
+    return await db.query.quizAttempts.findMany({
+      orderBy: (a, { desc }) => [desc(a.completedAt)],
+    });
   }
 }
 

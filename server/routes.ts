@@ -3,8 +3,9 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError, getSignedDownloadURL } from "./objectStorage";
-import { insertVideoSchema, insertVerseSchema, insertPhotoSchema } from "@shared/schema";
+import { insertVideoSchema, insertVerseSchema, insertPhotoSchema, insertQuizQuestionSchema, insertQuizAttemptSchema, ALL_BIBLE_BOOKS } from "@shared/schema";
 import { transcribeVideo, uploadCaptions } from "./transcription";
+import { generateQuestionsForBook } from "./quizGenerator";
 
 export async function registerRoutes(
   httpServer: Server,
@@ -415,6 +416,222 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error fetching playlist:", error);
       res.status(500).json({ error: "Failed to fetch playlist" });
+    }
+  });
+
+  // ============= QUIZ ROUTES =============
+  
+  // Get list of all Bible books
+  app.get("/api/quiz/books", async (req, res) => {
+    try {
+      const questionCounts = await storage.getQuestionCountByBook();
+      const countsMap = new Map(questionCounts.map(q => [q.book, q]));
+      
+      const books = ALL_BIBLE_BOOKS.map(book => ({
+        name: book,
+        questionCount: countsMap.get(book)?.count || 0,
+        approvedCount: countsMap.get(book)?.approvedCount || 0,
+        hasQuiz: (countsMap.get(book)?.approvedCount || 0) >= 10,
+      }));
+      
+      res.json(books);
+    } catch (error) {
+      console.error("Error fetching quiz books:", error);
+      res.status(500).json({ error: "Failed to fetch books" });
+    }
+  });
+
+  // Get questions for a specific book (for taking the quiz)
+  app.get("/api/quiz/questions/:book", async (req, res) => {
+    try {
+      const { book } = req.params;
+      const questions = await storage.getQuestionsByBook(book, true);
+      
+      // Shuffle and return only 10 questions (hide correct answers for quiz taking)
+      const shuffled = questions.sort(() => Math.random() - 0.5).slice(0, 10);
+      
+      const quizQuestions = shuffled.map(q => ({
+        id: q.id,
+        questionText: q.questionText,
+        optionA: q.optionA,
+        optionB: q.optionB,
+        optionC: q.optionC,
+        optionD: q.optionD,
+        scriptureReference: q.scriptureReference,
+      }));
+      
+      res.json(quizQuestions);
+    } catch (error) {
+      console.error("Error fetching quiz questions:", error);
+      res.status(500).json({ error: "Failed to fetch questions" });
+    }
+  });
+
+  // Submit quiz answers and get score
+  app.post("/api/quiz/submit", async (req, res) => {
+    try {
+      const { book, answers } = req.body;
+      
+      if (!book || !answers || !Array.isArray(answers)) {
+        return res.status(400).json({ error: "Invalid request body" });
+      }
+      
+      const questions = await storage.getQuestionsByBook(book, true);
+      const questionMap = new Map(questions.map(q => [q.id, q]));
+      
+      let score = 0;
+      const results = answers.map((answer: { questionId: number; selectedAnswer: string }) => {
+        const question = questionMap.get(answer.questionId);
+        if (!question) return { questionId: answer.questionId, correct: false, correctAnswer: null };
+        
+        const isCorrect = question.correctAnswer === answer.selectedAnswer;
+        if (isCorrect) score++;
+        
+        return {
+          questionId: answer.questionId,
+          correct: isCorrect,
+          correctAnswer: question.correctAnswer,
+          scriptureReference: question.scriptureReference,
+        };
+      });
+      
+      // Save the attempt
+      await storage.createQuizAttempt({
+        book,
+        score,
+        totalQuestions: answers.length,
+      });
+      
+      res.json({ score, totalQuestions: answers.length, results });
+    } catch (error) {
+      console.error("Error submitting quiz:", error);
+      res.status(500).json({ error: "Failed to submit quiz" });
+    }
+  });
+
+  // Get quiz statistics
+  app.get("/api/quiz/stats", async (req, res) => {
+    try {
+      const attempts = await storage.getAllQuizAttempts();
+      const questionCounts = await storage.getQuestionCountByBook();
+      
+      const totalQuestions = questionCounts.reduce((sum, q) => sum + q.count, 0);
+      const approvedQuestions = questionCounts.reduce((sum, q) => sum + q.approvedCount, 0);
+      const booksWithQuiz = questionCounts.filter(q => q.approvedCount >= 10).length;
+      
+      res.json({
+        totalQuestions,
+        approvedQuestions,
+        booksWithQuiz,
+        totalBooks: 66,
+        totalAttempts: attempts.length,
+      });
+    } catch (error) {
+      console.error("Error fetching quiz stats:", error);
+      res.status(500).json({ error: "Failed to fetch stats" });
+    }
+  });
+
+  // Admin: Get all questions for a book (including unapproved)
+  app.get("/api/admin/quiz/questions/:book", async (req, res) => {
+    try {
+      const { book } = req.params;
+      const questions = await storage.getQuestionsByBook(book, false);
+      res.json(questions);
+    } catch (error) {
+      console.error("Error fetching admin questions:", error);
+      res.status(500).json({ error: "Failed to fetch questions" });
+    }
+  });
+
+  // Admin: Generate questions for a book
+  app.post("/api/admin/quiz/generate/:book", async (req, res) => {
+    try {
+      const { book } = req.params;
+      const { count = 10 } = req.body;
+      
+      if (!ALL_BIBLE_BOOKS.includes(book as any)) {
+        return res.status(400).json({ error: "Invalid book name" });
+      }
+      
+      console.log(`Starting question generation for ${book}...`);
+      
+      const questions = await generateQuestionsForBook(book, count);
+      const savedQuestions = await storage.createQuestions(questions);
+      
+      res.json({ 
+        message: `Generated ${savedQuestions.length} questions for ${book}`,
+        questions: savedQuestions,
+      });
+    } catch (error) {
+      console.error("Error generating questions:", error);
+      res.status(500).json({ error: "Failed to generate questions" });
+    }
+  });
+
+  // Admin: Approve a single question
+  app.post("/api/admin/quiz/approve/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.approveQuestion(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error approving question:", error);
+      res.status(500).json({ error: "Failed to approve question" });
+    }
+  });
+
+  // Admin: Approve all questions for a book
+  app.post("/api/admin/quiz/approve-book/:book", async (req, res) => {
+    try {
+      const { book } = req.params;
+      await storage.approveQuestionsByBook(book);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error approving questions:", error);
+      res.status(500).json({ error: "Failed to approve questions" });
+    }
+  });
+
+  // Admin: Update a question
+  app.put("/api/admin/quiz/questions/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const parsed = insertQuizQuestionSchema.partial().safeParse(req.body);
+      
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.message });
+      }
+      
+      const updated = await storage.updateQuestion(id, parsed.data);
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating question:", error);
+      res.status(500).json({ error: "Failed to update question" });
+    }
+  });
+
+  // Admin: Delete a question
+  app.delete("/api/admin/quiz/questions/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deleteQuestion(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting question:", error);
+      res.status(500).json({ error: "Failed to delete question" });
+    }
+  });
+
+  // Admin: Delete all questions for a book
+  app.delete("/api/admin/quiz/questions-book/:book", async (req, res) => {
+    try {
+      const { book } = req.params;
+      await storage.deleteQuestionsByBook(book);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting questions:", error);
+      res.status(500).json({ error: "Failed to delete questions" });
     }
   });
 
