@@ -351,6 +351,73 @@ export async function registerRoutes(
     }
   });
 
+  // YouTube Playlist Videos Cache
+  let playlistCache: { videos: any[]; timestamp: number } | null = null;
+  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+
+  // YouTube Playlist Route - Fetch videos from a specific playlist
+  app.get("/api/youtube/playlist/:playlistId", async (req, res) => {
+    try {
+      const { playlistId } = req.params;
+      const apiKey = process.env.YOUTUBE_API_KEY;
+      
+      if (!apiKey) {
+        console.log("YouTube API key not configured");
+        return res.json({ videos: [], error: "YouTube API key not configured" });
+      }
+
+      // Check cache
+      if (playlistCache && Date.now() - playlistCache.timestamp < CACHE_DURATION) {
+        return res.json({ videos: playlistCache.videos });
+      }
+
+      // Fetch playlist items from YouTube API
+      const videos: any[] = [];
+      let nextPageToken: string | null = null;
+
+      do {
+        const url = new URL("https://www.googleapis.com/youtube/v3/playlistItems");
+        url.searchParams.set("part", "snippet,contentDetails");
+        url.searchParams.set("playlistId", playlistId);
+        url.searchParams.set("maxResults", "50");
+        url.searchParams.set("key", apiKey);
+        if (nextPageToken) {
+          url.searchParams.set("pageToken", nextPageToken);
+        }
+
+        const response = await fetch(url.toString());
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error("YouTube API error:", errorText);
+          return res.status(500).json({ error: "Failed to fetch playlist" });
+        }
+
+        const data = await response.json();
+        
+        for (const item of data.items || []) {
+          videos.push({
+            videoId: item.contentDetails.videoId,
+            title: item.snippet.title,
+            description: item.snippet.description,
+            thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url,
+            publishedAt: item.snippet.publishedAt,
+            position: item.snippet.position,
+          });
+        }
+
+        nextPageToken = data.nextPageToken || null;
+      } while (nextPageToken);
+
+      // Update cache
+      playlistCache = { videos, timestamp: Date.now() };
+
+      res.json({ videos });
+    } catch (error) {
+      console.error("Error fetching playlist:", error);
+      res.status(500).json({ error: "Failed to fetch playlist" });
+    }
+  });
+
   // CORS preflight handler for object storage
   app.options("/objects/:objectPath(*)", (req, res) => {
     res.set({
