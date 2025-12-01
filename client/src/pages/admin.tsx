@@ -6,13 +6,13 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Upload, Pencil, Play } from "lucide-react";
-import { useState } from "react";
+import { Plus, Trash2, Save, Upload, Pencil, Play, Image } from "lucide-react";
+import { useState, useEffect } from "react";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { VideoPlayerModal } from "@/components/VideoPlayerModal";
 import { VideoEditModal } from "@/components/VideoEditModal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import type { Video, Verse, InsertVideo } from "@shared/schema";
+import type { Video, Verse, InsertVideo, Photo, InsertPhoto } from "@shared/schema";
 import type { UploadResult } from "@uppy/core";
 import thumb1 from "@assets/generated_images/preacher_at_podium.png";
 import thumb2 from "@assets/generated_images/open_bible_on_table.png";
@@ -32,6 +32,7 @@ export default function AdminDashboard() {
   const [selectedVideo, setSelectedVideo] = useState<Video | null>(null);
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [photoCaption, setPhotoCaption] = useState("");
 
   const { data: activeVerse } = useQuery<Verse>({
     queryKey: ["active-verse"],
@@ -55,6 +56,43 @@ export default function AdminDashboard() {
       return response.json();
     },
   });
+
+  const { data: photos = [] } = useQuery<Photo[]>({
+    queryKey: ["photos"],
+    queryFn: async () => {
+      const response = await fetch("/api/photos");
+      if (!response.ok) throw new Error("Failed to fetch photos");
+      return response.json();
+    },
+  });
+
+  const [photoSignedUrls, setPhotoSignedUrls] = useState<Record<number, string>>({});
+
+  useEffect(() => {
+    const fetchSignedUrls = async () => {
+      const urls: Record<number, string> = {};
+      for (const photo of photos) {
+        const imagePath = photo.imagePath.startsWith('/objects/') 
+          ? photo.imagePath 
+          : `/objects/${photo.imagePath}`;
+        
+        try {
+          const response = await fetch(`/api/objects/signed-url?path=${encodeURIComponent(imagePath)}`);
+          if (response.ok) {
+            const data = await response.json();
+            urls[photo.id] = data.url;
+          }
+        } catch (error) {
+          console.error('Error fetching signed URL for photo:', photo.id);
+        }
+      }
+      setPhotoSignedUrls(urls);
+    };
+
+    if (photos.length > 0) {
+      fetchSignedUrls();
+    }
+  }, [photos]);
 
   const createVerseMutation = useMutation({
     mutationFn: async () => {
@@ -90,6 +128,20 @@ export default function AdminDashboard() {
       toast({
         title: "Video Deleted",
         description: "The video has been removed from the gallery.",
+      });
+    },
+  });
+
+  const deletePhotoMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/photos/${id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete photo");
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["photos"] });
+      toast({
+        title: "Photo Deleted",
+        description: "The photo has been removed from the gallery.",
       });
     },
   });
@@ -175,6 +227,53 @@ export default function AdminDashboard() {
     return fallbackImages[index % fallbackImages.length];
   };
 
+  const handlePhotoUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+    if (!result.successful || result.successful.length === 0) {
+      toast({
+        title: "Upload Failed",
+        description: "The photo upload was not successful.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const uploadedFile = result.successful[0];
+    const imagePath = uploadedFile.uploadURL || "";
+
+    const photoData: InsertPhoto = {
+      imagePath: imagePath,
+      caption: photoCaption || undefined,
+    };
+
+    try {
+      const response = await fetch("/api/photos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(photoData),
+      });
+
+      if (!response.ok) throw new Error("Failed to save photo");
+
+      queryClient.invalidateQueries({ queryKey: ["photos"] });
+      setPhotoCaption("");
+
+      toast({
+        title: "Photo Added",
+        description: "The photo has been added to the family gallery.",
+      });
+    } catch (error) {
+      toast({
+        title: "Save Failed",
+        description: "The photo was uploaded but failed to save.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const getPhotoUrl = (photo: Photo) => {
+    return photoSignedUrls[photo.id] || "";
+  };
+
   return (
     <div className="min-h-screen bg-muted/20">
       <Navigation />
@@ -186,9 +285,10 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="verse" className="w-full">
-          <TabsList className="grid w-full grid-cols-2 mb-8">
+          <TabsList className="grid w-full grid-cols-3 mb-8">
             <TabsTrigger value="verse" data-testid="tab-verse">Verse of the Day</TabsTrigger>
             <TabsTrigger value="replays" data-testid="tab-replays">Manage Replays</TabsTrigger>
+            <TabsTrigger value="photos" data-testid="tab-photos">Family Photos</TabsTrigger>
           </TabsList>
 
           <TabsContent value="verse">
@@ -328,6 +428,80 @@ export default function AdminDashboard() {
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="photos">
+            <Card>
+              <CardHeader>
+                <div className="flex justify-between items-start">
+                  <div>
+                    <CardTitle>Family Photo Gallery</CardTitle>
+                    <CardDescription>Add photos to display on the homepage carousel.</CardDescription>
+                  </div>
+                </div>
+                
+                <div className="mt-6 space-y-4 border-t pt-6">
+                  <div className="space-y-2">
+                    <Label htmlFor="photo-caption">Caption (optional)</Label>
+                    <Input 
+                      id="photo-caption" 
+                      placeholder="e.g. Easter Sunday Service 2024"
+                      value={photoCaption}
+                      onChange={(e) => setPhotoCaption(e.target.value)}
+                      data-testid="input-photo-caption"
+                    />
+                  </div>
+                  <ObjectUploader
+                    maxNumberOfFiles={1}
+                    maxFileSize={52428800}
+                    onGetUploadParameters={handleGetUploadParameters}
+                    onComplete={handlePhotoUploadComplete}
+                    buttonClassName="w-full md:w-auto"
+                  >
+                    <Image className="w-4 h-4 mr-2" /> Upload Photo
+                  </ObjectUploader>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                  {photos.length === 0 ? (
+                    <p className="col-span-full text-center text-muted-foreground py-8">No photos uploaded yet.</p>
+                  ) : (
+                    photos.map((photo) => (
+                      <div key={photo.id} className="relative group rounded-lg overflow-hidden border bg-card" data-testid={`photo-item-${photo.id}`}>
+                        <div className="aspect-square bg-muted">
+                          {getPhotoUrl(photo) ? (
+                            <img 
+                              src={getPhotoUrl(photo)} 
+                              alt={photo.caption || "Family photo"}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <div className="w-full h-full flex items-center justify-center">
+                              <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
+                            </div>
+                          )}
+                        </div>
+                        {photo.caption && (
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-2 truncate">
+                            {photo.caption}
+                          </div>
+                        )}
+                        <Button 
+                          variant="ghost" 
+                          size="icon" 
+                          className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => deletePhotoMutation.mutate(photo.id)}
+                          data-testid={`button-delete-photo-${photo.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
                       </div>
                     ))
                   )}

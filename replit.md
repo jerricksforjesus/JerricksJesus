@@ -39,9 +39,9 @@ Preferred communication style: Simple, everyday language.
 - Custom scrolling behaviors and viewport-based animations throughout
 
 **Key Pages**
-1. Home (`/`) - Hero section, verse display, sermon gallery, ministry accordion
+1. Home (`/`) - Hero section, verse display, sermon gallery, family photo carousel, ministry accordion
 2. Live Stream (`/live`) - Zoom integration placeholder for live services
-3. Admin Dashboard (`/admin`) - Content management for videos and verses
+3. Admin Dashboard (`/admin`) - Content management for videos, verses, and family photos
 
 ### Backend Architecture
 
@@ -55,11 +55,15 @@ Preferred communication style: Simple, everyday language.
 - RESTful API endpoints under `/api` prefix
 - Routes defined in `server/routes.ts`
 - Key endpoints:
-  - `POST /api/objects/upload` - Get signed upload URL for videos
+  - `POST /api/objects/upload` - Get signed upload URL for media files
+  - `GET /api/objects/signed-url` - Get signed download URL for media playback
   - `POST /api/videos` - Create video metadata entry
   - `GET /api/videos` - List all sermon videos
   - `GET /api/verses/active` - Get current verse of the day
   - `POST /api/verses` - Create new verse entry
+  - `GET /api/photos` - List all family photos
+  - `POST /api/photos` - Create photo entry
+  - `DELETE /api/photos/:id` - Remove photo
 
 **Database Layer**
 - PostgreSQL database accessed via Neon serverless driver
@@ -69,6 +73,7 @@ Preferred communication style: Simple, everyday language.
   - `users` - Admin authentication (UUID primary key)
   - `videos` - Sermon video metadata with view tracking
   - `verses` - Scripture verses with active flag for daily display
+  - `photos` - Family photo gallery with caption and display order
 - Migrations stored in `migrations/` directory
 - Database abstraction through `IStorage` interface implemented by `DbStorage` class
 

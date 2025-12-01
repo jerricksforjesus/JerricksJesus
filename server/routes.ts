@@ -3,7 +3,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError, getSignedDownloadURL } from "./objectStorage";
-import { insertVideoSchema, insertVerseSchema } from "@shared/schema";
+import { insertVideoSchema, insertVerseSchema, insertPhotoSchema } from "@shared/schema";
 import { transcribeVideo, uploadCaptions } from "./transcription";
 
 export async function registerRoutes(
@@ -229,6 +229,67 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error activating verse:", error);
       res.status(500).json({ error: "Failed to activate verse" });
+    }
+  });
+
+  // Photo Management Routes
+  app.get("/api/photos", async (req, res) => {
+    try {
+      const photos = await storage.getAllPhotos();
+      res.json(photos);
+    } catch (error) {
+      console.error("Error fetching photos:", error);
+      res.status(500).json({ error: "Failed to fetch photos" });
+    }
+  });
+
+  app.post("/api/photos", async (req, res) => {
+    try {
+      const parsed = insertPhotoSchema.safeParse(req.body);
+      if (!parsed.success) {
+        return res.status(400).json({ error: parsed.error.message });
+      }
+
+      const normalizedPath = objectStorageService.normalizeObjectEntityPath(parsed.data.imagePath);
+      const photo = await storage.createPhoto({
+        ...parsed.data,
+        imagePath: normalizedPath,
+      });
+      res.json(photo);
+    } catch (error) {
+      console.error("Error creating photo:", error);
+      res.status(500).json({ error: "Failed to create photo" });
+    }
+  });
+
+  app.put("/api/photos/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { caption, displayOrder } = req.body;
+      
+      const updateData: { caption?: string; displayOrder?: number } = {};
+      if (caption !== undefined) updateData.caption = caption;
+      if (displayOrder !== undefined) updateData.displayOrder = displayOrder;
+      
+      const photo = await storage.updatePhoto(id, updateData);
+      if (!photo) {
+        return res.status(404).json({ error: "Photo not found" });
+      }
+      res.json(photo);
+    } catch (error) {
+      console.error("Error updating photo:", error);
+      res.status(500).json({ error: "Failed to update photo" });
+    }
+  });
+
+  app.delete("/api/photos/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      await storage.deletePhoto(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting photo:", error);
+      res.status(500).json({ error: "Failed to delete photo" });
     }
   });
 

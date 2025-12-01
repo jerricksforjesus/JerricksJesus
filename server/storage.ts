@@ -1,6 +1,6 @@
-import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, videos, verses, users } from "@shared/schema";
+import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, videos, verses, users, photos } from "@shared/schema";
 import { db } from "./db";
-import { eq } from "drizzle-orm";
+import { eq, asc } from "drizzle-orm";
 import * as schema from "@shared/schema";
 
 export interface IStorage {
@@ -22,6 +22,12 @@ export interface IStorage {
   createVerse(verse: InsertVerse): Promise<Verse>;
   updateVerse(id: number, verse: Partial<InsertVerse>): Promise<Verse | undefined>;
   setActiveVerse(id: number): Promise<void>;
+  
+  getAllPhotos(): Promise<Photo[]>;
+  getPhoto(id: number): Promise<Photo | undefined>;
+  createPhoto(photo: InsertPhoto): Promise<Photo>;
+  updatePhoto(id: number, data: Partial<InsertPhoto>): Promise<Photo | undefined>;
+  deletePhoto(id: number): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -125,6 +131,40 @@ export class DbStorage implements IStorage {
   async setActiveVerse(id: number): Promise<void> {
     await db.update(verses).set({ isActive: 0 });
     await db.update(verses).set({ isActive: 1 }).where(eq(verses.id, id));
+  }
+
+  async getAllPhotos(): Promise<Photo[]> {
+    return await db.query.photos.findMany({
+      orderBy: (photos, { asc }) => [asc(photos.displayOrder), asc(photos.createdAt)],
+    });
+  }
+
+  async getPhoto(id: number): Promise<Photo | undefined> {
+    return await db.query.photos.findFirst({
+      where: (photos, { eq }) => eq(photos.id, id),
+    });
+  }
+
+  async createPhoto(photo: InsertPhoto): Promise<Photo> {
+    const allPhotos = await this.getAllPhotos();
+    const maxOrder = allPhotos.length > 0 ? Math.max(...allPhotos.map(p => p.displayOrder)) : -1;
+    const [newPhoto] = await db.insert(photos).values({
+      ...photo,
+      displayOrder: maxOrder + 1,
+    }).returning();
+    return newPhoto;
+  }
+
+  async updatePhoto(id: number, data: Partial<InsertPhoto>): Promise<Photo | undefined> {
+    const [updated] = await db.update(photos)
+      .set(data)
+      .where(eq(photos.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deletePhoto(id: number): Promise<void> {
+    await db.delete(photos).where(eq(photos.id, id));
   }
 }
 

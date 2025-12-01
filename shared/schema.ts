@@ -30,6 +30,14 @@ export const verses = pgTable("verses", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+export const photos = pgTable("photos", {
+  id: serial("id").primaryKey(),
+  imagePath: text("image_path").notNull(),
+  caption: text("caption"),
+  displayOrder: integer("display_order").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -46,6 +54,11 @@ export const insertVerseSchema = createInsertSchema(verses).omit({
   createdAt: true,
 });
 
+export const insertPhotoSchema = createInsertSchema(photos).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -54,3 +67,6 @@ export type Video = typeof videos.$inferSelect;
 
 export type InsertVerse = z.infer<typeof insertVerseSchema>;
 export type Verse = typeof verses.$inferSelect;
+
+export type InsertPhoto = z.infer<typeof insertPhotoSchema>;
+export type Photo = typeof photos.$inferSelect;
