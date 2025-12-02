@@ -6,6 +6,8 @@ import * as schema from "@shared/schema";
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getUserByGoogleId(googleId: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
   updateUserRole(id: string, role: string): Promise<User | undefined>;
@@ -67,6 +69,20 @@ export class DbStorage implements IStorage {
   async getUserByUsername(username: string): Promise<User | undefined> {
     const result = await db.query.users.findFirst({
       where: (users, { eq }) => eq(users.username, username),
+    });
+    return result;
+  }
+
+  async getUserByGoogleId(googleId: string): Promise<User | undefined> {
+    const result = await db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.googleId, googleId),
+    });
+    return result;
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const result = await db.query.users.findFirst({
+      where: (users, { eq }) => eq(users.email, email),
     });
     return result;
   }

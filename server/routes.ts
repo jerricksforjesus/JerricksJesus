@@ -8,6 +8,7 @@ import { transcribeVideo, uploadCaptions } from "./transcription";
 import { generateQuestionsForBook } from "./quizGenerator";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
+import { OAuth2Client } from "google-auth-library";
 
 declare global {
   namespace Express {
@@ -194,6 +195,145 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Registration error:", error);
       res.status(500).json({ error: "Registration failed" });
+    }
+  });
+
+  // Google OAuth - Initiate login
+  app.get("/api/auth/google", (req, res) => {
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    if (!clientId) {
+      return res.status(500).json({ error: "Google OAuth not configured" });
+    }
+    
+    // Generate state parameter for CSRF protection
+    const state = crypto.randomBytes(32).toString("hex");
+    res.cookie("oauth_state", state, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 10 * 60 * 1000, // 10 minutes
+    });
+    
+    // Determine the redirect URI based on the request origin
+    const host = req.get("host") || "";
+    const protocol = req.protocol === "https" || host.includes("replit") ? "https" : "http";
+    const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+    
+    const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+    authUrl.searchParams.set("client_id", clientId);
+    authUrl.searchParams.set("redirect_uri", redirectUri);
+    authUrl.searchParams.set("response_type", "code");
+    authUrl.searchParams.set("scope", "openid email profile");
+    authUrl.searchParams.set("access_type", "offline");
+    authUrl.searchParams.set("prompt", "select_account");
+    authUrl.searchParams.set("state", state);
+    
+    res.redirect(authUrl.toString());
+  });
+
+  // Google OAuth - Callback
+  app.get("/api/auth/google/callback", async (req, res) => {
+    try {
+      const { code, state } = req.query;
+      
+      // Validate state parameter to prevent CSRF
+      const savedState = req.cookies?.oauth_state;
+      res.clearCookie("oauth_state");
+      
+      if (!state || state !== savedState) {
+        return res.redirect("/login?error=invalid_state");
+      }
+      
+      if (!code || typeof code !== "string") {
+        return res.redirect("/login?error=no_code");
+      }
+      
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+      
+      if (!clientId || !clientSecret) {
+        return res.redirect("/login?error=config");
+      }
+      
+      // Determine the redirect URI based on the request origin
+      const host = req.get("host") || "";
+      const protocol = req.protocol === "https" || host.includes("replit") ? "https" : "http";
+      const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+      
+      // Exchange code for tokens
+      const oauth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
+      const { tokens } = await oauth2Client.getToken(code);
+      oauth2Client.setCredentials(tokens);
+      
+      // Verify ID token and get user info
+      const ticket = await oauth2Client.verifyIdToken({
+        idToken: tokens.id_token!,
+        audience: clientId,
+      });
+      
+      const payload = ticket.getPayload();
+      if (!payload || !payload.sub) {
+        return res.redirect("/login?error=invalid_token");
+      }
+      
+      const googleId = payload.sub;
+      const email = payload.email;
+      const name = payload.name || email?.split("@")[0] || `user_${googleId.slice(-8)}`;
+      
+      // Check if user exists with this Google ID
+      let user = await storage.getUserByGoogleId(googleId);
+      
+      if (!user) {
+        // Check if user exists with same email (link accounts)
+        if (email) {
+          user = await storage.getUserByEmail(email);
+          if (user) {
+            // Update existing user with Google ID - for now create new to avoid conflicts
+          }
+        }
+        
+        // Create new user
+        // Generate a unique username from the name
+        let username = name.toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, 20);
+        let existingUser = await storage.getUserByUsername(username);
+        let counter = 1;
+        while (existingUser) {
+          username = `${name.toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, 15)}_${counter}`;
+          existingUser = await storage.getUserByUsername(username);
+          counter++;
+        }
+        
+        user = await storage.createUser({
+          username,
+          googleId,
+          email: email || undefined,
+          role: USER_ROLES.MEMBER,
+        });
+      }
+      
+      // Create session
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      
+      await storage.createSession({
+        userId: user.id,
+        token,
+        expiresAt,
+      });
+      
+      // Set cookie
+      res.cookie("sessionToken", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production" || host.includes("replit"),
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+      
+      // Redirect to home page
+      res.redirect("/");
+    } catch (error) {
+      console.error("Google OAuth callback error:", error);
+      res.redirect("/login?error=auth_failed");
     }
   });
   

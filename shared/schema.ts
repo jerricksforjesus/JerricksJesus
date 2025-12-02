@@ -38,7 +38,9 @@ export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
-  password: text("password").notNull(),
+  password: text("password"),
+  googleId: text("google_id").unique(),
+  email: text("email"),
   role: text("role").notNull().default("member"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
@@ -107,6 +109,8 @@ export const quizAttempts = pgTable("quiz_attempts", {
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+  googleId: true,
+  email: true,
   role: true,
 });
 
