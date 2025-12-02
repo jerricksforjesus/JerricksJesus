@@ -54,11 +54,12 @@ The following updates were made to the web application after the original mobile
 - **Breakpoint:** Applied on screens < 1024px (lg breakpoint)
 - **Previous:** Grid layout showing all 66 books
 - **Current Behavior:**
-  - Old Testament expands/collapses as a group
-  - New Testament expands/collapses as a group
+  - Old Testament expands/collapses as a group (39 books)
+  - New Testament expands/collapses as a group (27 books)
   - Reduces scroll length on mobile devices
 - **Desktop Behavior:** Traditional grid layout (unchanged)
 - **Affected Screens:** Bible Quiz section (Home page and Admin dashboard)
+- **See Section 8 for complete Bible Quiz implementation details**
 
 ### 2.3 Zoom Button in Hero Section
 - **Change:** Brown/burnt clay colored Zoom button added to hero
@@ -192,38 +193,345 @@ The following updates were made to the web application after the original mobile
 
 ---
 
-## 7. Quiz System Enhancements
+## 7. Bible Quiz System - Complete Implementation Guide
 
-### 7.1 Immediate Answer Feedback
-- **Change:** Users see correct/incorrect immediately after selecting an answer
-- **Endpoint:** `POST /api/quiz/check-answer`
-- **Request:** `{ "questionId": 1, "selectedAnswer": "A" }`
-- **Response:** `{ "correct": true, "correctAnswer": "A" }`
-- **UI Behavior:**
-  - Green highlight for correct answer
-  - Red highlight for incorrect + green highlight on correct answer
-  - Shows scripture reference after answering
-- **Mobile App Impact:** Update quiz flow to show immediate feedback
+### 7.1 System Architecture Overview
 
-### 7.2 Guest Progress Migration
-- **Feature:** Migrate local quiz progress to account after login/registration
-- **Endpoint:** `POST /api/quiz/migrate`
-- **Request:** `{ "books": ["Genesis", "Exodus", ...] }`
-- **Flow:**
-  1. Store completed books locally when guest takes quizzes
-  2. After login, call migrate endpoint with local book list
-  3. Books not already in user's history are added
-  4. Clear local storage after migration
-- **Mobile App Impact:** 
-  - Store guest quiz progress in local storage
-  - Call migrate endpoint after login/registration
-  - Clear local progress after successful migration
+The Bible Quiz system consists of:
+- **66 Books** covering the complete Bible (39 Old Testament + 27 New Testament)
+- **10 Questions per Quiz** randomly selected from approved questions for each book
+- **AI-Generated Questions** using Gemini 2.5 Flash model from actual scripture content
+- **Admin Approval Workflow** - questions require approval before use in quizzes
+- **Guest Progress Tracking** with migration to account on login
 
-### 7.3 Quiz History View
-- **Endpoint:** `GET /api/quiz/my-history`
-- **Response:** Array of quiz attempts with book, score, date
-- **Display:** Shows all past quiz attempts for logged-in user
-- **Mobile App Impact:** Add quiz history screen
+### 7.2 Bible Books Structure
+
+#### Old Testament (39 Books)
+```
+Genesis, Exodus, Leviticus, Numbers, Deuteronomy,
+Joshua, Judges, Ruth, 1 Samuel, 2 Samuel,
+1 Kings, 2 Kings, 1 Chronicles, 2 Chronicles, Ezra,
+Nehemiah, Esther, Job, Psalms, Proverbs,
+Ecclesiastes, Song of Solomon, Isaiah, Jeremiah, Lamentations,
+Ezekiel, Daniel, Hosea, Joel, Amos,
+Obadiah, Jonah, Micah, Nahum, Habakkuk,
+Zephaniah, Haggai, Zechariah, Malachi
+```
+
+#### New Testament (27 Books)
+```
+Matthew, Mark, Luke, John, Acts,
+Romans, 1 Corinthians, 2 Corinthians, Galatians, Ephesians,
+Philippians, Colossians, 1 Thessalonians, 2 Thessalonians, 1 Timothy,
+2 Timothy, Titus, Philemon, Hebrews, James,
+1 Peter, 2 Peter, 1 John, 2 John, 3 John,
+Jude, Revelation
+```
+
+### 7.3 Chapter Counts Per Book
+
+Mobile app should use this data to display book information:
+
+```javascript
+const BOOK_CHAPTERS = {
+  // Old Testament
+  "Genesis": 50, "Exodus": 40, "Leviticus": 27, "Numbers": 36, "Deuteronomy": 34,
+  "Joshua": 24, "Judges": 21, "Ruth": 4, "1 Samuel": 31, "2 Samuel": 24,
+  "1 Kings": 22, "2 Kings": 25, "1 Chronicles": 29, "2 Chronicles": 36, "Ezra": 10,
+  "Nehemiah": 13, "Esther": 10, "Job": 42, "Psalms": 150, "Proverbs": 31,
+  "Ecclesiastes": 12, "Song of Solomon": 8, "Isaiah": 66, "Jeremiah": 52, "Lamentations": 5,
+  "Ezekiel": 48, "Daniel": 12, "Hosea": 14, "Joel": 3, "Amos": 9,
+  "Obadiah": 1, "Jonah": 4, "Micah": 7, "Nahum": 3, "Habakkuk": 3,
+  "Zephaniah": 3, "Haggai": 2, "Zechariah": 14, "Malachi": 4,
+  // New Testament
+  "Matthew": 28, "Mark": 16, "Luke": 24, "John": 21, "Acts": 28,
+  "Romans": 16, "1 Corinthians": 16, "2 Corinthians": 13, "Galatians": 6, "Ephesians": 6,
+  "Philippians": 4, "Colossians": 4, "1 Thessalonians": 5, "2 Thessalonians": 3, "1 Timothy": 6,
+  "2 Timothy": 4, "Titus": 3, "Philemon": 1, "Hebrews": 13, "James": 5,
+  "1 Peter": 5, "2 Peter": 3, "1 John": 5, "2 John": 1, "3 John": 1,
+  "Jude": 1, "Revelation": 22
+};
+```
+
+### 7.4 Question Schema
+
+Each question in the database has this structure:
+
+```typescript
+interface QuizQuestion {
+  id: number;                    // Auto-generated primary key
+  book: string;                  // Book name (e.g., "Genesis")
+  questionText: string;          // The question text
+  optionA: string;               // Answer option A
+  optionB: string;               // Answer option B
+  optionC: string;               // Answer option C
+  optionD: string;               // Answer option D
+  correctAnswer: "A"|"B"|"C"|"D"; // Which option is correct
+  scriptureReference: string;    // e.g., "Genesis 1:3-5"
+  isApproved: 0 | 1;            // 0 = pending, 1 = approved
+  createdAt: Date;              // When question was created
+}
+```
+
+### 7.5 Quiz Generation Flow (How Questions Are Created)
+
+1. **Admin triggers generation** for a book via admin panel
+2. **API fetches scripture content** from bible-api.com (KJV translation)
+   - For short books (≤10 chapters): Fetches all chapters
+   - For medium books (10-30 chapters): Fetches first 3, middle, and last 2 chapters
+   - For long books (>30 chapters): Samples evenly distributed chapters
+3. **AI generates 10 questions** using Gemini 2.5 Flash model
+4. **Questions are saved** to database with `isApproved: 0`
+5. **Admin reviews and approves** each question or bulk approves all for a book
+6. **Only approved questions** appear in user quizzes
+
+### 7.6 Quiz Taking Flow
+
+#### Step 1: Fetch Available Books
+```
+GET /api/quiz/books
+```
+**Response:**
+```json
+[
+  {
+    "name": "Genesis",
+    "questionCount": 10,      // Total questions in database
+    "approvedCount": 10,      // How many are approved
+    "hasQuiz": true           // true if approvedCount >= 1
+  }
+]
+```
+
+#### Step 2: User Selects Book (UI Implementation)
+
+**Mobile/Tablet (< 1024px):**
+- Display as Accordion with two sections:
+  - "Old Testament" header (tap to expand/collapse)
+  - "New Testament" header (tap to expand/collapse)
+- Inside each accordion: 3-column grid of book buttons
+- Book button shows:
+  - Book name (center aligned)
+  - Checkmark icon if completed, Book icon if available
+  - Disabled/grayed out if `hasQuiz: false`
+
+**Desktop (≥ 1024px):**
+- Two side-by-side panels: "Old Testament" and "New Testament"
+- 4-column grid of book buttons in each panel
+- Same button styling as mobile
+
+#### Step 3: Fetch Questions for Selected Book
+```
+GET /api/quiz/questions/:book
+```
+**Example:** `GET /api/quiz/questions/Genesis`
+
+**Response:** Array of 10 shuffled questions (correct answer hidden):
+```json
+[
+  {
+    "id": 123,
+    "questionText": "What did God create on the first day?",
+    "optionA": "Light",
+    "optionB": "Animals",
+    "optionC": "Man",
+    "optionD": "Water",
+    "scriptureReference": "Genesis 1:3-5"
+  }
+]
+```
+
+**Important:** The API returns exactly 10 random approved questions. Server-side:
+- Fetches all approved questions for the book
+- Shuffles them randomly
+- Returns first 10 (or fewer if less available)
+- Excludes `correctAnswer` from response
+
+#### Step 4: Display Question (One at a Time)
+
+**UI Elements:**
+- Progress indicator: "Question 3 of 10"
+- Progress bar: Visual percentage complete
+- Question text: Large, readable font
+- Four answer buttons (A, B, C, D) stacked vertically
+- Buttons show: "A. [Option text]", "B. [Option text]", etc.
+
+#### Step 5: User Selects Answer - Immediate Feedback
+
+When user taps an answer:
+```
+POST /api/quiz/check-answer
+```
+**Request:**
+```json
+{
+  "questionId": 123,
+  "selectedAnswer": "A"
+}
+```
+**Response:**
+```json
+{
+  "correct": true,
+  "correctAnswer": "A"
+}
+```
+
+**UI Feedback (1.5 second delay before next question):**
+- If correct: Selected button turns green, shows checkmark
+- If wrong: Selected button turns red, correct button turns green
+- Display scripture reference below options
+- Disable all answer buttons during feedback
+
+#### Step 6: Store Answer and Move to Next
+
+```typescript
+// Store each answer locally
+answers.push({
+  questionId: 123,
+  selectedAnswer: "A"
+});
+
+// After 1.5 seconds, move to next question
+currentQuestionIndex++;
+```
+
+#### Step 7: Submit All Answers When Complete
+```
+POST /api/quiz/submit
+```
+**Request:**
+```json
+{
+  "book": "Genesis",
+  "answers": [
+    { "questionId": 123, "selectedAnswer": "A" },
+    { "questionId": 124, "selectedAnswer": "B" },
+    // ... all 10 answers
+  ]
+}
+```
+**Response:**
+```json
+{
+  "score": 8,
+  "totalQuestions": 10,
+  "results": [
+    {
+      "questionId": 123,
+      "correct": true,
+      "correctAnswer": "A",
+      "scriptureReference": "Genesis 1:3-5"
+    }
+  ]
+}
+```
+
+#### Step 8: Display Results Screen
+
+**UI Elements:**
+- Score display: "8/10" or "80%"
+- Encouraging message based on score:
+  - 100%: "Perfect Score!"
+  - 80-99%: "Excellent!"
+  - 60-79%: "Good Job!"
+  - <60%: "Keep Learning!"
+- "Try Another Book" button → Return to book selection
+- "Retry" button → Restart same book with new questions
+
+### 7.7 Guest Progress Tracking
+
+**For Non-Logged-In Users:**
+1. Store completed books in local storage:
+   ```javascript
+   const key = "quiz_completed_books";
+   const completed = JSON.parse(localStorage.getItem(key) || "[]");
+   completed.push("Genesis");
+   localStorage.setItem(key, JSON.stringify(completed));
+   ```
+2. Show completed books with checkmark in book selection
+3. Progress persists in local storage until login
+
+**After User Logs In:**
+1. Call migrate endpoint immediately:
+   ```
+   POST /api/quiz/migrate
+   ```
+   **Request:**
+   ```json
+   { "books": ["Genesis", "Exodus", "Matthew"] }
+   ```
+2. Server records these as completed quiz attempts
+3. Clear local storage after successful migration
+4. Completed books now tracked on server
+
+### 7.8 Quiz History View
+```
+GET /api/quiz/my-history
+```
+**Response:**
+```json
+[
+  {
+    "id": 456,
+    "book": "Genesis",
+    "score": 8,
+    "totalQuestions": 10,
+    "completedAt": "2025-12-01T15:30:00Z"
+  }
+]
+```
+
+**UI:** Display as list showing:
+- Book name
+- Score (e.g., "8/10")
+- Date completed
+- Sorted by most recent first
+
+### 7.9 Admin Quiz Management
+
+**Get All Questions for Book (including unapproved):**
+```
+GET /api/admin/quiz/questions/:book
+```
+
+**Generate New Questions:**
+```
+POST /api/admin/quiz/generate/:book
+Body: { "count": 10 }  // Optional, defaults to 10
+```
+
+**Approve Single Question:**
+```
+POST /api/admin/quiz/approve/:id
+```
+
+**Approve All Questions for Book:**
+```
+POST /api/admin/quiz/approve-book/:book
+```
+
+**Update Question:**
+```
+PUT /api/admin/quiz/questions/:id
+Body: { "questionText": "...", "optionA": "...", ... }
+```
+
+**Delete Single Question:**
+```
+DELETE /api/admin/quiz/questions/:id
+```
+
+**Delete All Questions for Book:**
+```
+DELETE /api/admin/quiz/questions-book/:book
+```
+
+**Generate Questions for All Books (Bulk):**
+```
+POST /api/admin/quiz/generate-all
+Body: { "skipExisting": true }  // Skip books that already have questions
+```
 
 ---
 
@@ -341,6 +649,10 @@ The following updates were made to the web application after the original mobile
 | `/api/admin/quiz/approve/:id` | POST | Approve single question |
 | `/api/admin/quiz/approve-book/:book` | POST | Approve all questions for book |
 | `/api/verses/:id/activate` | POST | Set verse as active |
+| `/api/auth/google` | GET | Initiate Google OAuth flow |
+| `/api/auth/google/callback` | GET | Handle Google OAuth callback |
+| `/api/auth/google/debug` | GET | Debug OAuth redirect URI |
+| `/api/youtube/playlist` | GET | Get worship music playlist videos |
 
 ### Modified Endpoints
 | Endpoint | Change |
@@ -352,7 +664,345 @@ The following updates were made to the web application after the original mobile
 
 ---
 
-## 13. Screens to Update in Mobile App
+## 13. Google Single Sign-On (SSO) - Complete Implementation Guide
+
+### 13.1 Overview
+
+Google SSO allows users to sign in with their Google account instead of creating a separate username/password. The system uses OAuth 2.0 with the following flow:
+1. User clicks "Sign in with Google" button
+2. Browser redirects to Google's authentication page
+3. User grants permission
+4. Google redirects back with authorization code
+5. Server exchanges code for tokens
+6. Server creates/links user account and session
+
+### 13.2 Required Configuration (Already Set Up on Web)
+
+**Environment Variables:**
+- `GOOGLE_CLIENT_ID` - OAuth 2.0 Client ID from Google Cloud Console
+- `GOOGLE_CLIENT_SECRET` - OAuth 2.0 Client Secret from Google Cloud Console
+- `PUBLIC_APP_URL` (optional) - Production URL for redirect URI (e.g., `https://jerricksforjesus.com`)
+
+**Google Cloud Console Setup (for mobile app):**
+1. Go to https://console.cloud.google.com/apis/credentials
+2. Create OAuth 2.0 credentials for mobile app (iOS and/or Android)
+3. Configure authorized redirect URIs for mobile deep links
+
+### 13.3 OAuth URLs Used
+
+**Google Authorization URL:**
+```
+https://accounts.google.com/o/oauth2/v2/auth
+```
+
+**Required Query Parameters:**
+| Parameter | Value |
+|-----------|-------|
+| `client_id` | `{GOOGLE_CLIENT_ID}` |
+| `redirect_uri` | `{APP_URL}/api/auth/google/callback` |
+| `response_type` | `code` |
+| `scope` | `openid email profile` |
+| `access_type` | `offline` |
+| `prompt` | `select_account` |
+| `state` | `{random 32-byte hex string}` |
+
+**Token Exchange URL:**
+```
+https://oauth2.googleapis.com/token
+```
+
+### 13.4 Web Implementation Flow
+
+#### Step 1: Initiate Google Sign-In
+```javascript
+// On mobile, open this URL in browser or WebView
+const googleSignInUrl = `${API_BASE_URL}/api/auth/google`;
+window.location.href = googleSignInUrl;
+```
+
+#### Step 2: Server Builds Authorization URL
+```
+GET /api/auth/google
+```
+Server constructs and redirects to:
+```
+https://accounts.google.com/o/oauth2/v2/auth
+  ?client_id=xxx.apps.googleusercontent.com
+  &redirect_uri=https://jerricksforjesus.com/api/auth/google/callback
+  &response_type=code
+  &scope=openid%20email%20profile
+  &access_type=offline
+  &prompt=select_account
+  &state=abc123...
+```
+
+#### Step 3: Google Callback Processing
+```
+GET /api/auth/google/callback?code=xxx&state=abc123
+```
+Server:
+1. Validates `state` matches stored cookie (CSRF protection)
+2. Exchanges `code` for tokens at Google's token endpoint
+3. Verifies ID token to get user info:
+   - `sub` - Google user ID (unique per user)
+   - `email` - User's email address
+   - `name` - User's display name
+4. Looks up user by Google ID or email
+5. Creates session if user exists
+6. Sets session cookie and redirects to home page
+
+#### Step 4: Handle Errors
+If user not found, redirects to:
+```
+/login?error=not_registered
+```
+
+**Error Codes:**
+| Error | Meaning |
+|-------|---------|
+| `not_registered` | No account exists with this Google ID or email |
+| `invalid_state` | CSRF validation failed |
+| `no_code` | No authorization code received |
+| `config` | Server OAuth configuration missing |
+| `invalid_token` | Token verification failed |
+| `auth_failed` | General authentication failure |
+
+### 13.5 Mobile App Implementation
+
+#### Option A: Use System Browser (Recommended)
+```javascript
+// Open in system browser
+const googleLoginUrl = `${API_BASE_URL}/api/auth/google`;
+Linking.openURL(googleLoginUrl);
+
+// Handle deep link callback
+Linking.addEventListener('url', (event) => {
+  if (event.url.includes('/api/auth/google/callback')) {
+    // Parse session token from URL or cookies
+    // Navigate to home screen
+  }
+});
+```
+
+#### Option B: Use WebView with Cookie Handling
+```javascript
+// Load Google login in WebView
+const webview = (
+  <WebView
+    source={{ uri: `${API_BASE_URL}/api/auth/google` }}
+    onNavigationStateChange={(navState) => {
+      // Check if redirected to home page (success)
+      if (navState.url === `${API_BASE_URL}/`) {
+        // Extract session cookie
+        // Close WebView and update auth state
+      }
+      // Check for error
+      if (navState.url.includes('/login?error=')) {
+        // Parse error and show to user
+      }
+    }}
+    sharedCookiesEnabled={true}
+  />
+);
+```
+
+#### Option C: Native SDK (iOS/Android)
+For native mobile SDK implementation:
+1. Use Google Sign-In SDK for iOS/Android
+2. Get ID token from Google SDK
+3. Send to custom backend endpoint for verification
+4. Receive session token in response
+
+### 13.6 Linking Google to Existing Account
+
+When a user signs in with Google:
+1. Server checks if user exists by Google ID (`googleId` field)
+2. If not found, checks if email matches existing user
+3. If email matches, links Google ID to that account
+4. If no match, returns `not_registered` error
+
+**Important:** Users must first create an account (username/password or through registration), then can link Google account by signing in with matching email.
+
+### 13.7 Session Cookie Details
+
+**Cookie Name:** `sessionToken`
+
+**Cookie Settings:**
+```javascript
+{
+  httpOnly: true,         // Not accessible via JavaScript
+  secure: true,           // Only sent over HTTPS (production)
+  sameSite: "lax",        // CSRF protection
+  maxAge: 604800000       // 7 days in milliseconds
+}
+```
+
+**Mobile Handling:**
+- For WebView: Enable `sharedCookiesEnabled` 
+- For native: Store token in secure storage and send in Cookie header
+
+### 13.8 Check Current User (With Google SSO)
+```
+GET /api/auth/me
+```
+**Response (Google user):**
+```json
+{
+  "id": "uuid-123",
+  "username": "john.doe",
+  "email": "john@gmail.com",
+  "googleId": "google-sub-id-12345",
+  "role": "member",
+  "mustChangePassword": 0
+}
+```
+
+**Google SSO Users:**
+- Have `googleId` set
+- Have `password` set to null (cannot login with password)
+- Cannot change password in profile settings
+- Cannot have password reset by admin
+
+### 13.9 Debug Endpoint
+```
+GET /api/auth/google/debug
+```
+**Response:**
+```json
+{
+  "redirectUri": "https://jerricksforjesus.com/api/auth/google/callback",
+  "publicAppUrl": "https://jerricksforjesus.com"
+}
+```
+
+---
+
+## 14. Our Ministries Section - Complete Implementation
+
+### 14.1 Section Overview
+
+**Location:** Bottom of home page, directly above footer
+**Component:** `MinistryAccordion.tsx`
+**Design:** Accordion with three ministry sections that expand/collapse
+
+### 14.2 Ministry Items Structure
+
+```javascript
+const ministries = [
+  {
+    id: "item-1",
+    title: "Worship & Music",
+    description: "Join our choir or band. We believe in praising through song and spirit, blending traditional hymns with contemporary worship.",
+    customContent: "WorshipMusicSection"  // YouTube playlist component
+  },
+  {
+    id: "item-2",
+    title: "Youth & Family",
+    description: "Programs for all ages, from Sunday school for the little ones to teen youth groups focused on navigating faith in the modern world.",
+    customContent: "FamilyPhotoGallery"   // Photo gallery component
+  },
+  {
+    id: "item-3",
+    title: "Community Outreach",
+    description: "We serve our local community through food drives, shelter support, and neighborhood cleanup events. Faith in action.",
+    customContent: "CharityComingSoon"    // Coming soon placeholder
+  }
+];
+```
+
+### 14.3 UI Layout
+
+**Section Container:**
+- Background: Site background color (alabaster/off-white)
+- Padding: `py-24 px-6` (96px top/bottom, 24px sides)
+- Max width: `max-w-4xl` centered
+
+**Section Header:**
+- Title: "Our Ministries" - large serif font
+- Subtitle: "Ways to connect, serve, and grow." - muted text
+- Centered alignment with margin below
+
+**Accordion Behavior:**
+- Single expand mode (only one section open at a time)
+- Collapsible (all can be closed)
+- Smooth expand/collapse animation
+- Border between items
+
+**Accordion Item:**
+- Title: Serif font, 1.25rem-1.5rem (xl to 2xl on desktop)
+- Hover effect: Primary color text
+- Expand chevron icon on right
+
+### 14.4 Custom Content Components
+
+#### Worship & Music Section
+- **Component:** `WorshipMusicSection.tsx`
+- **Content:** YouTube playlist videos
+- **Playlist ID:** `PLkDsdLHKY8laSsy8xYfILnVzFMedR0Rgy`
+- **API:** Uses YouTube Data API v3
+- **Endpoint:** `GET /api/youtube/playlist`
+- **Features:**
+  - Grid of video thumbnails
+  - Click to open video in modal player
+  - Video title and duration shown
+  - 5-minute cache to minimize API calls
+
+#### Youth & Family Section
+- **Component:** `FamilyPhotoGallery.tsx`
+- **Content:** Family photos from admin + approved member photos
+- **API Endpoints:**
+  - `GET /api/photos` - Admin-uploaded photos
+  - `GET /api/member-photos/approved` - Member-submitted photos
+- **Features:**
+  - 2-4 column responsive grid
+  - Click to open lightbox view
+  - Navigation arrows in lightbox
+  - Photo captions displayed
+
+#### Community Outreach Section
+- **Component:** `CharityComingSoon.tsx`
+- **Content:** Placeholder for future charity program
+- **Features:**
+  - Charity logo image centered
+  - "Jerricks for Jesus Charity – Coming Soon" text
+  - Primary color text styling
+
+### 14.5 API Endpoints for Ministries
+
+**YouTube Playlist:**
+```
+GET /api/youtube/playlist
+```
+Response:
+```json
+[
+  {
+    "id": "video-id",
+    "title": "Sunday Worship - December 1",
+    "thumbnail": "https://img.youtube.com/...",
+    "videoId": "abc123"
+  }
+]
+```
+
+**Family Photos:**
+```
+GET /api/photos
+```
+```
+GET /api/member-photos/approved
+```
+
+### 14.6 Mobile Implementation Notes
+
+- **Accordion:** Use native collapsible/expandable component
+- **Worship Videos:** Open YouTube videos in YouTube app or WebView
+- **Photo Gallery:** Native image viewer with swipe navigation
+- **Coming Soon:** Static display matching web styling
+
+---
+
+## 15. Screens to Update in Mobile App
 
 ### Priority 1 (Critical)
 1. **Login Screen** - Add email login support, password visibility toggle
@@ -372,7 +1022,7 @@ The following updates were made to the web application after the original mobile
 
 ---
 
-## 14. Testing Checklist for Mobile App
+## 16. Testing Checklist for Mobile App
 
 ### Authentication
 - [ ] Login with username works
@@ -410,19 +1060,25 @@ The following updates were made to the web application after the original mobile
 
 ---
 
-## 15. Files for Reference
+## 17. Files for Reference
 
 | File | Purpose |
 |------|---------|
 | `MOBILE_APP_API_DOCUMENTATION.md` | Complete API reference |
-| `client/src/pages/login.tsx` | Login implementation |
+| `client/src/pages/login.tsx` | Login implementation with Google SSO button |
 | `client/src/pages/admin.tsx` | Admin panel with all management features |
-| `client/src/components/BibleQuizSection.tsx` | Quiz UI with accordion |
+| `client/src/components/BibleQuizSection.tsx` | Quiz UI with accordion layout |
 | `client/src/components/LiveStreamSection.tsx` | Live stream with aspect ratio |
+| `client/src/components/MinistryAccordion.tsx` | Our Ministries section |
+| `client/src/components/WorshipMusicSection.tsx` | YouTube playlist integration |
+| `client/src/components/FamilyPhotoGallery.tsx` | Family photo gallery |
+| `client/src/components/CharityComingSoon.tsx` | Charity coming soon placeholder |
 | `client/src/hooks/useQuizProgress.ts` | Guest progress tracking |
 | `client/src/lib/auth.tsx` | Authentication context |
-| `shared/schema.ts` | All data models |
-| `server/routes.ts` | All API endpoints |
+| `shared/schema.ts` | All data models (66 Bible books, user roles) |
+| `server/routes.ts` | All API endpoints (Google OAuth, Quiz, Photos) |
+| `server/quizGenerator.ts` | AI question generation |
+| `server/bibleApi.ts` | Bible content fetching (chapter counts) |
 
 ---
 
