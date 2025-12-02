@@ -146,6 +146,17 @@ export default function LoginPage() {
                     required
                   />
                 </div>
+                <Button 
+                  type="submit" 
+                  data-testid="button-login"
+                  className="w-full text-white"
+                  disabled={isLoading}
+                  style={{ 
+                    backgroundColor: "var(--burnt-clay)"
+                  }}
+                >
+                  {isLoading ? "Signing in..." : "Sign In"}
+                </Button>
               </form>
             </TabsContent>
             
@@ -190,11 +201,10 @@ export default function LoginPage() {
                 <Button 
                   type="submit" 
                   data-testid="button-register"
-                  className="w-full"
+                  className="w-full text-white"
                   disabled={isLoading}
                   style={{ 
-                    backgroundColor: "var(--burnt-clay)", 
-                    color: "white" 
+                    backgroundColor: "var(--burnt-clay)"
                   }}
                 >
                   {isLoading ? "Creating account..." : "Create Account"}
