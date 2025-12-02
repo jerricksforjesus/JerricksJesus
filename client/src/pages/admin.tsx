@@ -1554,7 +1554,7 @@ export default function AdminDashboard() {
                               title="Reset password to Jerrick#1"
                             >
                               <Key className="w-4 h-4 mr-1" />
-                              Reset
+                              Password Reset
                             </Button>
                           </div>
                         )}
