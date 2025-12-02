@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus, Users, Shield, UserCheck, Camera, CheckCircle, XCircle, Clock, Settings } from "lucide-react";
+import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus, Users, Shield, UserCheck, Camera, CheckCircle, XCircle, Clock, Settings, Key, User as UserIcon } from "lucide-react";
 import { useState, useEffect, useLayoutEffect } from "react";
 import { useLocation } from "wouter";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -380,6 +380,103 @@ export default function AdminDashboard() {
       toast({ title: "Error", description: error.message, variant: "destructive" });
     },
   });
+
+  const resetPasswordMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetch(`/api/admin/users/${userId}/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to reset password");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ 
+        title: "Password Reset", 
+        description: "Password has been reset. User must change it on next login." 
+      });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  // Profile settings state
+  const [profileUsername, setProfileUsername] = useState("");
+  const [profileCurrentPassword, setProfileCurrentPassword] = useState("");
+  const [profileNewPassword, setProfileNewPassword] = useState("");
+  const [profileConfirmPassword, setProfileConfirmPassword] = useState("");
+
+  // Initialize profile username when user loads
+  useEffect(() => {
+    if (user && !profileUsername) {
+      setProfileUsername(user.username);
+    }
+  }, [user]);
+
+  const updateUsernameMutation = useMutation({
+    mutationFn: async (username: string) => {
+      const response = await fetch("/api/profile/username", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ username }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update username");
+      }
+      return response.json();
+    },
+    onSuccess: (data) => {
+      toast({ title: "Username Updated", description: "Your username has been changed." });
+      queryClient.invalidateQueries({ queryKey: ["user"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async ({ currentPassword, newPassword }: { currentPassword: string; newPassword: string }) => {
+      const response = await fetch("/api/profile/password", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to change password");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Password Changed", description: "Your password has been updated." });
+      setProfileCurrentPassword("");
+      setProfileNewPassword("");
+      setProfileConfirmPassword("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleChangePassword = () => {
+    if (profileNewPassword !== profileConfirmPassword) {
+      toast({ title: "Error", description: "New passwords do not match", variant: "destructive" });
+      return;
+    }
+    if (profileNewPassword.length < 6) {
+      toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+    changePasswordMutation.mutate({ currentPassword: profileCurrentPassword, newPassword: profileNewPassword });
+  };
 
   const { data: activeVerse } = useQuery<Verse>({
     queryKey: ["active-verse"],
@@ -867,7 +964,7 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="verse" className="w-full">
-          <TabsList className={`grid w-full mb-8 ${isFoundational && !isAdmin ? 'grid-cols-8' : 'grid-cols-7'}`}>
+          <TabsList className={`grid w-full mb-8 ${isFoundational && !isAdmin ? 'grid-cols-9' : 'grid-cols-8'}`}>
             <TabsTrigger value="verse" data-testid="tab-verse">Verse</TabsTrigger>
             <TabsTrigger value="replays" data-testid="tab-replays">Replays</TabsTrigger>
             <TabsTrigger value="photos" data-testid="tab-photos">Photos</TabsTrigger>
@@ -877,6 +974,7 @@ export default function AdminDashboard() {
               <TabsTrigger value="take-quiz" data-testid="tab-take-quiz">Take Quiz</TabsTrigger>
             )}
             <TabsTrigger value="users" data-testid="tab-users">Users</TabsTrigger>
+            <TabsTrigger value="profile" data-testid="tab-profile">Profile</TabsTrigger>
             <TabsTrigger value="settings" data-testid="tab-settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -1387,24 +1485,37 @@ export default function AdminDashboard() {
                         </div>
                         
                         {user?.id !== u.id && (
-                          <Select
-                            value={u.role}
-                            onValueChange={(newRole) => {
-                              updateUserRoleMutation.mutate({ userId: u.id, role: newRole });
-                            }}
-                            disabled={updateUserRoleMutation.isPending}
-                          >
-                            <SelectTrigger className="w-[180px]" data-testid={`select-role-${u.id}`}>
-                              <SelectValue />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value={USER_ROLES.MEMBER}>Member</SelectItem>
-                              <SelectItem value={USER_ROLES.FOUNDATIONAL}>Foundational</SelectItem>
-                              {isAdmin && (
-                                <SelectItem value={USER_ROLES.ADMIN}>Admin</SelectItem>
-                              )}
-                            </SelectContent>
-                          </Select>
+                          <div className="flex items-center gap-2">
+                            <Select
+                              value={u.role}
+                              onValueChange={(newRole) => {
+                                updateUserRoleMutation.mutate({ userId: u.id, role: newRole });
+                              }}
+                              disabled={updateUserRoleMutation.isPending}
+                            >
+                              <SelectTrigger className="w-[150px]" data-testid={`select-role-${u.id}`}>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value={USER_ROLES.MEMBER}>Member</SelectItem>
+                                <SelectItem value={USER_ROLES.FOUNDATIONAL}>Foundational</SelectItem>
+                                {isAdmin && (
+                                  <SelectItem value={USER_ROLES.ADMIN}>Admin</SelectItem>
+                                )}
+                              </SelectContent>
+                            </Select>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => resetPasswordMutation.mutate(u.id)}
+                              disabled={resetPasswordMutation.isPending}
+                              data-testid={`button-reset-password-${u.id}`}
+                              title="Reset password to Jerrick#1"
+                            >
+                              <Key className="w-4 h-4 mr-1" />
+                              Reset
+                            </Button>
+                          </div>
                         )}
                         
                         {user?.id === u.id && (
@@ -1416,6 +1527,109 @@ export default function AdminDashboard() {
                     ))}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="profile">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <UserIcon className="w-6 h-6" style={{ color: "#b47a5f" }} />
+                  <div>
+                    <CardTitle>Profile Settings</CardTitle>
+                    <CardDescription>Manage your account settings and password.</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-8">
+                <div className="space-y-4">
+                  <h3 className="font-medium text-lg">Update Username</h3>
+                  <div className="flex gap-3">
+                    <Input
+                      id="profile-username"
+                      data-testid="input-profile-username"
+                      value={profileUsername}
+                      onChange={(e) => setProfileUsername(e.target.value)}
+                      placeholder="Enter new username"
+                      className="flex-1 max-w-md"
+                    />
+                    <Button
+                      onClick={() => updateUsernameMutation.mutate(profileUsername)}
+                      disabled={updateUsernameMutation.isPending || !profileUsername || profileUsername === user?.username}
+                      style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+                      data-testid="button-update-username"
+                    >
+                      {updateUsernameMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : (
+                        <Save className="w-4 h-4 mr-2" />
+                      )}
+                      Update
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="border-t pt-6 space-y-4">
+                  <h3 className="font-medium text-lg">Change Password</h3>
+                  {user?.googleId ? (
+                    <div className="bg-muted/50 rounded-lg p-4 text-muted-foreground">
+                      <p className="flex items-center gap-2">
+                        <Key className="w-4 h-4" />
+                        Password changes are not available for Google Sign-In accounts.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 max-w-md">
+                      <div className="space-y-2">
+                        <Label htmlFor="current-password">Current Password</Label>
+                        <Input
+                          id="current-password"
+                          data-testid="input-current-password"
+                          type="password"
+                          value={profileCurrentPassword}
+                          onChange={(e) => setProfileCurrentPassword(e.target.value)}
+                          placeholder="Enter current password"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="new-password">New Password</Label>
+                        <Input
+                          id="new-password"
+                          data-testid="input-new-password"
+                          type="password"
+                          value={profileNewPassword}
+                          onChange={(e) => setProfileNewPassword(e.target.value)}
+                          placeholder="Enter new password (min 6 characters)"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm-password">Confirm New Password</Label>
+                        <Input
+                          id="confirm-password"
+                          data-testid="input-confirm-password"
+                          type="password"
+                          value={profileConfirmPassword}
+                          onChange={(e) => setProfileConfirmPassword(e.target.value)}
+                          placeholder="Confirm new password"
+                        />
+                      </div>
+                      <Button
+                        onClick={handleChangePassword}
+                        disabled={changePasswordMutation.isPending || !profileCurrentPassword || !profileNewPassword || !profileConfirmPassword}
+                        style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+                        data-testid="button-change-password"
+                      >
+                        {changePasswordMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        ) : (
+                          <Key className="w-4 h-4 mr-2" />
+                        )}
+                        Change Password
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
