@@ -934,6 +934,126 @@ export async function registerRoutes(
     }
   });
 
+  // Service Times - GET
+  app.get("/api/settings/service-times", async (req, res) => {
+    try {
+      const serviceTimesJson = await storage.getSetting("service_times");
+      if (serviceTimesJson) {
+        res.json(JSON.parse(serviceTimesJson));
+      } else {
+        // Default service times
+        res.json([
+          { day: "Friday", time: "6:00 AM", timezone: "EST" },
+          { day: "Friday", time: "6:00 PM", timezone: "EST" }
+        ]);
+      }
+    } catch (error) {
+      console.error("Error fetching service times:", error);
+      res.status(500).json({ error: "Failed to fetch service times" });
+    }
+  });
+
+  // Service Times - PUT (Admin/Foundational only)
+  app.put("/api/settings/service-times", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+    try {
+      const { serviceTimes } = req.body;
+      if (!Array.isArray(serviceTimes)) {
+        return res.status(400).json({ error: "Service times must be an array" });
+      }
+      await storage.setSetting("service_times", JSON.stringify(serviceTimes));
+      res.json({ success: true, serviceTimes });
+    } catch (error) {
+      console.error("Error updating service times:", error);
+      res.status(500).json({ error: "Failed to update service times" });
+    }
+  });
+
+  // Church Info - GET
+  app.get("/api/settings/church-info", async (req, res) => {
+    try {
+      const churchInfoJson = await storage.getSetting("church_info");
+      if (churchInfoJson) {
+        res.json(JSON.parse(churchInfoJson));
+      } else {
+        // Default church info
+        res.json({
+          name: "Jerricks for Jesus",
+          address: "",
+          email: "jerricksforjesus@gmail.com",
+          phone: ""
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching church info:", error);
+      res.status(500).json({ error: "Failed to fetch church info" });
+    }
+  });
+
+  // Church Info - PUT (Admin/Foundational only)
+  app.put("/api/settings/church-info", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+    try {
+      const { churchInfo } = req.body;
+      if (!churchInfo || typeof churchInfo !== "object") {
+        return res.status(400).json({ error: "Church info must be an object" });
+      }
+      await storage.setSetting("church_info", JSON.stringify(churchInfo));
+      res.json({ success: true, churchInfo });
+    } catch (error) {
+      console.error("Error updating church info:", error);
+      res.status(500).json({ error: "Failed to update church info" });
+    }
+  });
+
+  // Ministries - GET
+  app.get("/api/settings/ministries", async (req, res) => {
+    try {
+      const ministriesJson = await storage.getSetting("ministries");
+      if (ministriesJson) {
+        res.json(JSON.parse(ministriesJson));
+      } else {
+        // Default ministries
+        res.json([
+          {
+            id: "worship",
+            title: "Worship & Music",
+            description: "Join our worship team to praise and glorify God through music and song.",
+            icon: "music"
+          },
+          {
+            id: "community",
+            title: "Community Outreach",
+            description: "Serve our local community through various outreach programs and charitable initiatives.",
+            icon: "heart"
+          },
+          {
+            id: "education",
+            title: "Bible Study",
+            description: "Deepen your understanding of Scripture through our weekly Bible study sessions.",
+            icon: "book"
+          }
+        ]);
+      }
+    } catch (error) {
+      console.error("Error fetching ministries:", error);
+      res.status(500).json({ error: "Failed to fetch ministries" });
+    }
+  });
+
+  // Ministries - PUT (Admin/Foundational only)
+  app.put("/api/settings/ministries", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+    try {
+      const { ministries } = req.body;
+      if (!Array.isArray(ministries)) {
+        return res.status(400).json({ error: "Ministries must be an array" });
+      }
+      await storage.setSetting("ministries", JSON.stringify(ministries));
+      res.json({ success: true, ministries });
+    } catch (error) {
+      console.error("Error updating ministries:", error);
+      res.status(500).json({ error: "Failed to update ministries" });
+    }
+  });
+
   // Photo Management Routes
   app.get("/api/photos", async (req, res) => {
     try {
