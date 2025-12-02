@@ -42,6 +42,7 @@ export const users = pgTable("users", {
   googleId: text("google_id").unique(),
   email: text("email"),
   role: text("role").notNull().default("member"),
+  mustChangePassword: integer("must_change_password").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
