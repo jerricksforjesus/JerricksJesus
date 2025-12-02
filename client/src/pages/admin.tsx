@@ -1020,11 +1020,10 @@ export default function AdminDashboard() {
                                   </SelectTrigger>
                                   <SelectContent>
                                     <SelectItem value="1">1</SelectItem>
+                                    <SelectItem value="2">2</SelectItem>
                                     <SelectItem value="3">3</SelectItem>
+                                    <SelectItem value="4">4</SelectItem>
                                     <SelectItem value="5">5</SelectItem>
-                                    <SelectItem value="10">10</SelectItem>
-                                    <SelectItem value="15">15</SelectItem>
-                                    <SelectItem value="20">20</SelectItem>
                                   </SelectContent>
                                 </Select>
                                 <Button
