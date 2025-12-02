@@ -149,7 +149,7 @@ export default function LoginPage() {
                 <Button 
                   type="submit" 
                   data-testid="button-login"
-                  className="w-full font-medium"
+                  className="w-full font-medium mt-6"
                   disabled={isLoading}
                   style={{ 
                     backgroundColor: "#b47a5f",
@@ -202,7 +202,7 @@ export default function LoginPage() {
                 <Button 
                   type="submit" 
                   data-testid="button-register"
-                  className="w-full font-medium"
+                  className="w-full font-medium mt-6"
                   disabled={isLoading}
                   style={{ 
                     backgroundColor: "#b47a5f",
