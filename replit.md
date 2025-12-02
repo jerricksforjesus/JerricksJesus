@@ -122,6 +122,21 @@ Preferred communication style: Simple, everyday language.
 - Production uses esbuild for server bundling with selective dependency bundling
 
 **Authentication & Authorization**
-- Basic user table exists but no active authentication flow implemented
-- Placeholder for future Zoom OAuth integration on live stream page
-- Object storage has ACL system ready for user-based permissions (currently unused)
+- Complete role-based authentication system with three user roles:
+  - **Admin**: Full access to all features including user creation
+  - **Foundational Members**: Can add/edit content (videos, verses, photos, quiz questions)
+  - **Regular Members**: Can take quizzes and view their own quiz history
+- Session-based authentication with bcrypt password hashing (10 salt rounds)
+- HTTP-only cookies with 7-day expiration, SameSite=Lax, Secure in production
+- 32-byte random session tokens stored in PostgreSQL `sessions` table
+- Default admin account: username `admin`, password `Jfoundation@1`
+- Login page at `/login` with registration support for regular members
+- Protected admin routes check role on both server and client side
+- Quiz attempts linked to user accounts for history tracking
+
+**Bible Quiz System**
+- All 66 books of the Bible with 10 questions each (approx. 660 total questions)
+- Questions stored in PostgreSQL with approval workflow
+- Quiz attempts tracked per user with score and completion timestamp
+- History view shows user's past quiz attempts with scores
+- Questions generated via AI and reviewed before approval
