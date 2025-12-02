@@ -878,7 +878,7 @@ export default function AdminDashboard() {
                   {/* Book Selection */}
                   <div>
                     <h3 className="font-semibold mb-3">Select a Book</h3>
-                    <div className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                    <div className="space-y-4">
                       <div>
                         <h4 className="text-sm font-medium text-muted-foreground mb-2">Old Testament</h4>
                         <div className="grid grid-cols-3 gap-1">
@@ -1017,7 +1017,7 @@ export default function AdminDashboard() {
                             <p className="text-sm">Click "Generate 10 Questions" to create questions using AI.</p>
                           </div>
                         ) : (
-                          <div className="space-y-3 max-h-[400px] overflow-y-auto">
+                          <div className="space-y-3">
                             {bookQuestions.map((question, index) => (
                               <div
                                 key={question.id}
