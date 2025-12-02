@@ -49,17 +49,17 @@ export function Hero() {
   const isLive = liveStatus?.isLive ?? false;
 
   return (
-    <div ref={containerRef} className="relative h-[100vh] w-full overflow-hidden bg-background flex items-center justify-center">
+    <div ref={containerRef} className="relative h-[100vh] w-full overflow-hidden bg-black flex items-center justify-center">
       {/* Background Image Parallax */}
       <motion.div 
         style={{ y, scale, opacity }}
         className="absolute inset-0 z-0"
       >
-        <div className="absolute inset-0 bg-black/30 z-10" />
+        <div className="absolute inset-0 bg-black/20 z-10" />
         <img 
           src={heroBg} 
           alt="Sanctuary" 
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover opacity-60"
         />
       </motion.div>
 
