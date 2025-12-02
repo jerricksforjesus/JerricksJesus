@@ -115,15 +115,18 @@ export async function fetchBookContent(bookName: string): Promise<string> {
   const chapters = BOOK_CHAPTERS[bookName] || 1;
   
   // For single-chapter books (Obadiah, Philemon, 2 John, 3 John, Jude), 
-  // fetch the entire book at once using a different API format
+  // fetch the entire book at once - need to specify chapter 1 and a verse range
   if (chapters === 1) {
+    // For single-chapter books, use format: bookname+1:1-999 to get all verses
+    const url = `${BIBLE_API_BASE}/${apiBookName}+1:1-999?translation=kjv`;
+    console.log(`Fetching single-chapter book ${bookName}: ${url}`);
+    
     try {
-      // For single-chapter books, we can fetch all verses: book 1:1-999 will get all verses
-      const response = await fetch(`${BIBLE_API_BASE}/${encodeURIComponent(apiBookName)}?translation=kjv`);
+      const response = await fetch(url);
       
       if (response.ok) {
         const data: BibleApiResponse = await response.json();
-        console.log(`Fetched ${bookName}: ${data.text?.length || 0} characters`);
+        console.log(`SUCCESS: Fetched ${bookName}: ${data.text?.length || 0} characters`);
         return data.text || "";
       } else {
         console.error(`Failed to fetch ${bookName}: ${response.status}`);
@@ -131,6 +134,7 @@ export async function fetchBookContent(bookName: string): Promise<string> {
     } catch (error) {
       console.error(`Error fetching single-chapter book ${bookName}:`, error);
     }
+    
     return "";
   }
   
