@@ -244,11 +244,11 @@ export function BibleQuizSection() {
                         }`}
                         data-testid={`quiz-book-${book.name}`}
                       >
-                        <span className="h-8 flex items-center justify-center text-center">{book.name}</span>
+                        <span className="min-h-[2.5rem] flex items-center justify-center text-center leading-tight">{book.name}</span>
                         {book.hasQuiz && (
                           isCompleted 
-                            ? <CheckCircle className="w-3 h-3 mx-auto mt-1" />
-                            : <Book className="w-3 h-3 mx-auto mt-1" />
+                            ? <CheckCircle className="w-3 h-3 mx-auto mt-1 shrink-0" />
+                            : <Book className="w-3 h-3 mx-auto mt-1 shrink-0" />
                         )}
                       </button>
                     );
@@ -276,11 +276,11 @@ export function BibleQuizSection() {
                         }`}
                         data-testid={`quiz-book-${book.name}`}
                       >
-                        <span className="h-8 flex items-center justify-center text-center">{book.name}</span>
+                        <span className="min-h-[2.5rem] flex items-center justify-center text-center leading-tight">{book.name}</span>
                         {book.hasQuiz && (
                           isCompleted 
-                            ? <CheckCircle className="w-3 h-3 mx-auto mt-1" />
-                            : <Book className="w-3 h-3 mx-auto mt-1" />
+                            ? <CheckCircle className="w-3 h-3 mx-auto mt-1 shrink-0" />
+                            : <Book className="w-3 h-3 mx-auto mt-1 shrink-0" />
                         )}
                       </button>
                     );
