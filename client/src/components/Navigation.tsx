@@ -58,7 +58,7 @@ export function Navigation() {
           {navLinks.map((link, index) => (
             <Link key={link.href} href={link.href}>
               <span
-                className="relative cursor-pointer px-5 py-1.5 block"
+                className="relative cursor-pointer px-5 py-1 block"
                 onMouseEnter={() => setHoveredIndex(index)}
               >
                 {hoveredIndex === index && (
