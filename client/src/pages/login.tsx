@@ -211,9 +211,6 @@ export default function LoginPage() {
                 >
                   {isLoading ? "Creating account..." : "Create Account"}
                 </Button>
-                <p className="text-sm text-center text-muted-foreground mt-4">
-                  New members will have regular access. Contact an admin for elevated permissions.
-                </p>
               </form>
             </TabsContent>
           </Tabs>
