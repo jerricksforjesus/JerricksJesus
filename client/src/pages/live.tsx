@@ -46,7 +46,7 @@ export default function LiveStream() {
       <div className="flex-1 pt-24 pb-12 px-4 md:px-8 max-w-[1600px] mx-auto w-full grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Main Video Area */}
         <div className="lg:col-span-3 space-y-6">
-          <div className="aspect-video bg-black rounded-xl overflow-hidden relative shadow-2xl">
+          <div className="aspect-video min-h-[500px] md:min-h-0 bg-black rounded-xl overflow-hidden relative shadow-2xl">
             {isLoading ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 text-white">
                 <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
@@ -67,35 +67,35 @@ export default function LiveStream() {
                 />
               </>
             ) : (
-              <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 text-white p-6 text-center">
-                <Video className="w-16 h-16 mb-6 text-primary opacity-80" />
-                <h2 className="text-3xl font-serif mb-4">We're Currently Offline</h2>
-                <p className="text-zinc-400 max-w-md mb-8">
+              <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 text-white p-8 py-12 md:p-6 text-center">
+                <Video className="w-12 h-12 md:w-16 md:h-16 mb-4 md:mb-6 text-primary opacity-80" />
+                <h2 className="text-2xl md:text-3xl font-serif mb-3 md:mb-4">We're Currently Offline</h2>
+                <p className="text-zinc-400 max-w-md mb-6 md:mb-8 text-sm md:text-base">
                   Join us for our next live service. The stream will appear here automatically when we go live.
                 </p>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg w-full">
-                  <div className="bg-zinc-800/50 rounded-xl p-4 text-left">
-                    <div className="flex items-center gap-2 text-primary mb-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 max-w-lg w-full">
+                  <div className="bg-zinc-800/50 rounded-xl p-3 md:p-4 text-left">
+                    <div className="flex items-center gap-2 text-primary mb-1 md:mb-2">
                       <Calendar className="w-4 h-4" />
                       <span className="text-sm font-medium">Friday Morning Service</span>
                     </div>
-                    <p className="text-lg font-serif">6:00 AM EST</p>
+                    <p className="text-base md:text-lg font-serif">6:00 AM EST</p>
                   </div>
-                  <div className="bg-zinc-800/50 rounded-xl p-4 text-left">
-                    <div className="flex items-center gap-2 text-primary mb-2">
+                  <div className="bg-zinc-800/50 rounded-xl p-3 md:p-4 text-left">
+                    <div className="flex items-center gap-2 text-primary mb-1 md:mb-2">
                       <Clock className="w-4 h-4" />
                       <span className="text-sm font-medium">Friday Evening Service</span>
                     </div>
-                    <p className="text-lg font-serif">6:00 PM EST</p>
+                    <p className="text-base md:text-lg font-serif">6:00 PM EST</p>
                   </div>
                 </div>
                 
                 {zoomLink && (
-                  <a href={zoomLink} target="_blank" rel="noopener noreferrer" className="mt-8">
+                  <a href={zoomLink} target="_blank" rel="noopener noreferrer" className="mt-6 md:mt-8">
                     <Button 
                       size="lg" 
-                      className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold px-8"
+                      className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold px-6 md:px-8"
                       data-testid="button-join-zoom-live"
                     >
                       Join the Zoom Link
