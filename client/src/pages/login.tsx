@@ -149,12 +149,11 @@ export default function LoginPage() {
                 <Button 
                   type="submit" 
                   data-testid="button-login"
-                  className="w-full"
+                  className="w-full font-medium"
                   disabled={isLoading}
                   style={{ 
-                    color: "#b47a5f",
-                    borderColor: "#b47a5f",
-                    border: "1px solid #b47a5f"
+                    backgroundColor: "#b47a5f",
+                    color: "#ffffff"
                   }}
                 >
                   {isLoading ? "Signing in..." : "Sign In"}
@@ -203,12 +202,11 @@ export default function LoginPage() {
                 <Button 
                   type="submit" 
                   data-testid="button-register"
-                  className="w-full"
+                  className="w-full font-medium"
                   disabled={isLoading}
                   style={{ 
-                    color: "#b47a5f",
-                    borderColor: "#b47a5f",
-                    border: "1px solid #b47a5f"
+                    backgroundColor: "#b47a5f",
+                    color: "#ffffff"
                   }}
                 >
                   {isLoading ? "Creating account..." : "Create Account"}
