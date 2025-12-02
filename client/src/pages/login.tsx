@@ -7,6 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
+import { ArrowLeft, Home } from "lucide-react";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
@@ -87,9 +88,19 @@ export default function LoginPage() {
 
   return (
     <div 
-      className="min-h-screen flex items-center justify-center p-4"
+      className="min-h-screen flex flex-col items-center justify-center p-4"
       style={{ background: "linear-gradient(135deg, var(--alabaster) 0%, var(--paper-cream) 100%)" }}
     >
+      <Button
+        variant="ghost"
+        onClick={() => setLocation("/")}
+        className="mb-6 self-center"
+        data-testid="button-back-to-home-top"
+      >
+        <ArrowLeft className="w-4 h-4 mr-2" />
+        Back to Main Site
+      </Button>
+      
       <Card className="w-full max-w-md shadow-lg">
         <CardHeader className="text-center space-y-2">
           <CardTitle 
@@ -214,7 +225,8 @@ export default function LoginPage() {
               onClick={() => setLocation("/")}
               className="text-sm"
             >
-              Back to Home
+              <Home className="w-4 h-4 mr-1" />
+              Return to Home
             </Button>
           </div>
         </CardContent>
