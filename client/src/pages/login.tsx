@@ -38,7 +38,7 @@ export default function LoginPage() {
     } catch (error: any) {
       toast({ 
         title: "Login failed", 
-        description: error.message || "Please check your credentials and try again.",
+        description: "Please check your credentials. If you don't have an account yet, click the Register tab to create one.",
         variant: "destructive" 
       });
     } finally {
