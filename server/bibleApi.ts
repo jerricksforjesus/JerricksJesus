@@ -66,9 +66,9 @@ const BOOK_NAME_MAP: Record<string, string> = {
   "James": "james",
   "1 Peter": "1 peter",
   "2 Peter": "2 peter",
-  "1 John": "1 john",
-  "2 John": "2 john",
-  "3 John": "3 john",
+  "1 John": "1john",
+  "2 John": "2john",
+  "3 John": "3john",
   "Jude": "jude",
   "Revelation": "revelation",
 };

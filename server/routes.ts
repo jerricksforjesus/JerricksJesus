@@ -431,7 +431,7 @@ export async function registerRoutes(
         name: book,
         questionCount: countsMap.get(book)?.count || 0,
         approvedCount: countsMap.get(book)?.approvedCount || 0,
-        hasQuiz: (countsMap.get(book)?.approvedCount || 0) >= 10,
+        hasQuiz: (countsMap.get(book)?.approvedCount || 0) >= 1,
       }));
       
       res.json(books);
@@ -517,7 +517,7 @@ export async function registerRoutes(
       
       const totalQuestions = questionCounts.reduce((sum, q) => sum + q.count, 0);
       const approvedQuestions = questionCounts.reduce((sum, q) => sum + q.approvedCount, 0);
-      const booksWithQuiz = questionCounts.filter(q => q.approvedCount >= 10).length;
+      const booksWithQuiz = questionCounts.filter(q => q.approvedCount >= 1).length;
       
       res.json({
         totalQuestions,
