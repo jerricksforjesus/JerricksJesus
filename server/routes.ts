@@ -396,6 +396,7 @@ export async function registerRoutes(
         id: u.id,
         username: u.username,
         role: u.role,
+        googleId: u.googleId || null,
       }));
       res.json(users);
     } catch (error) {
