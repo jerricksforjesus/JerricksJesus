@@ -3,6 +3,7 @@ import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { BookOpen, Book, CheckCircle, Trophy, ArrowLeft, Loader2, History, User, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { BIBLE_BOOKS } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
@@ -220,67 +221,145 @@ export function BibleQuizSection() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
             >
-              {/* Old Testament */}
-              <div className="mb-10">
-                <h3 className="text-xl font-serif font-bold mb-4 text-center">Old Testament</h3>
-                <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 gap-2">
-                  {oldTestamentBooks.map((book) => {
-                    const isCompleted = completedBooks.has(book.name);
-                    return (
-                      <button
-                        key={book.name}
-                        onClick={() => book.hasQuiz && handleSelectBook(book.name)}
-                        disabled={!book.hasQuiz}
-                        className={`p-2 rounded-lg text-xs font-medium transition-all ${
-                          !book.hasQuiz
-                            ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
-                            : isCompleted
-                            ? "bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer border border-primary/20"
-                            : "bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer border border-gray-200"
-                        }`}
-                        data-testid={`quiz-book-${book.name}`}
-                      >
-                        <span className="min-h-[2.5rem] flex items-center justify-center text-center leading-tight">{book.name}</span>
-                        {book.hasQuiz && (
-                          isCompleted 
-                            ? <CheckCircle className="w-3 h-3 mx-auto mt-1 shrink-0" />
-                            : <Book className="w-3 h-3 mx-auto mt-1 shrink-0" />
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
+              {/* Mobile/Tablet Accordion View */}
+              <div className="lg:hidden">
+                <Accordion type="single" collapsible className="w-full">
+                  <AccordionItem value="old-testament" className="border rounded-lg mb-4 overflow-hidden">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline bg-muted/30" data-testid="accordion-old-testament">
+                      <span className="text-lg font-serif font-bold">Old Testament</span>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 pt-2">
+                        {oldTestamentBooks.map((book) => {
+                          const isCompleted = completedBooks.has(book.name);
+                          return (
+                            <button
+                              key={book.name}
+                              onClick={() => book.hasQuiz && handleSelectBook(book.name)}
+                              disabled={!book.hasQuiz}
+                              className={`p-2 rounded-lg text-xs font-medium transition-all ${
+                                !book.hasQuiz
+                                  ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+                                  : isCompleted
+                                  ? "bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer border border-primary/20"
+                                  : "bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer border border-gray-200"
+                              }`}
+                              data-testid={`quiz-book-mobile-${book.name}`}
+                            >
+                              <span className="min-h-[2.5rem] flex items-center justify-center text-center leading-tight">{book.name}</span>
+                              {book.hasQuiz && (
+                                isCompleted 
+                                  ? <CheckCircle className="w-3 h-3 mx-auto mt-1 shrink-0" />
+                                  : <Book className="w-3 h-3 mx-auto mt-1 shrink-0" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                  
+                  <AccordionItem value="new-testament" className="border rounded-lg overflow-hidden">
+                    <AccordionTrigger className="px-4 py-3 hover:no-underline bg-muted/30" data-testid="accordion-new-testament">
+                      <span className="text-lg font-serif font-bold">New Testament</span>
+                    </AccordionTrigger>
+                    <AccordionContent className="px-4 pb-4">
+                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 pt-2">
+                        {newTestamentBooks.map((book) => {
+                          const isCompleted = completedBooks.has(book.name);
+                          return (
+                            <button
+                              key={book.name}
+                              onClick={() => book.hasQuiz && handleSelectBook(book.name)}
+                              disabled={!book.hasQuiz}
+                              className={`p-2 rounded-lg text-xs font-medium transition-all ${
+                                !book.hasQuiz
+                                  ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+                                  : isCompleted
+                                  ? "bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer border border-primary/20"
+                                  : "bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer border border-gray-200"
+                              }`}
+                              data-testid={`quiz-book-mobile-${book.name}`}
+                            >
+                              <span className="min-h-[2.5rem] flex items-center justify-center text-center leading-tight">{book.name}</span>
+                              {book.hasQuiz && (
+                                isCompleted 
+                                  ? <CheckCircle className="w-3 h-3 mx-auto mt-1 shrink-0" />
+                                  : <Book className="w-3 h-3 mx-auto mt-1 shrink-0" />
+                              )}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </AccordionContent>
+                  </AccordionItem>
+                </Accordion>
               </div>
 
-              {/* New Testament */}
-              <div>
-                <h3 className="text-xl font-serif font-bold mb-4 text-center">New Testament</h3>
-                <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 gap-2">
-                  {newTestamentBooks.map((book) => {
-                    const isCompleted = completedBooks.has(book.name);
-                    return (
-                      <button
-                        key={book.name}
-                        onClick={() => book.hasQuiz && handleSelectBook(book.name)}
-                        disabled={!book.hasQuiz}
-                        className={`p-2 rounded-lg text-xs font-medium transition-all ${
-                          !book.hasQuiz
-                            ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
-                            : isCompleted
-                            ? "bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer border border-primary/20"
-                            : "bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer border border-gray-200"
-                        }`}
-                        data-testid={`quiz-book-${book.name}`}
-                      >
-                        <span className="min-h-[2.5rem] flex items-center justify-center text-center leading-tight">{book.name}</span>
-                        {book.hasQuiz && (
-                          isCompleted 
-                            ? <CheckCircle className="w-3 h-3 mx-auto mt-1 shrink-0" />
-                            : <Book className="w-3 h-3 mx-auto mt-1 shrink-0" />
-                        )}
-                      </button>
-                    );
-                  })}
+              {/* Desktop Grid View */}
+              <div className="hidden lg:block">
+                {/* Old Testament */}
+                <div className="mb-10">
+                  <h3 className="text-xl font-serif font-bold mb-4 text-center">Old Testament</h3>
+                  <div className="grid grid-cols-5 md:grid-cols-7 lg:grid-cols-9 gap-2">
+                    {oldTestamentBooks.map((book) => {
+                      const isCompleted = completedBooks.has(book.name);
+                      return (
+                        <button
+                          key={book.name}
+                          onClick={() => book.hasQuiz && handleSelectBook(book.name)}
+                          disabled={!book.hasQuiz}
+                          className={`p-2 rounded-lg text-xs font-medium transition-all ${
+                            !book.hasQuiz
+                              ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+                              : isCompleted
+                              ? "bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer border border-primary/20"
+                              : "bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer border border-gray-200"
+                          }`}
+                          data-testid={`quiz-book-${book.name}`}
+                        >
+                          <span className="min-h-[2.5rem] flex items-center justify-center text-center leading-tight">{book.name}</span>
+                          {book.hasQuiz && (
+                            isCompleted 
+                              ? <CheckCircle className="w-3 h-3 mx-auto mt-1 shrink-0" />
+                              : <Book className="w-3 h-3 mx-auto mt-1 shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* New Testament */}
+                <div>
+                  <h3 className="text-xl font-serif font-bold mb-4 text-center">New Testament</h3>
+                  <div className="grid grid-cols-5 md:grid-cols-7 lg:grid-cols-9 gap-2">
+                    {newTestamentBooks.map((book) => {
+                      const isCompleted = completedBooks.has(book.name);
+                      return (
+                        <button
+                          key={book.name}
+                          onClick={() => book.hasQuiz && handleSelectBook(book.name)}
+                          disabled={!book.hasQuiz}
+                          className={`p-2 rounded-lg text-xs font-medium transition-all ${
+                            !book.hasQuiz
+                              ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+                              : isCompleted
+                              ? "bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer border border-primary/20"
+                              : "bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer border border-gray-200"
+                          }`}
+                          data-testid={`quiz-book-${book.name}`}
+                        >
+                          <span className="min-h-[2.5rem] flex items-center justify-center text-center leading-tight">{book.name}</span>
+                          {book.hasQuiz && (
+                            isCompleted 
+                              ? <CheckCircle className="w-3 h-3 mx-auto mt-1 shrink-0" />
+                              : <Book className="w-3 h-3 mx-auto mt-1 shrink-0" />
+                          )}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               </div>
 
