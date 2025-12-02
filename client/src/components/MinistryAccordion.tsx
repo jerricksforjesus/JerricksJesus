@@ -28,12 +28,6 @@ const ministries = [
     description: "We serve our local community through food drives, shelter support, and neighborhood cleanup events. Faith in action.",
     hasCustomContent: false,
   },
-  {
-    id: "item-4",
-    title: "Bible Study",
-    description: "Weekly gatherings to dive deep into scripture, discussion, and prayer. Open to all levels of biblical knowledge.",
-    hasCustomContent: false,
-  }
 ];
 
 export function MinistryAccordion() {
