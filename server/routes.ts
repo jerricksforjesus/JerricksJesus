@@ -867,15 +867,31 @@ export async function registerRoutes(
   // YouTube Live Status Route
   app.get("/api/youtube/live-status", async (req, res) => {
     try {
-      const channelId = process.env.YOUTUBE_CHANNEL_ID;
+      const channelHandle = "@JerricksForJesus";
+      let channelId = process.env.YOUTUBE_CHANNEL_ID;
       const apiKey = process.env.YOUTUBE_API_KEY;
-      
-      if (!channelId) {
-        return res.json({ isLive: false, videoId: null, title: null });
-      }
       
       if (!apiKey) {
         console.log("YouTube API key not configured, returning offline status");
+        return res.json({ isLive: false, videoId: null, title: null });
+      }
+      
+      // If we don't have a valid channel ID (should start with UC), look it up by handle
+      if (!channelId || !channelId.startsWith("UC")) {
+        const handleUrl = `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${channelHandle}&key=${apiKey}`;
+        const handleResponse = await fetch(handleUrl);
+        
+        if (handleResponse.ok) {
+          const handleData = await handleResponse.json();
+          if (handleData.items && handleData.items.length > 0) {
+            channelId = handleData.items[0].id;
+            console.log(`Resolved channel handle ${channelHandle} to ID: ${channelId}`);
+          }
+        }
+      }
+      
+      if (!channelId) {
+        console.log("Could not resolve channel ID");
         return res.json({ isLive: false, videoId: null, title: null });
       }
       

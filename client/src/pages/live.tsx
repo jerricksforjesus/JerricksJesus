@@ -68,16 +68,16 @@ export default function LiveStream() {
                   <div className="bg-zinc-800/50 rounded-xl p-4 text-left">
                     <div className="flex items-center gap-2 text-primary mb-2">
                       <Calendar className="w-4 h-4" />
-                      <span className="text-sm font-medium">Sunday Service</span>
+                      <span className="text-sm font-medium">Friday Morning Service</span>
                     </div>
-                    <p className="text-lg font-serif">10:00 AM EST</p>
+                    <p className="text-lg font-serif">6:00 AM EST</p>
                   </div>
                   <div className="bg-zinc-800/50 rounded-xl p-4 text-left">
                     <div className="flex items-center gap-2 text-primary mb-2">
                       <Clock className="w-4 h-4" />
-                      <span className="text-sm font-medium">Wednesday Bible Study</span>
+                      <span className="text-sm font-medium">Friday Evening Service</span>
                     </div>
-                    <p className="text-lg font-serif">7:00 PM EST</p>
+                    <p className="text-lg font-serif">6:00 PM EST</p>
                   </div>
                 </div>
               </div>

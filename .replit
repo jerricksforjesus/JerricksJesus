@@ -16,10 +16,6 @@ localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 45033
-externalPort = 3001
-
-[[ports]]
 localPort = 46835
 externalPort = 3000
 
@@ -54,7 +50,7 @@ integrations = ["javascript_object_storage:1.0.0", "javascript_gemini_ai_integra
 [userenv]
 
 [userenv.shared]
-YOUTUBE_CHANNEL_ID = "FxLy5MOSMtF7-a93IXasRQ"
+YOUTUBE_CHANNEL_ID = "UCFxLy5MOSMtF7-a93IXasRQ"
 
 [userenv.production]
 PUBLIC_APP_URL = "https://www.jerricksforjesus.com"
