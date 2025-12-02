@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
-import { BookOpen, Camera, ClipboardList, LogOut, Loader2, Trash2, Clock, CheckCircle, XCircle } from "lucide-react";
+import { BookOpen, Camera, ClipboardList, LogOut, Loader2, Trash2, Clock, CheckCircle, XCircle, Upload } from "lucide-react";
 import type { UploadResult } from "@uppy/core";
 
 interface MemberPhoto {
@@ -109,6 +109,15 @@ export function MemberDashboard() {
       toast({ title: "Error", description: "Failed to delete photo.", variant: "destructive" });
     },
   });
+
+  const handleGetUploadParameters = async () => {
+    const response = await fetch("/api/objects/upload", { method: "POST", credentials: "include" });
+    const data = await response.json();
+    return {
+      method: "PUT" as const,
+      url: data.uploadURL,
+    };
+  };
 
   const handlePhotoUpload = async (result: UploadResult<any, any>) => {
     try {
@@ -239,11 +248,16 @@ export function MemberDashboard() {
                   </div>
                   
                   <ObjectUploader
-                    onUploadComplete={handlePhotoUpload}
-                    acceptedFileTypes={["image/*"]}
+                    maxNumberOfFiles={1}
                     maxFileSize={10 * 1024 * 1024}
-                    uploadPath="member-photos"
-                  />
+                    allowedFileTypes={['image/*', '.jpg', '.jpeg', '.png', '.gif', '.webp', '.heic', '.heif', '.avif']}
+                    onGetUploadParameters={handleGetUploadParameters}
+                    onComplete={handlePhotoUpload}
+                    buttonClassName="w-full"
+                  >
+                    <Upload className="w-4 h-4 mr-2" />
+                    Add Photos to Family Album
+                  </ObjectUploader>
                 </div>
 
                 {loadingPhotos ? (
