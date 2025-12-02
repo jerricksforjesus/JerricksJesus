@@ -253,7 +253,7 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const { user, isLoading: authLoading, logout, isAdmin, canEdit } = useAuth();
+  const { user, isLoading: authLoading, logout, isAdmin, isFoundational, canEdit } = useAuth();
   
   const [verse, setVerse] = useState("");
   const [reference, setReference] = useState("");
@@ -830,13 +830,15 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="verse" className="w-full">
-          <TabsList className="grid w-full grid-cols-7 mb-8">
+          <TabsList className={`grid w-full mb-8 ${isFoundational && !isAdmin ? 'grid-cols-7' : 'grid-cols-6'}`}>
             <TabsTrigger value="verse" data-testid="tab-verse">Verse</TabsTrigger>
             <TabsTrigger value="replays" data-testid="tab-replays">Replays</TabsTrigger>
             <TabsTrigger value="photos" data-testid="tab-photos">Photos</TabsTrigger>
             <TabsTrigger value="approve-photos" data-testid="tab-approve-photos">Approve Photos</TabsTrigger>
             <TabsTrigger value="quiz" data-testid="tab-quiz">Manage Quiz</TabsTrigger>
-            <TabsTrigger value="take-quiz" data-testid="tab-take-quiz">Take Quiz</TabsTrigger>
+            {isFoundational && !isAdmin && (
+              <TabsTrigger value="take-quiz" data-testid="tab-take-quiz">Take Quiz</TabsTrigger>
+            )}
             <TabsTrigger value="users" data-testid="tab-users">Users</TabsTrigger>
           </TabsList>
 
@@ -1295,9 +1297,11 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="take-quiz" className="-mx-6">
-            <BibleQuizSection />
-          </TabsContent>
+          {isFoundational && !isAdmin && (
+            <TabsContent value="take-quiz" className="-mx-6">
+              <BibleQuizSection />
+            </TabsContent>
+          )}
 
           <TabsContent value="users">
             <Card>
