@@ -1,18 +1,212 @@
 // Referenced from blueprint: javascript_object_storage (public file uploading pattern)
-import type { Express } from "express";
+import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError, getSignedDownloadURL } from "./objectStorage";
-import { insertVideoSchema, insertVerseSchema, insertPhotoSchema, insertQuizQuestionSchema, insertQuizAttemptSchema, ALL_BIBLE_BOOKS } from "@shared/schema";
+import { insertVideoSchema, insertVerseSchema, insertPhotoSchema, insertQuizQuestionSchema, insertQuizAttemptSchema, ALL_BIBLE_BOOKS, USER_ROLES, type User } from "@shared/schema";
 import { transcribeVideo, uploadCaptions } from "./transcription";
 import { generateQuestionsForBook } from "./quizGenerator";
+import bcrypt from "bcrypt";
+import crypto from "crypto";
+
+declare global {
+  namespace Express {
+    interface Request {
+      user?: User;
+    }
+  }
+}
+
+async function authMiddleware(req: Request, res: Response, next: NextFunction) {
+  const token = req.cookies?.sessionToken;
+  if (!token) {
+    return next();
+  }
+  
+  try {
+    const session = await storage.getSessionByToken(token);
+    if (session) {
+      const user = await storage.getUser(session.userId);
+      if (user) {
+        req.user = user;
+      }
+    }
+  } catch (error) {
+    console.error("Auth middleware error:", error);
+  }
+  
+  next();
+}
+
+function requireAuth(req: Request, res: Response, next: NextFunction) {
+  if (!req.user) {
+    return res.status(401).json({ error: "Authentication required" });
+  }
+  next();
+}
+
+function requireRole(...roles: string[]) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Authentication required" });
+    }
+    if (!roles.includes(req.user.role)) {
+      return res.status(403).json({ error: "Insufficient permissions" });
+    }
+    next();
+  };
+}
 
 export async function registerRoutes(
   httpServer: Server,
   app: Express
 ): Promise<Server> {
   
+  // Apply auth middleware to all routes
+  app.use(authMiddleware);
+  
   const objectStorageService = new ObjectStorageService();
+  
+  // ==================== AUTH ROUTES ====================
+  
+  // Login
+  app.post("/api/auth/login", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ error: "Username and password are required" });
+      }
+      
+      const user = await storage.getUserByUsername(username);
+      if (!user) {
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+      
+      const passwordMatch = await bcrypt.compare(password, user.password);
+      if (!passwordMatch) {
+        return res.status(401).json({ error: "Invalid username or password" });
+      }
+      
+      // Create session
+      const token = crypto.randomBytes(32).toString("hex");
+      const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 days
+      
+      await storage.createSession({
+        userId: user.id,
+        token,
+        expiresAt,
+      });
+      
+      // Set cookie
+      res.cookie("sessionToken", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+      });
+      
+      res.json({ 
+        user: { 
+          id: user.id, 
+          username: user.username, 
+          role: user.role 
+        } 
+      });
+    } catch (error) {
+      console.error("Login error:", error);
+      res.status(500).json({ error: "Login failed" });
+    }
+  });
+  
+  // Logout
+  app.post("/api/auth/logout", async (req, res) => {
+    try {
+      const token = req.cookies?.sessionToken;
+      if (token) {
+        await storage.deleteSession(token);
+      }
+      res.clearCookie("sessionToken");
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Logout error:", error);
+      res.status(500).json({ error: "Logout failed" });
+    }
+  });
+  
+  // Get current user
+  app.get("/api/auth/me", (req, res) => {
+    if (!req.user) {
+      return res.status(401).json({ error: "Not authenticated" });
+    }
+    res.json({ 
+      user: { 
+        id: req.user.id, 
+        username: req.user.username, 
+        role: req.user.role 
+      } 
+    });
+  });
+  
+  // Register new user (admin can create foundational members, anyone can register as member)
+  app.post("/api/auth/register", async (req, res) => {
+    try {
+      const { username, password, role } = req.body;
+      
+      if (!username || !password) {
+        return res.status(400).json({ error: "Username and password are required" });
+      }
+      
+      // Check if username already exists
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser) {
+        return res.status(400).json({ error: "Username already taken" });
+      }
+      
+      // Determine role
+      let userRole = USER_ROLES.MEMBER;
+      
+      // Only admins can create foundational members or other admins
+      if (role === USER_ROLES.FOUNDATIONAL || role === USER_ROLES.ADMIN) {
+        if (!req.user || req.user.role !== USER_ROLES.ADMIN) {
+          return res.status(403).json({ error: "Only admins can create elevated accounts" });
+        }
+        userRole = role;
+      }
+      
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+      
+      // Create user
+      const user = await storage.createUser({
+        username,
+        password: hashedPassword,
+        role: userRole,
+      });
+      
+      res.json({ 
+        user: { 
+          id: user.id, 
+          username: user.username, 
+          role: user.role 
+        } 
+      });
+    } catch (error) {
+      console.error("Registration error:", error);
+      res.status(500).json({ error: "Registration failed" });
+    }
+  });
+  
+  // Admin: Get all users
+  app.get("/api/admin/users", requireRole(USER_ROLES.ADMIN), async (req, res) => {
+    try {
+      // Note: We'll need to add a getAllUsers method to storage
+      res.json({ message: "Not implemented yet" });
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
 
   // Video Upload Routes
   app.post("/api/objects/upload", async (req, res) => {
