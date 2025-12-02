@@ -66,9 +66,9 @@ const BOOK_NAME_MAP: Record<string, string> = {
   "James": "james",
   "1 Peter": "1 peter",
   "2 Peter": "2 peter",
-  "1 John": "1john",
-  "2 John": "2john",
-  "3 John": "3john",
+  "1 John": "1+john",
+  "2 John": "2+john",
+  "3 John": "3+john",
   "Jude": "jude",
   "Revelation": "revelation",
 };
@@ -117,8 +117,9 @@ export async function fetchBookContent(bookName: string): Promise<string> {
   // For single-chapter books (Obadiah, Philemon, 2 John, 3 John, Jude), 
   // fetch the entire book at once - need to specify chapter 1 and a verse range
   if (chapters === 1) {
-    // For single-chapter books, use format: bookname+1:1-999 to get all verses
-    const url = `${BIBLE_API_BASE}/${apiBookName}+1:1-999?translation=kjv`;
+    // For single-chapter books, use format: bookname+1:1-50 to get all verses
+    // (most single-chapter books have less than 50 verses)
+    const url = `${BIBLE_API_BASE}/${apiBookName}+1:1-50?translation=kjv`;
     console.log(`Fetching single-chapter book ${bookName}: ${url}`);
     
     try {
