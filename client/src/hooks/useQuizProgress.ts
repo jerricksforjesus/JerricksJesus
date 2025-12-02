@@ -66,9 +66,12 @@ export function useQuizProgress() {
 
   const serverCompletedBooks = new Set(serverHistory.map(attempt => attempt.book));
 
-  const completedBooks = user 
-    ? serverCompletedBooks 
-    : new Set(localCompletedBooks);
+  // Always merge local and server completions to ensure UI continuity during login/migration
+  // Local books are included until they're migrated to the server and localStorage is cleared
+  const completedBooks = new Set([
+    ...localCompletedBooks,
+    ...serverCompletedBooks
+  ]);
 
   const isCompleted = useCallback((book: string) => {
     return completedBooks.has(book);
