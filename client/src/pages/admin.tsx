@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus, Users, Shield, UserCheck, Camera, CheckCircle, XCircle, Clock, Settings, Key, User as UserIcon } from "lucide-react";
+import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus, Users, Shield, UserCheck, Camera, CheckCircle, XCircle, Clock, Settings, Key, User as UserIcon, Eye, EyeOff } from "lucide-react";
 import { useState, useEffect, useLayoutEffect } from "react";
 import { useLocation } from "wouter";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -434,6 +434,9 @@ export default function AdminDashboard() {
   const [profileCurrentPassword, setProfileCurrentPassword] = useState("");
   const [profileNewPassword, setProfileNewPassword] = useState("");
   const [profileConfirmPassword, setProfileConfirmPassword] = useState("");
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
 
   // Initialize profile username when user loads
   useEffect(() => {
@@ -1756,36 +1759,84 @@ export default function AdminDashboard() {
                         <div className="space-y-4 max-w-md">
                           <div className="space-y-2">
                             <Label htmlFor="current-password">Current Password</Label>
-                            <Input
-                              id="current-password"
-                              data-testid="input-current-password"
-                              type="password"
-                              value={profileCurrentPassword}
-                              onChange={(e) => setProfileCurrentPassword(e.target.value)}
-                              placeholder="Enter current password"
-                            />
+                            <div className="relative">
+                              <Input
+                                id="current-password"
+                                data-testid="input-current-password"
+                                type={showCurrentPassword ? "text" : "password"}
+                                value={profileCurrentPassword}
+                                onChange={(e) => setProfileCurrentPassword(e.target.value)}
+                                placeholder="Enter current password"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                                onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                                data-testid="button-toggle-current-password"
+                              >
+                                {showCurrentPassword ? (
+                                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <Eye className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </Button>
+                            </div>
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="new-password">New Password</Label>
-                            <Input
-                              id="new-password"
-                              data-testid="input-new-password"
-                              type="password"
-                              value={profileNewPassword}
-                              onChange={(e) => setProfileNewPassword(e.target.value)}
-                              placeholder="Enter new password (min 6 characters)"
-                            />
+                            <div className="relative">
+                              <Input
+                                id="new-password"
+                                data-testid="input-new-password"
+                                type={showNewPassword ? "text" : "password"}
+                                value={profileNewPassword}
+                                onChange={(e) => setProfileNewPassword(e.target.value)}
+                                placeholder="Enter new password (min 6 characters)"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                                onClick={() => setShowNewPassword(!showNewPassword)}
+                                data-testid="button-toggle-new-password"
+                              >
+                                {showNewPassword ? (
+                                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <Eye className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </Button>
+                            </div>
                           </div>
                           <div className="space-y-2">
                             <Label htmlFor="confirm-password">Confirm New Password</Label>
-                            <Input
-                              id="confirm-password"
-                              data-testid="input-confirm-password"
-                              type="password"
-                              value={profileConfirmPassword}
-                              onChange={(e) => setProfileConfirmPassword(e.target.value)}
-                              placeholder="Confirm new password"
-                            />
+                            <div className="relative">
+                              <Input
+                                id="confirm-password"
+                                data-testid="input-confirm-password"
+                                type={showConfirmNewPassword ? "text" : "password"}
+                                value={profileConfirmPassword}
+                                onChange={(e) => setProfileConfirmPassword(e.target.value)}
+                                placeholder="Confirm new password"
+                              />
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="icon"
+                                className="absolute right-0 top-0 h-full px-3 hover:bg-transparent"
+                                onClick={() => setShowConfirmNewPassword(!showConfirmNewPassword)}
+                                data-testid="button-toggle-confirm-new-password"
+                              >
+                                {showConfirmNewPassword ? (
+                                  <EyeOff className="h-4 w-4 text-muted-foreground" />
+                                ) : (
+                                  <Eye className="h-4 w-4 text-muted-foreground" />
+                                )}
+                              </Button>
+                            </div>
                           </div>
                           <Button
                             onClick={handleChangePassword}
