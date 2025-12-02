@@ -839,19 +839,34 @@ Server:
    - `email` - User's email address
    - `name` - User's display name
 4. Looks up user by Google ID or email
-5. Creates session if user exists
-6. Sets session cookie and redirects to home page
+5. **NEW (Dec 2, 2025): Auto-creates account if user doesn't exist**
+6. Creates session and sets session cookie
+7. Redirects to home page
+
+#### Auto-Registration via Google Sign-In (NEW - December 2, 2025)
+
+Users can now sign in with Google even if they don't have an existing account. The system auto-creates accounts:
+
+**When a new user signs in with Google:**
+- Username: derived from Google profile name (e.g., "John Smith" → `john_smith`)
+- Email: from Google account
+- Password: null (Google-only account - cannot login with username/password)
+- Role: `member` (default)
+- Google ID: linked for future sign-ins
+
+**Works with all email domains:**
+- Gmail (@gmail.com)
+- Yahoo (@yahoo.com)  
+- Google Workspace accounts (@company.com, @organization.org, etc.)
+
+**Linking existing accounts:**
+- If a user with matching email already exists, their Google ID is linked to that account
+- They can then sign in with either Google OR their username/password
 
 #### Step 4: Handle Errors
-If user not found, redirects to:
-```
-/login?error=not_registered
-```
-
 **Error Codes:**
 | Error | Meaning |
 |-------|---------|
-| `not_registered` | No account exists with this Google ID or email |
 | `invalid_state` | CSRF validation failed |
 | `no_code` | No authorization code received |
 | `config` | Server OAuth configuration missing |

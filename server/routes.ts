@@ -348,12 +348,38 @@ export async function registerRoutes(
         // Check if user exists with same email (link accounts)
         if (email) {
           user = await storage.getUserByEmail(email);
+          
+          // Link Google ID to existing account
+          if (user && !user.googleId) {
+            await storage.linkGoogleAccount(user.id, googleId);
+          }
         }
       }
       
-      // If user still doesn't exist, they need to register first
+      // If user doesn't exist, auto-create account with Google Sign-In
       if (!user) {
-        return res.redirect("/login?error=not_registered");
+        // Generate username from email or Google profile name
+        const name = payload.name || payload.given_name || "";
+        let baseUsername = name.toLowerCase().replace(/[^a-z0-9]/g, "_") || email?.split("@")[0] || "user";
+        
+        // Ensure username is unique
+        let username = baseUsername;
+        let counter = 1;
+        while (await storage.getUserByUsername(username)) {
+          username = `${baseUsername}_${counter}`;
+          counter++;
+        }
+        
+        // Create new user with Google account
+        user = await storage.createUser({
+          username,
+          email: email || null,
+          password: null, // No password for Google-only accounts
+          role: USER_ROLES.MEMBER,
+          googleId,
+        });
+        
+        console.log(`Created new user via Google Sign-In: ${username} (${email})`);
       }
       
       // Create session

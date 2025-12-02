@@ -16,6 +16,7 @@ export interface IStorage {
   resetUserPassword(id: string, hashedPassword: string): Promise<User | undefined>;
   clearMustChangePassword(id: string): Promise<User | undefined>;
   deleteUser(id: string): Promise<void>;
+  linkGoogleAccount(id: string, googleId: string): Promise<User | undefined>;
   
   // Session methods
   createSession(session: InsertSession): Promise<Session>;
@@ -161,6 +162,14 @@ export class DbStorage implements IStorage {
     await db.delete(sessions).where(eq(sessions.userId, id));
     // Delete the user
     await db.delete(schema.users).where(eq(schema.users.id, id));
+  }
+
+  async linkGoogleAccount(id: string, googleId: string): Promise<User | undefined> {
+    const [user] = await db.update(schema.users)
+      .set({ googleId })
+      .where(eq(schema.users.id, id))
+      .returning();
+    return user;
   }
 
   async createSession(session: InsertSession): Promise<Session> {
