@@ -506,6 +506,11 @@ export default function AdminDashboard() {
   const [forceNewPassword, setForceNewPassword] = useState("");
   const [forceConfirmPassword, setForceConfirmPassword] = useState("");
 
+  // Delete user confirmation state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<{ id: string; username: string } | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
+
   const forcePasswordChangeMutation = useMutation({
     mutationFn: async (newPassword: string) => {
       const response = await fetch("/api/profile/force-change-password", {
@@ -1614,9 +1619,9 @@ export default function AdminDashboard() {
                                 variant="outline"
                                 size="sm"
                                 onClick={() => {
-                                  if (confirm(`Are you sure you want to delete user "${u.username}"? This action cannot be undone.`)) {
-                                    deleteUserMutation.mutate(u.id);
-                                  }
+                                  setUserToDelete({ id: u.id, username: u.username });
+                                  setDeleteConfirmText("");
+                                  setDeleteDialogOpen(true);
                                 }}
                                 disabled={deleteUserMutation.isPending}
                                 data-testid={`button-delete-user-${u.id}`}
@@ -1924,6 +1929,72 @@ export default function AdminDashboard() {
                   <Key className="w-4 h-4 mr-2" />
                   Change Password
                 </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete User Confirmation Dialog */}
+      <Dialog open={deleteDialogOpen} onOpenChange={(open) => {
+        setDeleteDialogOpen(open);
+        if (!open) {
+          setUserToDelete(null);
+          setDeleteConfirmText("");
+        }
+      }}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-red-600">Delete User</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete user "{userToDelete?.username}"? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="delete-confirm">Type "confirm" to proceed</Label>
+              <Input
+                id="delete-confirm"
+                data-testid="input-delete-confirm"
+                type="text"
+                value={deleteConfirmText}
+                onChange={(e) => setDeleteConfirmText(e.target.value)}
+                placeholder="Type confirm"
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button 
+              variant="outline"
+              onClick={() => {
+                setDeleteDialogOpen(false);
+                setUserToDelete(null);
+                setDeleteConfirmText("");
+              }}
+              data-testid="button-cancel-delete"
+            >
+              Cancel
+            </Button>
+            <Button 
+              onClick={() => {
+                if (userToDelete && deleteConfirmText.toLowerCase() === "confirm") {
+                  deleteUserMutation.mutate(userToDelete.id);
+                  setDeleteDialogOpen(false);
+                  setUserToDelete(null);
+                  setDeleteConfirmText("");
+                }
+              }}
+              disabled={deleteConfirmText.toLowerCase() !== "confirm" || deleteUserMutation.isPending}
+              className="bg-red-600 hover:bg-red-700 text-white"
+              data-testid="button-confirm-delete"
+            >
+              {deleteUserMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Deleting...
+                </>
+              ) : (
+                "Delete"
               )}
             </Button>
           </DialogFooter>
