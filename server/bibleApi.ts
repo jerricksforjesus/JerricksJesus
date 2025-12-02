@@ -114,7 +114,27 @@ export async function fetchBookContent(bookName: string): Promise<string> {
 
   const chapters = BOOK_CHAPTERS[bookName] || 1;
   
-  // Fetch a representative sample of chapters for the book
+  // For single-chapter books (Obadiah, Philemon, 2 John, 3 John, Jude), 
+  // fetch the entire book at once using a different API format
+  if (chapters === 1) {
+    try {
+      // For single-chapter books, we can fetch all verses: book 1:1-999 will get all verses
+      const response = await fetch(`${BIBLE_API_BASE}/${encodeURIComponent(apiBookName)}?translation=kjv`);
+      
+      if (response.ok) {
+        const data: BibleApiResponse = await response.json();
+        console.log(`Fetched ${bookName}: ${data.text?.length || 0} characters`);
+        return data.text || "";
+      } else {
+        console.error(`Failed to fetch ${bookName}: ${response.status}`);
+      }
+    } catch (error) {
+      console.error(`Error fetching single-chapter book ${bookName}:`, error);
+    }
+    return "";
+  }
+  
+  // Fetch a representative sample of chapters for multi-chapter books
   // For very long books, we'll sample key chapters to keep API calls reasonable
   const chaptersToFetch: number[] = [];
   
