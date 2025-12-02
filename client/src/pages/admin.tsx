@@ -1034,12 +1034,14 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="verse" className="w-full">
-          <TabsList className={`grid w-full mb-8 ${isFoundational && !isAdmin ? 'grid-cols-8' : 'grid-cols-7'}`}>
+          <TabsList className={`grid w-full mb-8 ${isFoundational && !isAdmin ? 'grid-cols-7' : 'grid-cols-7'}`}>
             <TabsTrigger value="verse" data-testid="tab-verse">Verse</TabsTrigger>
             <TabsTrigger value="replays" data-testid="tab-replays">Replays</TabsTrigger>
             <TabsTrigger value="photos" data-testid="tab-photos">Photos</TabsTrigger>
             <TabsTrigger value="approve-photos" data-testid="tab-approve-photos">Approve Photos</TabsTrigger>
-            <TabsTrigger value="quiz" data-testid="tab-quiz">Manage Quiz</TabsTrigger>
+            {isAdmin && (
+              <TabsTrigger value="quiz" data-testid="tab-quiz">Manage Quiz</TabsTrigger>
+            )}
             {isFoundational && !isAdmin && (
               <TabsTrigger value="take-quiz" data-testid="tab-take-quiz">Take Quiz</TabsTrigger>
             )}
@@ -1174,15 +1176,17 @@ export default function AdminDashboard() {
                           >
                             <Pencil className="w-4 h-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                            onClick={() => deleteVideoMutation.mutate(video.id)}
-                            data-testid={`button-delete-${video.id}`}
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          {isAdmin && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                              onClick={() => deleteVideoMutation.mutate(video.id)}
+                              data-testid={`button-delete-${video.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
                         </div>
                       </div>
                     ))
@@ -1250,15 +1254,17 @@ export default function AdminDashboard() {
                             {photo.caption}
                           </div>
                         )}
-                        <Button 
-                          variant="ghost" 
-                          size="icon" 
-                          className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => deletePhotoMutation.mutate(photo.id)}
-                          data-testid={`button-delete-photo-${photo.id}`}
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
+                        {isAdmin && (
+                          <Button 
+                            variant="ghost" 
+                            size="icon" 
+                            className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={() => deletePhotoMutation.mutate(photo.id)}
+                            data-testid={`button-delete-photo-${photo.id}`}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        )}
                       </div>
                     ))
                   )}
@@ -1553,7 +1559,8 @@ export default function AdminDashboard() {
                           </div>
                         </div>
                         
-                        {user?.id !== u.id && (
+                        {/* Show controls only if not viewing yourself AND (you're admin OR the target user is not an admin) */}
+                        {user?.id !== u.id && (isAdmin || u.role !== "admin") && (
                           <div className="flex items-center gap-2">
                             <Select
                               value={u.role}
@@ -1614,7 +1621,7 @@ export default function AdminDashboard() {
                                 Password Reset
                               </Button>
                             )}
-                            {u.role !== "admin" && (
+                            {u.role !== "admin" && isAdmin && (
                               <Button
                                 variant="outline"
                                 size="sm"
@@ -1653,50 +1660,57 @@ export default function AdminDashboard() {
                 <div className="flex items-center gap-3">
                   <Settings className="w-6 h-6" style={{ color: "#b47a5f" }} />
                   <div>
-                    <CardTitle>Site Settings</CardTitle>
-                    <CardDescription>Configure site-wide settings, meeting links, and your profile.</CardDescription>
+                    <CardTitle>{isAdmin ? "Site Settings" : "Profile Settings"}</CardTitle>
+                    <CardDescription>
+                      {isAdmin 
+                        ? "Configure site-wide settings, meeting links, and your profile."
+                        : "Manage your account settings and profile."
+                      }
+                    </CardDescription>
                   </div>
                 </div>
               </CardHeader>
               <CardContent className="space-y-8">
-                <div className="space-y-4">
-                  <div>
-                    <h3 className="font-medium mb-2">Zoom Meeting Link</h3>
-                    <p className="text-sm text-muted-foreground mb-4">
-                      This link will be displayed on the Live Stream page for members to join the Zoom meeting.
-                    </p>
-                    <div className="flex gap-3">
-                      <Input
-                        id="zoom-link"
-                        data-testid="input-zoom-link"
-                        value={zoomLinkInput}
-                        onChange={(e) => setZoomLinkInput(e.target.value)}
-                        placeholder="https://zoom.us/j/..."
-                        className="flex-1"
-                      />
-                      <Button
-                        onClick={() => updateZoomLinkMutation.mutate(zoomLinkInput)}
-                        disabled={updateZoomLinkMutation.isPending || !zoomLinkInput}
-                        style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
-                        data-testid="button-save-zoom-link"
-                      >
-                        {updateZoomLinkMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                        ) : (
-                          <Save className="w-4 h-4 mr-2" />
-                        )}
-                        Save
-                      </Button>
-                    </div>
-                    {zoomData?.zoomLink && (
-                      <p className="text-sm text-muted-foreground mt-2">
-                        Current link: <a href={zoomData.zoomLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{zoomData.zoomLink}</a>
+                {isAdmin && (
+                  <div className="space-y-4">
+                    <div>
+                      <h3 className="font-medium mb-2">Zoom Meeting Link</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        This link will be displayed on the Live Stream page for members to join the Zoom meeting.
                       </p>
-                    )}
+                      <div className="flex gap-3">
+                        <Input
+                          id="zoom-link"
+                          data-testid="input-zoom-link"
+                          value={zoomLinkInput}
+                          onChange={(e) => setZoomLinkInput(e.target.value)}
+                          placeholder="https://zoom.us/j/..."
+                          className="flex-1"
+                        />
+                        <Button
+                          onClick={() => updateZoomLinkMutation.mutate(zoomLinkInput)}
+                          disabled={updateZoomLinkMutation.isPending || !zoomLinkInput}
+                          style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+                          data-testid="button-save-zoom-link"
+                        >
+                          {updateZoomLinkMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          ) : (
+                            <Save className="w-4 h-4 mr-2" />
+                          )}
+                          Save
+                        </Button>
+                      </div>
+                      {zoomData?.zoomLink && (
+                        <p className="text-sm text-muted-foreground mt-2">
+                          Current link: <a href={zoomData.zoomLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{zoomData.zoomLink}</a>
+                        </p>
+                      )}
+                    </div>
                   </div>
-                </div>
+                )}
 
-                <div className="border-t pt-6">
+                <div className={isAdmin ? "border-t pt-6" : ""}>
                   <div className="flex items-center gap-3 mb-4">
                     <UserIcon className="w-5 h-5" style={{ color: "#b47a5f" }} />
                     <h3 className="font-medium text-lg">Profile Settings</h3>

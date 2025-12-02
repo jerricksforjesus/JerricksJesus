@@ -743,7 +743,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/videos/:id", async (req, res) => {
+  app.delete("/api/videos/:id", requireAuth, requireRole("admin"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteVideo(id);
@@ -958,7 +958,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/photos/:id", async (req, res) => {
+  app.delete("/api/photos/:id", requireAuth, requireRole("admin"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deletePhoto(id);
