@@ -58,23 +58,20 @@ export function Navigation() {
           {navLinks.map((link, index) => (
             <Link key={link.href} href={link.href}>
               <span
-                className="relative cursor-pointer px-4 py-2 block"
+                className="relative cursor-pointer px-5 py-1.5 block"
                 onMouseEnter={() => setHoveredIndex(index)}
               >
                 {hoveredIndex === index && (
                   <motion.div
                     layoutId="navHighlight"
-                    className={cn(
-                      "absolute inset-0 rounded-full",
-                      isHomePage && !isScrolled ? "bg-white/20" : "bg-primary/10"
-                    )}
+                    className="absolute inset-0 rounded-full bg-white"
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}
                 <span
                   className={cn(
-                    "relative z-10 text-sm font-medium tracking-widest uppercase transition-colors duration-300",
-                    location === link.href 
+                    "relative z-10 text-xs font-bold tracking-widest uppercase transition-colors duration-300",
+                    hoveredIndex === index 
                       ? "text-primary" 
                       : isHomePage && !isScrolled ? "text-white/90" : "text-foreground/80"
                   )}
@@ -85,7 +82,7 @@ export function Navigation() {
             </Link>
           ))}
           <Link href="/live">
-            <span className="cursor-pointer ml-4 px-6 py-2 bg-primary text-primary-foreground rounded-full text-xs font-bold uppercase tracking-widest hover:bg-primary/90 transition-transform hover:scale-105">
+            <span className="cursor-pointer ml-4 px-6 py-1.5 bg-primary text-primary-foreground rounded-full text-xs font-bold uppercase tracking-widest hover:bg-primary/90 transition-transform hover:scale-105">
               Watch Live
             </span>
           </Link>
