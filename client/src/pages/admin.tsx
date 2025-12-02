@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useLayoutEffect } from "react";
 import { useLocation } from "wouter";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { VideoPlayerModal } from "@/components/VideoPlayerModal";
@@ -484,6 +484,12 @@ export default function AdminDashboard() {
     return photoSignedUrls[photo.id] || "";
   };
 
+  useLayoutEffect(() => {
+    if (!authLoading && !user) {
+      setLocation("/login");
+    }
+  }, [authLoading, user, setLocation]);
+
   if (authLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--alabaster)" }}>
@@ -496,8 +502,14 @@ export default function AdminDashboard() {
   }
 
   if (!user) {
-    setLocation("/login");
-    return null;
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--alabaster)" }}>
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" style={{ color: "var(--burnt-clay)" }} />
+          <p className="text-muted-foreground">Redirecting to login...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!canEdit) {

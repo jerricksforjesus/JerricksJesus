@@ -715,17 +715,29 @@ export async function registerRoutes(
         };
       });
       
-      // Save the attempt
+      // Save the attempt - include userId if user is logged in
       await storage.createQuizAttempt({
         book,
         score,
         totalQuestions: answers.length,
+        userId: req.user?.id || null,
       });
       
       res.json({ score, totalQuestions: answers.length, results });
     } catch (error) {
       console.error("Error submitting quiz:", error);
       res.status(500).json({ error: "Failed to submit quiz" });
+    }
+  });
+  
+  // Get user's quiz history
+  app.get("/api/quiz/my-history", requireAuth, async (req, res) => {
+    try {
+      const attempts = await storage.getQuizAttemptsByUser(req.user!.id);
+      res.json(attempts);
+    } catch (error) {
+      console.error("Error fetching quiz history:", error);
+      res.status(500).json({ error: "Failed to fetch quiz history" });
     }
   });
 

@@ -1,9 +1,11 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, CheckCircle, Trophy, ArrowLeft, Loader2 } from "lucide-react";
+import { BookOpen, CheckCircle, Trophy, ArrowLeft, Loader2, History, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BIBLE_BOOKS } from "@shared/schema";
+import { useAuth } from "@/lib/auth";
+import { useLocation } from "wouter";
 
 interface BookStatus {
   name: string;
@@ -29,7 +31,15 @@ interface QuizResult {
   scriptureReference: string | null;
 }
 
-type ViewState = "selection" | "quiz" | "results";
+interface QuizAttempt {
+  id: number;
+  book: string;
+  score: number;
+  totalQuestions: number;
+  completedAt: string;
+}
+
+type ViewState = "selection" | "quiz" | "results" | "history";
 
 export function BibleQuizSection() {
   const [view, setView] = useState<ViewState>("selection");
@@ -41,6 +51,9 @@ export function BibleQuizSection() {
   const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
   const [answerResult, setAnswerResult] = useState<{ correct: boolean; correctAnswer: string } | null>(null);
   const [isShowingFeedback, setIsShowingFeedback] = useState(false);
+  const [, setLocation] = useLocation();
+  
+  const { user } = useAuth();
 
   const { data: books = [] } = useQuery<BookStatus[]>({
     queryKey: ["quiz-books"],
@@ -59,6 +72,16 @@ export function BibleQuizSection() {
       return response.json();
     },
     enabled: !!selectedBook && view === "quiz",
+  });
+  
+  const { data: quizHistory = [], isLoading: loadingHistory } = useQuery<QuizAttempt[]>({
+    queryKey: ["quiz-history"],
+    queryFn: async () => {
+      const response = await fetch("/api/quiz/my-history", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch history");
+      return response.json();
+    },
+    enabled: !!user && view === "history",
   });
 
   const oldTestamentBooks = books.filter(b => 
@@ -247,6 +270,102 @@ export function BibleQuizSection() {
               <p className="text-center text-sm text-muted-foreground mt-6">
                 Books with a checkmark have quizzes available. More coming soon!
               </p>
+              
+              {/* User Actions */}
+              <div className="flex justify-center gap-4 mt-8">
+                {user ? (
+                  <Button
+                    variant="outline"
+                    onClick={() => setView("history")}
+                    data-testid="button-view-history"
+                  >
+                    <History className="w-4 h-4 mr-2" />
+                    My Quiz History
+                  </Button>
+                ) : (
+                  <Button
+                    variant="outline"
+                    onClick={() => setLocation("/login")}
+                    data-testid="button-login-for-history"
+                  >
+                    <User className="w-4 h-4 mr-2" />
+                    Sign in to track your scores
+                  </Button>
+                )}
+              </div>
+            </motion.div>
+          )}
+          
+          {view === "history" && (
+            <motion.div
+              key="history"
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              className="max-w-2xl mx-auto"
+            >
+              <Button
+                variant="ghost"
+                onClick={handleBackToSelection}
+                className="mb-6"
+                data-testid="button-back-from-history"
+              >
+                <ArrowLeft className="w-4 h-4 mr-2" /> Back to Books
+              </Button>
+              
+              <div className="bg-card rounded-xl shadow-lg p-6">
+                <div className="flex items-center gap-3 mb-6">
+                  <History className="w-6 h-6 text-primary" />
+                  <h3 className="text-xl font-serif font-bold">Your Quiz History</h3>
+                </div>
+                
+                {loadingHistory ? (
+                  <div className="flex flex-col items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin text-primary mb-4" />
+                    <p className="text-muted-foreground">Loading history...</p>
+                  </div>
+                ) : quizHistory.length === 0 ? (
+                  <div className="text-center py-12">
+                    <Trophy className="w-12 h-12 text-muted-foreground mx-auto mb-4 opacity-50" />
+                    <p className="text-muted-foreground mb-4">You haven't taken any quizzes yet.</p>
+                    <Button onClick={handleBackToSelection} data-testid="button-start-first-quiz">
+                      Take Your First Quiz
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {quizHistory.map((attempt) => (
+                      <div
+                        key={attempt.id}
+                        className="flex items-center justify-between p-4 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                        data-testid={`history-attempt-${attempt.id}`}
+                      >
+                        <div>
+                          <p className="font-medium">{attempt.book}</p>
+                          <p className="text-sm text-muted-foreground">
+                            {new Date(attempt.completedAt).toLocaleDateString()} at{" "}
+                            {new Date(attempt.completedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                          </p>
+                        </div>
+                        <div className="text-right">
+                          <p className={`text-lg font-bold ${
+                            attempt.score / attempt.totalQuestions >= 0.8 
+                              ? "text-green-600" 
+                              : attempt.score / attempt.totalQuestions >= 0.6
+                              ? "text-yellow-600"
+                              : "text-red-600"
+                          }`}>
+                            {attempt.score} / {attempt.totalQuestions}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {Math.round((attempt.score / attempt.totalQuestions) * 100)}%
+                          </p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </motion.div>
           )}
 
