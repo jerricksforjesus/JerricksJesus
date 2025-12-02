@@ -223,12 +223,11 @@ export function BibleQuizSection() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
-              className="px-4 md:px-8 lg:px-12"
             >
               {/* Old Testament */}
               <div className="mb-10">
                 <h3 className="text-xl font-serif font-bold mb-4 text-center">Old Testament</h3>
-                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 gap-2">
                   {oldTestamentBooks.map((book) => {
                     const isCompleted = completedBooks.has(book.name);
                     return (
@@ -260,7 +259,7 @@ export function BibleQuizSection() {
               {/* New Testament */}
               <div>
                 <h3 className="text-xl font-serif font-bold mb-4 text-center">New Testament</h3>
-                <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
+                <div className="grid grid-cols-3 sm:grid-cols-5 md:grid-cols-7 lg:grid-cols-9 gap-2">
                   {newTestamentBooks.map((book) => {
                     const isCompleted = completedBooks.has(book.name);
                     return (
