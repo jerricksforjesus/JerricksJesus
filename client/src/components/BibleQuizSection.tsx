@@ -240,7 +240,7 @@ export function BibleQuizSection() {
                             ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
                             : isCompleted
                             ? "bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer border border-primary/20"
-                            : "bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer border border-primary/20"
+                            : "bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer border border-gray-200"
                         }`}
                         data-testid={`quiz-book-${book.name}`}
                       >
@@ -272,7 +272,7 @@ export function BibleQuizSection() {
                             ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
                             : isCompleted
                             ? "bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer border border-primary/20"
-                            : "bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer border border-primary/20"
+                            : "bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer border border-gray-200"
                         }`}
                         data-testid={`quiz-book-${book.name}`}
                       >
