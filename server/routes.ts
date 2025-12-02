@@ -205,19 +205,22 @@ export async function registerRoutes(
       return res.status(500).json({ error: "Google OAuth not configured" });
     }
     
+    // Determine the redirect URI based on the request origin
+    const host = req.get("host") || "";
+    // Check X-Forwarded-Proto header for production reverse proxy, or detect from host
+    const forwardedProto = req.get("x-forwarded-proto");
+    const isSecure = forwardedProto === "https" || req.protocol === "https" || host.includes("replit") || host.includes("jerricksforjesus");
+    const protocol = isSecure ? "https" : "http";
+    const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+    
     // Generate state parameter for CSRF protection
     const state = crypto.randomBytes(32).toString("hex");
     res.cookie("oauth_state", state, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isSecure,
       sameSite: "lax",
       maxAge: 10 * 60 * 1000, // 10 minutes
     });
-    
-    // Determine the redirect URI based on the request origin
-    const host = req.get("host") || "";
-    const protocol = req.protocol === "https" || host.includes("replit") ? "https" : "http";
-    const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
     
     const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
     authUrl.searchParams.set("client_id", clientId);
@@ -257,7 +260,9 @@ export async function registerRoutes(
       
       // Determine the redirect URI based on the request origin
       const host = req.get("host") || "";
-      const protocol = req.protocol === "https" || host.includes("replit") ? "https" : "http";
+      const forwardedProto = req.get("x-forwarded-proto");
+      const isSecure = forwardedProto === "https" || req.protocol === "https" || host.includes("replit") || host.includes("jerricksforjesus");
+      const protocol = isSecure ? "https" : "http";
       const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
       
       // Exchange code for tokens
