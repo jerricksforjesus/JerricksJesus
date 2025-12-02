@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus, Users, Shield, UserCheck, Camera, CheckCircle, XCircle, Clock } from "lucide-react";
+import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus, Users, Shield, UserCheck, Camera, CheckCircle, XCircle, Clock, Settings } from "lucide-react";
 import { useState, useEffect, useLayoutEffect } from "react";
 import { useLocation } from "wouter";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -272,6 +272,43 @@ export default function AdminDashboard() {
   const [newUsername, setNewUsername] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newUserRole, setNewUserRole] = useState<string>(USER_ROLES.MEMBER);
+  const [zoomLinkInput, setZoomLinkInput] = useState("");
+
+  const { data: zoomData, isLoading: zoomLoading } = useQuery<{ zoomLink: string }>({
+    queryKey: ["zoom-link"],
+    queryFn: async () => {
+      const response = await fetch("/api/settings/zoom-link");
+      if (!response.ok) throw new Error("Failed to fetch zoom link");
+      return response.json();
+    },
+    enabled: canEdit,
+  });
+
+  useEffect(() => {
+    if (zoomData?.zoomLink && !zoomLinkInput) {
+      setZoomLinkInput(zoomData.zoomLink);
+    }
+  }, [zoomData]);
+
+  const updateZoomLinkMutation = useMutation({
+    mutationFn: async (zoomLink: string) => {
+      const response = await fetch("/api/settings/zoom-link", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ zoomLink }),
+      });
+      if (!response.ok) throw new Error("Failed to update zoom link");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Zoom Link Updated", description: "The Zoom meeting link has been saved." });
+      queryClient.invalidateQueries({ queryKey: ["zoom-link"] });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update Zoom link.", variant: "destructive" });
+    },
+  });
 
   const handleLogout = async () => {
     try {
@@ -830,7 +867,7 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="verse" className="w-full">
-          <TabsList className={`grid w-full mb-8 ${isFoundational && !isAdmin ? 'grid-cols-7' : 'grid-cols-6'}`}>
+          <TabsList className={`grid w-full mb-8 ${isFoundational && !isAdmin ? 'grid-cols-8' : 'grid-cols-7'}`}>
             <TabsTrigger value="verse" data-testid="tab-verse">Verse</TabsTrigger>
             <TabsTrigger value="replays" data-testid="tab-replays">Replays</TabsTrigger>
             <TabsTrigger value="photos" data-testid="tab-photos">Photos</TabsTrigger>
@@ -840,6 +877,7 @@ export default function AdminDashboard() {
               <TabsTrigger value="take-quiz" data-testid="tab-take-quiz">Take Quiz</TabsTrigger>
             )}
             <TabsTrigger value="users" data-testid="tab-users">Users</TabsTrigger>
+            <TabsTrigger value="settings" data-testid="tab-settings">Settings</TabsTrigger>
           </TabsList>
 
           <TabsContent value="verse">
@@ -1378,6 +1416,58 @@ export default function AdminDashboard() {
                     ))}
                   </div>
                 )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <Settings className="w-6 h-6" style={{ color: "#b47a5f" }} />
+                  <div>
+                    <CardTitle>Site Settings</CardTitle>
+                    <CardDescription>Configure site-wide settings including meeting links.</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div>
+                    <h3 className="font-medium mb-2">Zoom Meeting Link</h3>
+                    <p className="text-sm text-muted-foreground mb-4">
+                      This link will be displayed on the Live Stream page for members to join the Zoom meeting.
+                    </p>
+                    <div className="flex gap-3">
+                      <Input
+                        id="zoom-link"
+                        data-testid="input-zoom-link"
+                        value={zoomLinkInput}
+                        onChange={(e) => setZoomLinkInput(e.target.value)}
+                        placeholder="https://zoom.us/j/..."
+                        className="flex-1"
+                      />
+                      <Button
+                        onClick={() => updateZoomLinkMutation.mutate(zoomLinkInput)}
+                        disabled={updateZoomLinkMutation.isPending || !zoomLinkInput}
+                        style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+                        data-testid="button-save-zoom-link"
+                      >
+                        {updateZoomLinkMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        ) : (
+                          <Save className="w-4 h-4 mr-2" />
+                        )}
+                        Save
+                      </Button>
+                    </div>
+                    {zoomData?.zoomLink && (
+                      <p className="text-sm text-muted-foreground mt-2">
+                        Current link: <a href={zoomData.zoomLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{zoomData.zoomLink}</a>
+                      </p>
+                    )}
+                  </div>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>

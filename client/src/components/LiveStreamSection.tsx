@@ -24,7 +24,7 @@ export function LiveStreamSection() {
   const { data: zoomData } = useQuery<{ zoomLink: string }>({
     queryKey: ["zoom-link"],
     queryFn: async () => {
-      const response = await fetch("/api/settings/zoom-link");
+      const response = await fetch("/api/settings/zoom-link", { credentials: "include" });
       if (!response.ok) throw new Error("Failed to fetch zoom link");
       return response.json();
     },
