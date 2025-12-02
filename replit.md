@@ -150,3 +150,11 @@ Preferred communication style: Simple, everyday language.
 - JSON-LD structured data (Church schema) with service schedules (Friday 6 AM & 6 PM EST)
 - Custom Vite plugin (`vite-plugin-meta-images.ts`) converts relative image URLs to absolute URLs at build time
 - Canonical URL: https://jerricksforjesus.com
+
+**Mobile App Integration**
+- Comprehensive API documentation available in `MOBILE_APP_API_DOCUMENTATION.md`
+- Mobile app shares same PostgreSQL database and API endpoints as web application
+- RESTful API with session-based authentication (HTTP-only cookies)
+- All endpoints documented with request/response schemas, authentication requirements, and role-based access
+- Guest quiz progress migration workflow for syncing local progress to user accounts
+- Mobile-specific UI considerations: portrait aspect ratio (9:16) on live stream, accordion UI for quiz books on < 1024px screens
