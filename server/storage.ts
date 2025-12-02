@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, type QuizQuestion, type InsertQuizQuestion, type QuizAttempt, type InsertQuizAttempt, type Session, type InsertSession, videos, verses, users, photos, quizQuestions, quizAttempts, sessions } from "@shared/schema";
+import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, type QuizQuestion, type InsertQuizQuestion, type QuizAttempt, type InsertQuizAttempt, type Session, type InsertSession, type MemberPhoto, type InsertMemberPhoto, videos, verses, users, photos, quizQuestions, quizAttempts, sessions, memberPhotos } from "@shared/schema";
 import { db } from "./db";
 import { eq, asc, and, sql, gt } from "drizzle-orm";
 import * as schema from "@shared/schema";
@@ -56,6 +56,15 @@ export interface IStorage {
   getQuizAttemptsByBook(book: string): Promise<QuizAttempt[]>;
   getQuizAttemptsByUser(userId: string): Promise<QuizAttempt[]>;
   getAllQuizAttempts(): Promise<QuizAttempt[]>;
+  
+  // Member photo methods
+  createMemberPhoto(photo: InsertMemberPhoto): Promise<MemberPhoto>;
+  getMemberPhotosByUser(userId: string): Promise<MemberPhoto[]>;
+  getMemberPhotosByStatus(status: string): Promise<MemberPhoto[]>;
+  getAllMemberPhotos(): Promise<MemberPhoto[]>;
+  getApprovedMemberPhotos(): Promise<MemberPhoto[]>;
+  updateMemberPhotoStatus(id: number, status: string, reviewedBy: string): Promise<MemberPhoto | undefined>;
+  deleteMemberPhoto(id: number): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -350,6 +359,51 @@ export class DbStorage implements IStorage {
     return await db.query.quizAttempts.findMany({
       orderBy: (a, { desc }) => [desc(a.completedAt)],
     });
+  }
+
+  // Member photo methods
+  async createMemberPhoto(photo: InsertMemberPhoto): Promise<MemberPhoto> {
+    const [newPhoto] = await db.insert(memberPhotos).values(photo).returning();
+    return newPhoto;
+  }
+
+  async getMemberPhotosByUser(userId: string): Promise<MemberPhoto[]> {
+    return await db.query.memberPhotos.findMany({
+      where: (p, { eq }) => eq(p.userId, userId),
+      orderBy: (p, { desc }) => [desc(p.createdAt)],
+    });
+  }
+
+  async getMemberPhotosByStatus(status: string): Promise<MemberPhoto[]> {
+    return await db.query.memberPhotos.findMany({
+      where: (p, { eq }) => eq(p.status, status),
+      orderBy: (p, { desc }) => [desc(p.createdAt)],
+    });
+  }
+
+  async getAllMemberPhotos(): Promise<MemberPhoto[]> {
+    return await db.query.memberPhotos.findMany({
+      orderBy: (p, { desc }) => [desc(p.createdAt)],
+    });
+  }
+
+  async getApprovedMemberPhotos(): Promise<MemberPhoto[]> {
+    return await db.query.memberPhotos.findMany({
+      where: (p, { eq }) => eq(p.status, "approved"),
+      orderBy: (p, { desc }) => [desc(p.createdAt)],
+    });
+  }
+
+  async updateMemberPhotoStatus(id: number, status: string, reviewedBy: string): Promise<MemberPhoto | undefined> {
+    const [updated] = await db.update(memberPhotos)
+      .set({ status, reviewedBy, reviewedAt: new Date() })
+      .where(eq(memberPhotos.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteMemberPhoto(id: number): Promise<void> {
+    await db.delete(memberPhotos).where(eq(memberPhotos.id, id));
   }
 }
 

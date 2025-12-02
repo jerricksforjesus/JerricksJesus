@@ -82,6 +82,18 @@ export const photos = pgTable("photos", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Member-submitted family photos (requires approval)
+export const memberPhotos = pgTable("member_photos", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  imagePath: text("image_path").notNull(),
+  caption: text("caption"),
+  status: text("status").notNull().default("pending"), // pending, approved, rejected
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Bible Quiz tables
 export const quizQuestions = pgTable("quiz_questions", {
   id: serial("id").primaryKey(),
@@ -145,6 +157,13 @@ export const insertQuizAttemptSchema = createInsertSchema(quizAttempts).omit({
   completedAt: true,
 });
 
+export const insertMemberPhotoSchema = createInsertSchema(memberPhotos).omit({
+  id: true,
+  reviewedBy: true,
+  reviewedAt: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -165,3 +184,6 @@ export type QuizQuestion = typeof quizQuestions.$inferSelect;
 
 export type InsertQuizAttempt = z.infer<typeof insertQuizAttemptSchema>;
 export type QuizAttempt = typeof quizAttempts.$inferSelect;
+
+export type InsertMemberPhoto = z.infer<typeof insertMemberPhotoSchema>;
+export type MemberPhoto = typeof memberPhotos.$inferSelect;
