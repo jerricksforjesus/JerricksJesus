@@ -2,11 +2,13 @@ import { Link, useLocation } from "wouter";
 import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
+import { useAuth } from "@/lib/auth";
 
 export function Navigation() {
   const [location] = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { user } = useAuth();
   
   const isHomePage = location === "/";
 
@@ -18,11 +20,17 @@ export function Navigation() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  const getAccountLabel = () => {
+    if (!user) return "Login";
+    if (user.role === "admin") return "Admin";
+    return "My Account";
+  };
+
   const navLinks = [
     { href: "/", label: "Sanctuary" },
     { href: "/live", label: "Live Stream" },
     { href: "/replays", label: "Replays" },
-    { href: "/admin", label: "Admin" }, // For demo purposes
+    { href: user ? "/admin" : "/login", label: getAccountLabel() },
   ];
 
   return (
