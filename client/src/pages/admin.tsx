@@ -874,55 +874,6 @@ export default function AdminDashboard() {
                 </CardDescription>
               </CardHeader>
               <CardContent>
-                {/* Bulk Actions */}
-                <div className="mb-6 p-4 bg-muted/50 rounded-lg border">
-                  <div className="flex flex-wrap items-center gap-4">
-                    <div className="flex-1 min-w-[200px]">
-                      <h3 className="font-semibold text-sm">Bulk Actions</h3>
-                      <p className="text-xs text-muted-foreground">
-                        Generate questions for all 66 books at once (one-time API cost)
-                      </p>
-                    </div>
-                    <div className="flex gap-2">
-                      <Button
-                        onClick={() => generateAllMutation.mutate()}
-                        disabled={bulkGenerating}
-                        data-testid="button-generate-all-books"
-                      >
-                        {bulkGenerating ? (
-                          <>
-                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                            Generating...
-                          </>
-                        ) : (
-                          <>
-                            <RefreshCw className="w-4 h-4 mr-2" />
-                            Generate All Books
-                          </>
-                        )}
-                      </Button>
-                      <Button
-                        variant="outline"
-                        onClick={() => approveAllBooksMutation.mutate()}
-                        disabled={quizBooks.every(b => b.approvedCount >= b.questionCount) || bulkGenerating}
-                        data-testid="button-approve-all-books"
-                      >
-                        <Check className="w-4 h-4 mr-2" />
-                        Approve All Books
-                      </Button>
-                    </div>
-                  </div>
-                  {bulkProgress && (
-                    <div className="mt-3 p-2 bg-blue-50 rounded text-sm text-blue-700">
-                      {bulkProgress}
-                    </div>
-                  )}
-                  <div className="mt-3 text-xs text-muted-foreground">
-                    Status: {quizBooks.filter(b => b.questionCount > 0).length}/66 books have questions | 
-                    {' '}{quizBooks.reduce((sum, b) => sum + b.approvedCount, 0)} approved questions total
-                  </div>
-                </div>
-
                 <div className="grid md:grid-cols-2 gap-6">
                   {/* Book Selection */}
                   <div>
