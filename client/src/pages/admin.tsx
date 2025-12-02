@@ -55,7 +55,7 @@ export default function AdminDashboard() {
   const [photoCaption, setPhotoCaption] = useState("");
   const [selectedQuizBook, setSelectedQuizBook] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
-  const [addMoreCount, setAddMoreCount] = useState<string>("5");
+  const [addMoreCount, setAddMoreCount] = useState<string>("1");
   
   const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
   const [newUsername, setNewUsername] = useState("");
@@ -1019,6 +1019,7 @@ export default function AdminDashboard() {
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
+                                    <SelectItem value="1">1</SelectItem>
                                     <SelectItem value="3">3</SelectItem>
                                     <SelectItem value="5">5</SelectItem>
                                     <SelectItem value="10">10</SelectItem>
@@ -1041,7 +1042,7 @@ export default function AdminDashboard() {
                                   ) : (
                                     <Plus className="w-4 h-4 mr-1" />
                                   )}
-                                  Add More
+                                  Add More Questions
                                 </Button>
                               </div>
                             )}
