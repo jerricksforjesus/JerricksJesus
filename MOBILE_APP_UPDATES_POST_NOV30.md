@@ -281,32 +281,7 @@ Philippians, Colossians, 1 Thessalonians, 2 Thessalonians, 1 Timothy,
 Jude, Revelation
 ```
 
-### 7.3 Chapter Counts Per Book
-
-Mobile app should use this data to display book information:
-
-```javascript
-const BOOK_CHAPTERS = {
-  // Old Testament
-  "Genesis": 50, "Exodus": 40, "Leviticus": 27, "Numbers": 36, "Deuteronomy": 34,
-  "Joshua": 24, "Judges": 21, "Ruth": 4, "1 Samuel": 31, "2 Samuel": 24,
-  "1 Kings": 22, "2 Kings": 25, "1 Chronicles": 29, "2 Chronicles": 36, "Ezra": 10,
-  "Nehemiah": 13, "Esther": 10, "Job": 42, "Psalms": 150, "Proverbs": 31,
-  "Ecclesiastes": 12, "Song of Solomon": 8, "Isaiah": 66, "Jeremiah": 52, "Lamentations": 5,
-  "Ezekiel": 48, "Daniel": 12, "Hosea": 14, "Joel": 3, "Amos": 9,
-  "Obadiah": 1, "Jonah": 4, "Micah": 7, "Nahum": 3, "Habakkuk": 3,
-  "Zephaniah": 3, "Haggai": 2, "Zechariah": 14, "Malachi": 4,
-  // New Testament
-  "Matthew": 28, "Mark": 16, "Luke": 24, "John": 21, "Acts": 28,
-  "Romans": 16, "1 Corinthians": 16, "2 Corinthians": 13, "Galatians": 6, "Ephesians": 6,
-  "Philippians": 4, "Colossians": 4, "1 Thessalonians": 5, "2 Thessalonians": 3, "1 Timothy": 6,
-  "2 Timothy": 4, "Titus": 3, "Philemon": 1, "Hebrews": 13, "James": 5,
-  "1 Peter": 5, "2 Peter": 3, "1 John": 5, "2 John": 1, "3 John": 1,
-  "Jude": 1, "Revelation": 22
-};
-```
-
-### 7.4 Question Schema
+### 7.3 Question Schema
 
 Each question in the database has this structure:
 
@@ -326,7 +301,7 @@ interface QuizQuestion {
 }
 ```
 
-### 7.5 How Questions Exist in the Database
+### 7.4 How Questions Exist in the Database
 
 **Note: This section explains how questions get into the database. Mobile app developers do NOT need to implement this - just understand that questions already exist.**
 
@@ -339,7 +314,7 @@ Questions are created by the web admin panel and stored in PostgreSQL:
 
 **For mobile app:** Simply call the API to get questions - they already exist in the database.
 
-### 7.6 Quiz Taking Flow
+### 7.5 Quiz Taking Flow
 
 #### Step 1: Fetch Available Books
 ```
@@ -517,7 +492,7 @@ POST /api/quiz/submit
 - "Try Another Book" button → Return to book selection
 - "Retry" button → Restart same book with new questions
 
-### 7.7 Guest Progress Tracking
+### 7.6 Guest Progress Tracking
 
 **For Non-Logged-In Users:**
 1. Store completed books in local storage:
@@ -543,7 +518,7 @@ POST /api/quiz/submit
 3. Clear local storage after successful migration
 4. Completed books now tracked on server
 
-### 7.8 Quiz History View
+### 7.7 Quiz History View
 ```
 GET /api/quiz/my-history
 ```
@@ -566,7 +541,7 @@ GET /api/quiz/my-history
 - Date completed
 - Sorted by most recent first
 
-### 7.9 Admin Quiz Management (Admin Role Only)
+### 7.8 Admin Quiz Management (Admin Role Only)
 
 **Note: These endpoints are for web admin functionality. Mobile app may implement admin features if user has admin role.**
 
