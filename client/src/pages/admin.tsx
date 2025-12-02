@@ -552,10 +552,10 @@ export default function AdminDashboard() {
           <div className="flex items-center gap-2">
             {isAdmin && (
               <Button 
-                variant="outline" 
                 size="sm"
                 onClick={() => setIsCreateUserOpen(true)}
                 data-testid="button-create-user"
+                style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
               >
                 <UserPlus className="h-4 w-4 mr-2" />
                 Add User
