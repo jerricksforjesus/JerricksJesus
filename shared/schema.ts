@@ -27,10 +27,28 @@ export const BIBLE_BOOKS = {
 
 export const ALL_BIBLE_BOOKS = [...BIBLE_BOOKS.oldTestament, ...BIBLE_BOOKS.newTestament];
 
+export const USER_ROLES = {
+  ADMIN: "admin",
+  FOUNDATIONAL: "foundational",
+  MEMBER: "member",
+} as const;
+
+export type UserRole = typeof USER_ROLES[keyof typeof USER_ROLES];
+
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   username: text("username").notNull().unique(),
   password: text("password").notNull(),
+  role: text("role").notNull().default("member"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const sessions = pgTable("sessions", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  token: text("token").notNull().unique(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
 export const videos = pgTable("videos", {
@@ -79,6 +97,7 @@ export const quizQuestions = pgTable("quiz_questions", {
 
 export const quizAttempts = pgTable("quiz_attempts", {
   id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
   book: text("book").notNull(),
   score: integer("score").notNull(),
   totalQuestions: integer("total_questions").notNull(),
@@ -88,6 +107,12 @@ export const quizAttempts = pgTable("quiz_attempts", {
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
+  role: true,
+});
+
+export const insertSessionSchema = createInsertSchema(sessions).omit({
+  id: true,
+  createdAt: true,
 });
 
 export const insertVideoSchema = createInsertSchema(videos).omit({
@@ -118,6 +143,9 @@ export const insertQuizAttemptSchema = createInsertSchema(quizAttempts).omit({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+export type InsertSession = z.infer<typeof insertSessionSchema>;
+export type Session = typeof sessions.$inferSelect;
 
 export type InsertVideo = z.infer<typeof insertVideoSchema>;
 export type Video = typeof videos.$inferSelect;

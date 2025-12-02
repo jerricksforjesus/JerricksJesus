@@ -1,12 +1,18 @@
-import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, type QuizQuestion, type InsertQuizQuestion, type QuizAttempt, type InsertQuizAttempt, videos, verses, users, photos, quizQuestions, quizAttempts } from "@shared/schema";
+import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, type QuizQuestion, type InsertQuizQuestion, type QuizAttempt, type InsertQuizAttempt, type Session, type InsertSession, videos, verses, users, photos, quizQuestions, quizAttempts, sessions } from "@shared/schema";
 import { db } from "./db";
-import { eq, asc, and, sql } from "drizzle-orm";
+import { eq, asc, and, sql, gt } from "drizzle-orm";
 import * as schema from "@shared/schema";
 
 export interface IStorage {
   getUser(id: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  
+  // Session methods
+  createSession(session: InsertSession): Promise<Session>;
+  getSessionByToken(token: string): Promise<Session | undefined>;
+  deleteSession(token: string): Promise<void>;
+  deleteExpiredSessions(): Promise<void>;
   
   getAllVideos(): Promise<Video[]>;
   getVideo(id: number): Promise<Video | undefined>;
@@ -44,6 +50,7 @@ export interface IStorage {
   
   createQuizAttempt(attempt: InsertQuizAttempt): Promise<QuizAttempt>;
   getQuizAttemptsByBook(book: string): Promise<QuizAttempt[]>;
+  getQuizAttemptsByUser(userId: string): Promise<QuizAttempt[]>;
   getAllQuizAttempts(): Promise<QuizAttempt[]>;
 }
 
@@ -65,6 +72,28 @@ export class DbStorage implements IStorage {
   async createUser(insertUser: InsertUser): Promise<User> {
     const [user] = await db.insert(schema.users).values(insertUser).returning();
     return user;
+  }
+
+  async createSession(session: InsertSession): Promise<Session> {
+    const [newSession] = await db.insert(sessions).values(session).returning();
+    return newSession;
+  }
+
+  async getSessionByToken(token: string): Promise<Session | undefined> {
+    return await db.query.sessions.findFirst({
+      where: (s, { eq, and, gt }) => and(
+        eq(s.token, token),
+        gt(s.expiresAt, new Date())
+      ),
+    });
+  }
+
+  async deleteSession(token: string): Promise<void> {
+    await db.delete(sessions).where(eq(sessions.token, token));
+  }
+
+  async deleteExpiredSessions(): Promise<void> {
+    await db.delete(sessions).where(sql`${sessions.expiresAt} < NOW()`);
   }
 
   async getAllVideos(): Promise<Video[]> {
@@ -274,6 +303,13 @@ export class DbStorage implements IStorage {
   async getQuizAttemptsByBook(book: string): Promise<QuizAttempt[]> {
     return await db.query.quizAttempts.findMany({
       where: (a, { eq }) => eq(a.book, book),
+      orderBy: (a, { desc }) => [desc(a.completedAt)],
+    });
+  }
+
+  async getQuizAttemptsByUser(userId: string): Promise<QuizAttempt[]> {
+    return await db.query.quizAttempts.findMany({
+      where: (a, { eq }) => eq(a.userId, userId),
       orderBy: (a, { desc }) => [desc(a.completedAt)],
     });
   }
