@@ -47,63 +47,63 @@ export function LiveStreamSection() {
             </p>
           </div>
 
-          <Link href="/live">
-            <div className="aspect-video bg-black rounded-xl overflow-hidden relative shadow-2xl cursor-pointer group">
+          <div className="aspect-video bg-black rounded-xl overflow-hidden relative shadow-2xl">
               {isLoading ? (
                 <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 text-white">
-                  <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin" />
+                  <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+                  <p className="text-zinc-400">Checking stream status...</p>
                 </div>
-              ) : isLive ? (
-                <div className="absolute inset-0 bg-gradient-to-br from-red-900/90 to-zinc-900 flex flex-col items-center justify-center text-white p-6 text-center">
-                  <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_center,_white_0%,_transparent_70%)]" />
-                  
-                  <motion.div
-                    animate={{ scale: [1, 1.2, 1] }}
-                    transition={{ duration: 2, repeat: Infinity }}
-                    className="mb-6"
-                  >
-                    <Radio className="w-16 h-16 text-red-400" />
-                  </motion.div>
-                  
-                  <h3 className="text-3xl font-serif font-bold mb-2">{streamTitle}</h3>
-                  <p className="text-white/70 mb-6">Streaming live now</p>
-                  
-                  <Button 
-                    size="lg" 
-                    className="bg-white text-black hover:bg-white/90 font-bold px-8 group-hover:scale-105 transition-transform"
-                    data-testid="button-watch-live"
-                  >
-                    Watch Live
-                  </Button>
-                </div>
+              ) : isLive && liveStatus?.videoId ? (
+                <>
+                  <div className="absolute top-4 left-4 z-10 bg-red-600 px-3 py-1 rounded-full text-white text-sm font-bold flex items-center gap-2">
+                    <Radio className="w-4 h-4 animate-pulse" /> LIVE
+                  </div>
+                  <iframe
+                    src={`https://www.youtube.com/embed/${liveStatus.videoId}?autoplay=1&rel=0`}
+                    className="w-full h-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                    title="Live Stream"
+                    data-testid="youtube-live-embed-home"
+                  />
+                </>
               ) : (
-                <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 text-white p-6 text-center group-hover:bg-zinc-800 transition-colors">
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 text-white p-6 text-center">
                   <Video className="w-16 h-16 mb-6 text-primary opacity-80" data-testid="icon-video" />
-                  <h3 className="text-3xl font-serif mb-4">Next Service</h3>
+                  <h2 className="text-3xl font-serif mb-4">We're Currently Offline</h2>
                   <p className="text-zinc-400 max-w-md mb-8">
-                    The live stream will appear here automatically when we go live.
+                    Join us for our next live service. The stream will appear here automatically when we go live.
                   </p>
                   
-                  <div className="grid grid-cols-2 gap-6 max-w-md">
-                    <div className="text-left">
-                      <div className="flex items-center gap-2 text-primary mb-1">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-lg w-full">
+                    <div className="bg-zinc-800/50 rounded-xl p-4 text-left">
+                      <div className="flex items-center gap-2 text-primary mb-2">
                         <Calendar className="w-4 h-4" />
-                        <span className="text-sm font-medium">Friday</span>
+                        <span className="text-sm font-medium">Friday Morning Service</span>
                       </div>
-                      <p className="text-lg font-serif">6:00 AM</p>
+                      <p className="text-lg font-serif">6:00 AM EST</p>
                     </div>
-                    <div className="text-left">
-                      <div className="flex items-center gap-2 text-primary mb-1">
+                    <div className="bg-zinc-800/50 rounded-xl p-4 text-left">
+                      <div className="flex items-center gap-2 text-primary mb-2">
                         <Clock className="w-4 h-4" />
-                        <span className="text-sm font-medium">Friday</span>
+                        <span className="text-sm font-medium">Friday Evening Service</span>
                       </div>
-                      <p className="text-lg font-serif">6:00 PM</p>
+                      <p className="text-lg font-serif">6:00 PM EST</p>
                     </div>
                   </div>
+                  
+                  <Link href="/live">
+                    <Button 
+                      size="lg" 
+                      className="mt-8 bg-[#b47a5f] hover:bg-[#a06b52] text-white font-bold px-8"
+                      data-testid="button-go-to-live"
+                    >
+                      Go to Live Stream Page
+                    </Button>
+                  </Link>
                 </div>
               )}
             </div>
-          </Link>
         </motion.div>
       </div>
     </section>
