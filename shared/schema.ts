@@ -118,6 +118,13 @@ export const quizAttempts = pgTable("quiz_attempts", {
   completedAt: timestamp("completed_at").defaultNow().notNull(),
 });
 
+export const siteSettings = pgTable("site_settings", {
+  id: serial("id").primaryKey(),
+  key: text("key").notNull().unique(),
+  value: text("value").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -164,6 +171,11 @@ export const insertMemberPhotoSchema = createInsertSchema(memberPhotos).omit({
   createdAt: true,
 });
 
+export const insertSiteSettingSchema = createInsertSchema(siteSettings).omit({
+  id: true,
+  updatedAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -187,3 +199,6 @@ export type QuizAttempt = typeof quizAttempts.$inferSelect;
 
 export type InsertMemberPhoto = z.infer<typeof insertMemberPhotoSchema>;
 export type MemberPhoto = typeof memberPhotos.$inferSelect;
+
+export type InsertSiteSetting = z.infer<typeof insertSiteSettingSchema>;
+export type SiteSetting = typeof siteSettings.$inferSelect;

@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, type QuizQuestion, type InsertQuizQuestion, type QuizAttempt, type InsertQuizAttempt, type Session, type InsertSession, type MemberPhoto, type InsertMemberPhoto, videos, verses, users, photos, quizQuestions, quizAttempts, sessions, memberPhotos } from "@shared/schema";
+import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, type QuizQuestion, type InsertQuizQuestion, type QuizAttempt, type InsertQuizAttempt, type Session, type InsertSession, type MemberPhoto, type InsertMemberPhoto, type SiteSetting, videos, verses, users, photos, quizQuestions, quizAttempts, sessions, memberPhotos, siteSettings } from "@shared/schema";
 import { db } from "./db";
 import { eq, asc, and, sql, gt } from "drizzle-orm";
 import * as schema from "@shared/schema";
@@ -65,6 +65,10 @@ export interface IStorage {
   getApprovedMemberPhotos(): Promise<MemberPhoto[]>;
   updateMemberPhotoStatus(id: number, status: string, reviewedBy: string): Promise<MemberPhoto | undefined>;
   deleteMemberPhoto(id: number): Promise<void>;
+  
+  // Site settings methods
+  getSetting(key: string): Promise<string | undefined>;
+  setSetting(key: string, value: string): Promise<SiteSetting>;
 }
 
 export class DbStorage implements IStorage {
@@ -404,6 +408,30 @@ export class DbStorage implements IStorage {
 
   async deleteMemberPhoto(id: number): Promise<void> {
     await db.delete(memberPhotos).where(eq(memberPhotos.id, id));
+  }
+
+  async getSetting(key: string): Promise<string | undefined> {
+    const result = await db.query.siteSettings.findFirst({
+      where: (s, { eq }) => eq(s.key, key),
+    });
+    return result?.value;
+  }
+
+  async setSetting(key: string, value: string): Promise<SiteSetting> {
+    const existing = await db.query.siteSettings.findFirst({
+      where: (s, { eq }) => eq(s.key, key),
+    });
+    
+    if (existing) {
+      const [updated] = await db.update(siteSettings)
+        .set({ value, updatedAt: new Date() })
+        .where(eq(siteSettings.key, key))
+        .returning();
+      return updated;
+    } else {
+      const [created] = await db.insert(siteSettings).values({ key, value }).returning();
+      return created;
+    }
   }
 }
 

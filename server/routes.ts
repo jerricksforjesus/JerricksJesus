@@ -658,6 +658,31 @@ export async function registerRoutes(
     }
   });
 
+  // Site Settings Routes (Zoom Link, etc.)
+  app.get("/api/settings/zoom-link", async (req, res) => {
+    try {
+      const zoomLink = await storage.getSetting("zoom_link");
+      res.json({ zoomLink: zoomLink || "" });
+    } catch (error) {
+      console.error("Error fetching zoom link:", error);
+      res.status(500).json({ error: "Failed to fetch zoom link" });
+    }
+  });
+
+  app.put("/api/settings/zoom-link", requireAuth, requireRole(["admin", "foundational"]), async (req, res) => {
+    try {
+      const { zoomLink } = req.body;
+      if (typeof zoomLink !== "string") {
+        return res.status(400).json({ error: "Invalid zoom link" });
+      }
+      await storage.setSetting("zoom_link", zoomLink);
+      res.json({ success: true, zoomLink });
+    } catch (error) {
+      console.error("Error updating zoom link:", error);
+      res.status(500).json({ error: "Failed to update zoom link" });
+    }
+  });
+
   // Photo Management Routes
   app.get("/api/photos", async (req, res) => {
     try {
