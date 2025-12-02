@@ -46,7 +46,7 @@ export default function LiveStream() {
       <div className="flex-1 pt-24 pb-12 px-4 md:px-8 max-w-[1600px] mx-auto w-full grid grid-cols-1 lg:grid-cols-4 gap-6">
         {/* Main Video Area */}
         <div className="lg:col-span-3 space-y-6">
-          <div className="aspect-video min-h-[500px] md:min-h-0 bg-black rounded-xl overflow-hidden relative shadow-2xl">
+          <div className="aspect-[9/16] md:aspect-video bg-black rounded-xl overflow-hidden relative shadow-2xl">
             {isLoading ? (
               <div className="absolute inset-0 flex flex-col items-center justify-center bg-zinc-900 text-white">
                 <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin mb-4" />
