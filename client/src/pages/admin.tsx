@@ -55,6 +55,7 @@ export default function AdminDashboard() {
   const [photoCaption, setPhotoCaption] = useState("");
   const [selectedQuizBook, setSelectedQuizBook] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  const [addMoreCount, setAddMoreCount] = useState<string>("5");
   
   const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
   const [newUsername, setNewUsername] = useState("");
@@ -208,7 +209,7 @@ export default function AdminDashboard() {
       refetchQuestions();
       toast({
         title: "Questions Generated",
-        description: "AI has generated quiz questions. Review and approve them.",
+        description: "AI has generated 10 quiz questions. Review and approve them.",
       });
       setIsGenerating(false);
     },
@@ -216,6 +217,36 @@ export default function AdminDashboard() {
       toast({
         title: "Generation Failed",
         description: "Failed to generate questions. Please try again.",
+        variant: "destructive",
+      });
+      setIsGenerating(false);
+    },
+  });
+
+  const addMoreQuestionsMutation = useMutation({
+    mutationFn: async ({ book, count }: { book: string; count: number }) => {
+      setIsGenerating(true);
+      const response = await fetch(`/api/admin/quiz/generate/${encodeURIComponent(book)}`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ count }),
+      });
+      if (!response.ok) throw new Error("Failed to generate questions");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["quiz-books"] });
+      refetchQuestions();
+      toast({
+        title: "Questions Added",
+        description: `Added ${data.questions?.length || addMoreCount} new questions to the existing list.`,
+      });
+      setIsGenerating(false);
+    },
+    onError: () => {
+      toast({
+        title: "Generation Failed",
+        description: "Failed to add more questions. Please try again.",
         variant: "destructive",
       });
       setIsGenerating(false);
@@ -957,25 +988,67 @@ export default function AdminDashboard() {
                     {selectedQuizBook ? (
                       <div>
                         <div className="flex items-center justify-between mb-4">
-                          <h3 className="font-semibold">{selectedQuizBook}</h3>
-                          <div className="flex gap-2">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => generateQuestionsMutation.mutate(selectedQuizBook)}
-                              disabled={isGenerating}
-                              data-testid="button-generate-questions"
-                            >
-                              {isGenerating ? (
-                                <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                              ) : (
-                                <RefreshCw className="w-4 h-4 mr-1" />
-                              )}
-                              Generate
-                            </Button>
+                          <div>
+                            <h3 className="font-semibold">{selectedQuizBook}</h3>
+                            {bookQuestions.length > 0 && (
+                              <p className="text-xs text-muted-foreground">
+                                {bookQuestions.length} questions total
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-2 items-center">
+                            {bookQuestions.length === 0 ? (
+                              <Button
+                                size="sm"
+                                onClick={() => generateQuestionsMutation.mutate(selectedQuizBook)}
+                                disabled={isGenerating}
+                                data-testid="button-generate-questions"
+                                style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+                              >
+                                {isGenerating ? (
+                                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                ) : (
+                                  <Plus className="w-4 h-4 mr-1" />
+                                )}
+                                Generate 10 Questions
+                              </Button>
+                            ) : (
+                              <div className="flex items-center gap-2">
+                                <Select value={addMoreCount} onValueChange={setAddMoreCount}>
+                                  <SelectTrigger className="w-[70px] h-8" data-testid="select-add-more-count">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="3">3</SelectItem>
+                                    <SelectItem value="5">5</SelectItem>
+                                    <SelectItem value="10">10</SelectItem>
+                                    <SelectItem value="15">15</SelectItem>
+                                    <SelectItem value="20">20</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                                <Button
+                                  size="sm"
+                                  onClick={() => addMoreQuestionsMutation.mutate({ 
+                                    book: selectedQuizBook, 
+                                    count: parseInt(addMoreCount) 
+                                  })}
+                                  disabled={isGenerating}
+                                  data-testid="button-add-more-questions"
+                                  style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+                                >
+                                  {isGenerating ? (
+                                    <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                  ) : (
+                                    <Plus className="w-4 h-4 mr-1" />
+                                  )}
+                                  Add More
+                                </Button>
+                              </div>
+                            )}
                             {bookQuestions.some(q => q.isApproved === 0) && (
                               <Button
                                 size="sm"
+                                variant="outline"
                                 onClick={() => approveAllMutation.mutate(selectedQuizBook)}
                                 data-testid="button-approve-all"
                               >
@@ -990,7 +1063,7 @@ export default function AdminDashboard() {
                           <div className="text-center py-8 text-muted-foreground">
                             <BookOpen className="w-12 h-12 mx-auto mb-3 opacity-50" />
                             <p>No questions yet.</p>
-                            <p className="text-sm">Click "Generate" to create questions using AI.</p>
+                            <p className="text-sm">Click "Generate 10 Questions" to create questions using AI.</p>
                           </div>
                         ) : (
                           <div className="space-y-3 max-h-[400px] overflow-y-auto">
