@@ -1112,7 +1112,7 @@ export default function AdminDashboard() {
                 role: newUserRole 
               })}
               disabled={!newUsername || !newPassword || createUserMutation.isPending}
-              style={{ backgroundColor: "var(--burnt-clay)", color: "white" }}
+              style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
               data-testid="button-confirm-create-user"
             >
               {createUserMutation.isPending ? "Creating..." : "Create User"}
