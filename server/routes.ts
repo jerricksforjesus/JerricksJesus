@@ -669,7 +669,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/settings/zoom-link", requireAuth, requireRole(["admin", "foundational"]), async (req, res) => {
+  app.put("/api/settings/zoom-link", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
     try {
       const { zoomLink } = req.body;
       if (typeof zoomLink !== "string") {

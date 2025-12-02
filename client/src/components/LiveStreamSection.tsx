@@ -21,8 +21,18 @@ export function LiveStreamSection() {
     refetchInterval: 30000,
   });
 
+  const { data: zoomData } = useQuery<{ zoomLink: string }>({
+    queryKey: ["zoom-link"],
+    queryFn: async () => {
+      const response = await fetch("/api/settings/zoom-link");
+      if (!response.ok) throw new Error("Failed to fetch zoom link");
+      return response.json();
+    },
+  });
+
   const isLive = liveStatus?.isLive ?? false;
-  const streamTitle = liveStatus?.title || "Sunday Morning Service";
+  const streamTitle = liveStatus?.title || "Live Service";
+  const zoomLink = zoomData?.zoomLink || "";
 
   return (
     <section className="py-24 bg-background">
@@ -92,15 +102,28 @@ export function LiveStreamSection() {
                     </div>
                   </div>
                   
-                  <Link href="/live">
-                    <Button 
-                      size="lg" 
-                      className="mt-8 bg-[#b47a5f] hover:bg-[#a06b52] text-white font-bold px-8"
-                      data-testid="button-go-to-live"
-                    >
-                      Go to Live Stream Page
-                    </Button>
-                  </Link>
+                  <div className="flex flex-col gap-3 mt-8">
+                    <Link href="/live">
+                      <Button 
+                        size="lg" 
+                        className="w-full bg-[#b47a5f] hover:bg-[#a06b52] text-white font-bold px-8"
+                        data-testid="button-go-to-live"
+                      >
+                        Go to Live Stream Page
+                      </Button>
+                    </Link>
+                    {zoomLink && (
+                      <a href={zoomLink} target="_blank" rel="noopener noreferrer">
+                        <Button 
+                          size="lg" 
+                          className="w-full bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold px-8"
+                          data-testid="button-join-zoom"
+                        >
+                          Join the Zoom Link
+                        </Button>
+                      </a>
+                    )}
+                  </div>
                 </div>
               )}
             </div>

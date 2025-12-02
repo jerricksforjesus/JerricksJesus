@@ -23,9 +23,19 @@ export default function LiveStream() {
     refetchInterval: 30000,
   });
 
+  const { data: zoomData } = useQuery<{ zoomLink: string }>({
+    queryKey: ["zoom-link"],
+    queryFn: async () => {
+      const response = await fetch("/api/settings/zoom-link");
+      if (!response.ok) throw new Error("Failed to fetch zoom link");
+      return response.json();
+    },
+  });
+
   const isLive = liveStatus?.isLive ?? false;
   const videoId = liveStatus?.videoId;
   const streamTitle = liveStatus?.title || "Live Service";
+  const zoomLink = zoomData?.zoomLink || "";
 
   const embedDomain = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
 
@@ -80,6 +90,18 @@ export default function LiveStream() {
                     <p className="text-lg font-serif">6:00 PM EST</p>
                   </div>
                 </div>
+                
+                {zoomLink && (
+                  <a href={zoomLink} target="_blank" rel="noopener noreferrer" className="mt-8">
+                    <Button 
+                      size="lg" 
+                      className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold px-8"
+                      data-testid="button-join-zoom-live"
+                    >
+                      Join the Zoom Link
+                    </Button>
+                  </a>
+                )}
               </div>
             )}
           </div>
