@@ -140,3 +140,13 @@ Preferred communication style: Simple, everyday language.
 - Quiz attempts tracked per user with score and completion timestamp
 - History view shows user's past quiz attempts with scores
 - Questions generated via AI and reviewed before approval
+
+**SEO & Social Media**
+- Comprehensive meta tags in `client/index.html` for search engines
+- Open Graph tags for Facebook/LinkedIn preview cards
+- Twitter Card tags for X (Twitter) social sharing
+- Favicon: `client/public/favicon.png` (from church charity logo)
+- Social preview image: `client/public/opengraph.png` (stained glass church image)
+- JSON-LD structured data (Church schema) with service schedules (Friday 6 AM & 6 PM EST)
+- Custom Vite plugin (`vite-plugin-meta-images.ts`) converts relative image URLs to absolute URLs at build time
+- Canonical URL: https://jerricksforjesus.com
