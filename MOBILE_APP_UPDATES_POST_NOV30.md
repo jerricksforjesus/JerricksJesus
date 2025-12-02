@@ -5,6 +5,49 @@
 
 ---
 
+## CRITICAL: Mobile App Architecture
+
+### Data Source Architecture
+
+**The mobile app is a CLIENT that consumes data from the Jerricks for Jesus web application.**
+
+All data displayed in the mobile app comes from the **same PostgreSQL database and API endpoints** used by the web application. The mobile app does NOT create, generate, or store any content locally (except for guest quiz progress which is temporary).
+
+### What the Mobile App Pulls from the Web App:
+
+| Data | Source | API Endpoint |
+|------|--------|--------------|
+| **Users & Authentication** | PostgreSQL `users` table | `/api/auth/*` |
+| **Quiz Questions** | PostgreSQL `quiz_questions` table | `/api/quiz/*` |
+| **Family Photos** | PostgreSQL `photos` table + Object Storage | `/api/photos`, `/api/objects/signed-url` |
+| **Member Photos** | PostgreSQL `member_photos` table | `/api/member-photos/*` |
+| **Sermon Videos** | PostgreSQL `videos` table + Object Storage | `/api/videos`, `/api/objects/signed-url` |
+| **Bible Verses** | PostgreSQL `verses` table | `/api/verses/active` |
+| **YouTube Playlist** | YouTube API (cached on server) | `/api/youtube/playlist` |
+| **Quiz History** | PostgreSQL `quiz_attempts` table | `/api/quiz/my-history` |
+| **Settings (Zoom link)** | PostgreSQL `settings` table | `/api/settings/zoom-link` |
+
+### Mobile App Does NOT:
+- Generate quiz questions (questions already exist in database, created by admin on web)
+- Upload videos (videos are uploaded via web admin panel)
+- Create verses (verses are created via web admin panel)
+- Manage the YouTube playlist (managed on YouTube, fetched via API)
+
+### Mobile App CAN:
+- Read all content from the database via API
+- Authenticate users (login/register)
+- Submit quiz answers and store history
+- Submit member photos for approval
+- Update user profile (username, password)
+
+### Base API URL
+```
+Production: https://jerricksforjesus.com
+All endpoints: https://jerricksforjesus.com/api/*
+```
+
+---
+
 ## Summary of Changes
 
 The following updates were made to the web application after the original mobile app specification was created. Each section includes the change description, affected screens, and implementation details for the mobile app.
@@ -197,12 +240,22 @@ The following updates were made to the web application after the original mobile
 
 ### 7.1 System Architecture Overview
 
+**IMPORTANT: The mobile app FETCHES quiz questions from the web application's database. Questions are pre-generated and stored in the PostgreSQL database. The mobile app does NOT generate questions.**
+
 The Bible Quiz system consists of:
 - **66 Books** covering the complete Bible (39 Old Testament + 27 New Testament)
 - **10 Questions per Quiz** randomly selected from approved questions for each book
-- **AI-Generated Questions** using Gemini 2.5 Flash model from actual scripture content
-- **Admin Approval Workflow** - questions require approval before use in quizzes
+- **Pre-Generated Questions** already stored in PostgreSQL `quiz_questions` table
+- **Admin Approval Workflow** - questions are approved by web admin before appearing in quizzes
 - **Guest Progress Tracking** with migration to account on login
+
+### How Questions Get Into the Database (Web Admin Only):
+1. Web admin triggers AI question generation for a book
+2. Questions are generated and stored in database with `isApproved: 0`
+3. Web admin reviews and approves questions
+4. Mobile app fetches approved questions via API
+
+**Mobile app only needs to:** Fetch questions via API and display them to users.
 
 ### 7.2 Bible Books Structure
 
@@ -273,17 +326,18 @@ interface QuizQuestion {
 }
 ```
 
-### 7.5 Quiz Generation Flow (How Questions Are Created)
+### 7.5 How Questions Exist in the Database
 
-1. **Admin triggers generation** for a book via admin panel
-2. **API fetches scripture content** from bible-api.com (KJV translation)
-   - For short books (≤10 chapters): Fetches all chapters
-   - For medium books (10-30 chapters): Fetches first 3, middle, and last 2 chapters
-   - For long books (>30 chapters): Samples evenly distributed chapters
-3. **AI generates 10 questions** using Gemini 2.5 Flash model
-4. **Questions are saved** to database with `isApproved: 0`
-5. **Admin reviews and approves** each question or bulk approves all for a book
-6. **Only approved questions** appear in user quizzes
+**Note: This section explains how questions get into the database. Mobile app developers do NOT need to implement this - just understand that questions already exist.**
+
+Questions are created by the web admin panel and stored in PostgreSQL:
+1. Web admin triggers generation for a book
+2. AI generates 10 questions per book
+3. Questions are saved to `quiz_questions` table with `isApproved: 0`
+4. Admin reviews and approves questions
+5. **Mobile app fetches only approved questions** (`isApproved: 1`)
+
+**For mobile app:** Simply call the API to get questions - they already exist in the database.
 
 ### 7.6 Quiz Taking Flow
 
@@ -326,7 +380,7 @@ GET /api/quiz/questions/:book
 ```
 **Example:** `GET /api/quiz/questions/Genesis`
 
-**Response:** Array of 10 shuffled questions (correct answer hidden):
+**Response:** Array of up to 10 shuffled questions (correct answer hidden from user):
 ```json
 [
   {
@@ -341,11 +395,35 @@ GET /api/quiz/questions/:book
 ]
 ```
 
-**Important:** The API returns exactly 10 random approved questions. Server-side:
-- Fetches all approved questions for the book
-- Shuffles them randomly
-- Returns first 10 (or fewer if less available)
-- Excludes `correctAnswer` from response
+**Critical Implementation Details:**
+
+1. **Server-Side Processing:**
+   - Queries database: `WHERE book = :book AND isApproved = 1`
+   - Shuffles questions randomly using `sort(() => Math.random() - 0.5)`
+   - Returns first 10 questions (or fewer if less available)
+   - **Strips `correctAnswer` field** - client never sees correct answers upfront
+
+2. **Question Approval Criteria:**
+   - Only questions with `isApproved = 1` appear in user quizzes
+   - Questions with `isApproved = 0` are pending admin review
+   - Admin can approve individually or bulk-approve per book
+
+3. **Response Field Details:**
+   | Field | Type | Description |
+   |-------|------|-------------|
+   | `id` | number | Unique question ID (use for check-answer API) |
+   | `questionText` | string | The question to display |
+   | `optionA` - `optionD` | string | Four answer choices |
+   | `scriptureReference` | string | Bible reference (show after answering) |
+
+4. **Client Storage During Quiz:**
+   ```javascript
+   // Track answers as array of objects
+   const answers = [
+     { questionId: 123, selectedAnswer: "A" },
+     { questionId: 124, selectedAnswer: "C" }
+   ];
+   ```
 
 #### Step 4: Display Question (One at a Time)
 
@@ -488,12 +566,50 @@ GET /api/quiz/my-history
 - Date completed
 - Sorted by most recent first
 
-### 7.9 Admin Quiz Management
+### 7.9 Admin Quiz Management (Admin Role Only)
+
+**Note: These endpoints are for web admin functionality. Mobile app may implement admin features if user has admin role.**
 
 **Get All Questions for Book (including unapproved):**
 ```
 GET /api/admin/quiz/questions/:book
 ```
+**Response (Full Schema - includes all fields for admin):**
+```json
+[
+  {
+    "id": 123,
+    "book": "Genesis",
+    "questionText": "What did God create on the first day?",
+    "optionA": "Light",
+    "optionB": "Animals",
+    "optionC": "Man",
+    "optionD": "Water",
+    "correctAnswer": "A",
+    "scriptureReference": "Genesis 1:3-5",
+    "isApproved": 0,
+    "createdAt": "2025-12-01T10:30:00Z"
+  }
+]
+```
+
+**Admin Response Field Details:**
+| Field | Type | Description |
+|-------|------|-------------|
+| `id` | number | Unique question ID |
+| `book` | string | Book name (e.g., "Genesis") |
+| `questionText` | string | The question text |
+| `optionA` - `optionD` | string | Four answer choices |
+| `correctAnswer` | "A"\|"B"\|"C"\|"D" | Correct answer (ONLY in admin response) |
+| `scriptureReference` | string | Bible chapter:verse reference |
+| `isApproved` | 0 \| 1 | 0=pending, 1=approved |
+| `createdAt` | ISO date | When question was generated |
+
+**Admin Question Moderation UI:**
+- Show all questions grouped by approval status
+- Display `correctAnswer` to admin for review
+- Highlight pending questions (`isApproved: 0`)
+- Enable edit/approve/delete actions
 
 **Generate New Questions:**
 ```
@@ -767,7 +883,62 @@ If user not found, redirects to:
 | `invalid_token` | Token verification failed |
 | `auth_failed` | General authentication failure |
 
-### 13.5 Mobile App Implementation
+### 13.5 Redirect URI Resolution
+
+The server determines the OAuth redirect URI dynamically:
+
+```javascript
+function getOAuthRedirectUri(req) {
+  // Priority 1: Use PUBLIC_APP_URL environment variable (production)
+  if (process.env.PUBLIC_APP_URL) {
+    return `${process.env.PUBLIC_APP_URL}/api/auth/google/callback`;
+  }
+  
+  // Priority 2: Derive from request headers (development)
+  const host = req.get("host");
+  const forwardedProto = req.get("x-forwarded-proto");
+  const isSecure = forwardedProto === "https" || 
+                   host.includes("replit") || 
+                   host.includes("jerricksforjesus");
+  const protocol = isSecure ? "https" : "http";
+  return `${protocol}://${host}/api/auth/google/callback`;
+}
+```
+
+**For Mobile Apps:**
+- Set `PUBLIC_APP_URL` in production to ensure consistent redirect URI
+- Current production URL: `https://jerricksforjesus.com`
+- Callback URL: `https://jerricksforjesus.com/api/auth/google/callback`
+
+### 13.6 State/CSRF Protection Implementation
+
+The web app uses a `state` parameter for CSRF protection:
+
+```javascript
+// Server generates random state before redirect to Google
+const state = crypto.randomBytes(32).toString("hex");
+
+// State is stored in HTTP-only cookie
+res.cookie("oauth_state", state, {
+  httpOnly: true,
+  secure: true,
+  sameSite: "lax",
+  maxAge: 600000  // 10 minutes
+});
+
+// On callback, server validates state matches cookie
+const savedState = req.cookies?.oauth_state;
+if (state !== savedState) {
+  return res.redirect("/login?error=invalid_state");
+}
+```
+
+**Mobile Implementation Notes:**
+- If using WebView: Cookie storage is automatic with `sharedCookiesEnabled`
+- If using System Browser: Server handles state validation; mobile just follows redirects
+- If using Native SDK: Implement similar state parameter in mobile code
+
+### 13.7 Mobile App Implementation Options
 
 #### Option A: Use System Browser (Recommended)
 ```javascript
@@ -863,7 +1034,41 @@ GET /api/auth/me
 - Cannot change password in profile settings
 - Cannot have password reset by admin
 
-### 13.9 Debug Endpoint
+### 13.9 Session Management & Expiry
+
+**Session Token Lifecycle:**
+- Session token valid for **7 days** from creation
+- Stored in `sessionToken` HTTP-only cookie
+- Server stores sessions in PostgreSQL `sessions` table
+
+**No Refresh Token System:**
+- This implementation does NOT use OAuth refresh tokens
+- When session expires, user must re-authenticate
+- Google's tokens are used only during initial auth (not stored)
+
+**Session Expiry Handling (Mobile):**
+```javascript
+// Check session status before protected operations
+const response = await fetch('/api/auth/me', { credentials: 'include' });
+
+if (response.status === 401) {
+  // Session expired - redirect to login
+  navigateToLogin();
+}
+```
+
+**Recommended Mobile Session Flow:**
+1. On app launch: Check `/api/auth/me` to verify session
+2. If 401: Clear local auth state, show login screen
+3. If 200: User is authenticated, proceed normally
+4. On any 401 during app use: Redirect to login
+
+**Session Renewal:**
+- Sessions cannot be extended; user must log in again after 7 days
+- Consider showing "Session expired" message before redirect
+- Store intended destination to redirect after re-login
+
+### 13.10 Debug Endpoint
 ```
 GET /api/auth/google/debug
 ```
@@ -910,28 +1115,69 @@ const ministries = [
 ];
 ```
 
-### 14.3 UI Layout
+### 14.3 UI Layout Specifications
 
 **Section Container:**
-- Background: Site background color (alabaster/off-white)
-- Padding: `py-24 px-6` (96px top/bottom, 24px sides)
-- Max width: `max-w-4xl` centered
+```css
+background: var(--background);  /* Alabaster/off-white */
+padding: 96px 24px;             /* py-24 px-6 */
+max-width: 896px;               /* max-w-4xl */
+margin: 0 auto;                 /* centered */
+```
 
 **Section Header:**
-- Title: "Our Ministries" - large serif font
-- Subtitle: "Ways to connect, serve, and grow." - muted text
-- Centered alignment with margin below
+```css
+.title {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.875rem;              /* text-3xl mobile */
+  font-size: 3rem;                  /* text-5xl desktop (md:) */
+  font-weight: bold;
+  margin-bottom: 16px;              /* mb-4 */
+  text-align: center;
+}
+.subtitle {
+  font-family: "Manrope", sans-serif;
+  color: var(--muted-foreground);
+  text-align: center;
+  margin-bottom: 64px;              /* mb-16 */
+}
+```
 
 **Accordion Behavior:**
-- Single expand mode (only one section open at a time)
-- Collapsible (all can be closed)
-- Smooth expand/collapse animation
-- Border between items
+- Type: Single expand (only one section open at a time)
+- Collapsible: Yes (all can be closed)
+- Animation: 300ms ease-in-out expand/collapse
+- Border: Bottom border between items (`border-border/60`)
 
-**Accordion Item:**
-- Title: Serif font, 1.25rem-1.5rem (xl to 2xl on desktop)
-- Hover effect: Primary color text
-- Expand chevron icon on right
+**Accordion Item Styling:**
+```css
+.accordion-trigger {
+  font-family: "Cormorant Garamond", serif;
+  font-size: 1.25rem;               /* text-xl mobile */
+  font-size: 1.5rem;                /* text-2xl desktop (md:) */
+  padding: 24px 0;                  /* py-6 */
+  transition: color 0.2s;
+}
+.accordion-trigger:hover {
+  color: #b47a5f;                   /* Primary burnt clay */
+}
+.accordion-content {
+  padding-bottom: 32px;             /* pb-8 */
+}
+.accordion-content p {
+  font-family: "Manrope", sans-serif;
+  font-size: 1.125rem;              /* text-lg */
+  color: var(--muted-foreground);
+  line-height: 1.75;                /* leading-relaxed */
+  margin-bottom: 16px;              /* mb-4 */
+}
+```
+
+**Chevron Icon:**
+- Icon: Chevron down (rotates 180° when expanded)
+- Size: 16px × 16px
+- Position: Right side of trigger
+- Animation: 200ms rotate on expand/collapse
 
 ### 14.4 Custom Content Components
 
@@ -954,10 +1200,115 @@ const ministries = [
   - `GET /api/photos` - Admin-uploaded photos
   - `GET /api/member-photos/approved` - Member-submitted photos
 - **Features:**
-  - 2-4 column responsive grid
+  - 2-4 column responsive grid (2 on mobile, 3 on sm, 4 on lg)
   - Click to open lightbox view
   - Navigation arrows in lightbox
   - Photo captions displayed
+
+**Critical: Signed URL Handling for Photos**
+
+Photos are stored in object storage and require signed URLs for access:
+
+1. **Fetch Photo Metadata:**
+   ```
+   GET /api/photos
+   ```
+   Response:
+   ```json
+   [
+     {
+       "id": 1,
+       "imagePath": "/objects/public/photos/family1.jpg",
+       "caption": "Sunday Service 2024",
+       "displayOrder": 1
+     }
+   ]
+   ```
+
+2. **Get Signed URL for Each Photo:**
+   ```
+   GET /api/objects/signed-url?path=/objects/public/photos/family1.jpg
+   ```
+   Response:
+   ```json
+   {
+     "url": "https://storage.googleapis.com/...?signature=..."
+   }
+   ```
+
+3. **Implementation Flow:**
+   ```javascript
+   // Step 1: Fetch photo list
+   const photos = await fetch('/api/photos').then(r => r.json());
+   
+   // Step 2: Get signed URLs for each photo
+   const signedUrls = {};
+   for (const photo of photos) {
+     const response = await fetch(
+       `/api/objects/signed-url?path=${encodeURIComponent(photo.imagePath)}`
+     );
+     const data = await response.json();
+     signedUrls[photo.id] = data.url;
+   }
+   
+   // Step 3: Use signed URLs in <img> tags
+   // <img src={signedUrls[photo.id]} alt={photo.caption} />
+   ```
+
+4. **Signed URL Expiration & Refresh:**
+   - URLs are temporary (typically **15 minutes**)
+   - URLs include expiration timestamp in signature
+   - After expiration, requests return 403 Forbidden
+
+5. **URL Refresh Strategy for Mobile:**
+   ```javascript
+   // Store fetch timestamp with URLs
+   const urlCache = {
+     [photoId]: {
+       url: "https://storage...",
+       fetchedAt: Date.now()
+     }
+   };
+   
+   // Check if URL is likely expired (12 min buffer)
+   function isUrlExpired(fetchedAt) {
+     const TWELVE_MINUTES = 12 * 60 * 1000;
+     return Date.now() - fetchedAt > TWELVE_MINUTES;
+   }
+   
+   // Before displaying image, check expiry
+   async function getValidUrl(photo) {
+     const cached = urlCache[photo.id];
+     if (cached && !isUrlExpired(cached.fetchedAt)) {
+       return cached.url;
+     }
+     // Refresh expired URL
+     const response = await fetch(
+       `/api/objects/signed-url?path=${encodeURIComponent(photo.imagePath)}`
+     );
+     const data = await response.json();
+     urlCache[photo.id] = { url: data.url, fetchedAt: Date.now() };
+     return data.url;
+   }
+   ```
+
+6. **Retry on 403 Forbidden:**
+   ```javascript
+   // If image load fails, try refreshing URL
+   function handleImageError(photo) {
+     // Clear cached URL
+     delete urlCache[photo.id];
+     // Fetch new URL and retry
+     getValidUrl(photo).then(newUrl => {
+       imageElement.src = newUrl;
+     });
+   }
+   ```
+
+7. **Lightbox Considerations:**
+   - Pre-fetch signed URL before opening lightbox
+   - Check expiry on navigation (next/previous)
+   - Show loading state while refreshing expired URLs
 
 #### Community Outreach Section
 - **Component:** `CharityComingSoon.tsx`
