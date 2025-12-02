@@ -6,7 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus } from "lucide-react";
+import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus, Users, Shield, UserCheck } from "lucide-react";
 import { useState, useEffect, useLayoutEffect } from "react";
 import { useLocation } from "wouter";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -91,6 +91,41 @@ export default function AdminDashboard() {
       setNewUsername("");
       setNewPassword("");
       setNewUserRole(USER_ROLES.MEMBER);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  type AdminUser = { id: string; username: string; role: string };
+
+  const { data: allUsers = [], isLoading: usersLoading } = useQuery<AdminUser[]>({
+    queryKey: ["admin-users"],
+    queryFn: async () => {
+      const response = await fetch("/api/admin/users", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch users");
+      return response.json();
+    },
+    enabled: canEdit,
+  });
+
+  const updateUserRoleMutation = useMutation({
+    mutationFn: async ({ userId, role }: { userId: string; role: string }) => {
+      const response = await fetch(`/api/admin/users/${userId}/role`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ role }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update role");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Role Updated", description: "User role has been updated." });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -574,11 +609,12 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="verse" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 mb-8">
+          <TabsList className="grid w-full grid-cols-5 mb-8">
             <TabsTrigger value="verse" data-testid="tab-verse">Verse</TabsTrigger>
             <TabsTrigger value="replays" data-testid="tab-replays">Replays</TabsTrigger>
             <TabsTrigger value="photos" data-testid="tab-photos">Photos</TabsTrigger>
             <TabsTrigger value="quiz" data-testid="tab-quiz">Bible Quiz</TabsTrigger>
+            <TabsTrigger value="users" data-testid="tab-users">Users</TabsTrigger>
           </TabsList>
 
           <TabsContent value="verse">
@@ -1035,6 +1071,85 @@ export default function AdminDashboard() {
                     )}
                   </div>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="users">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <Users className="w-6 h-6" style={{ color: "#b47a5f" }} />
+                  <div>
+                    <CardTitle>User Management</CardTitle>
+                    <CardDescription>View and manage user accounts and their roles.</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent>
+                {usersLoading ? (
+                  <div className="flex items-center justify-center py-12">
+                    <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#b47a5f" }} />
+                  </div>
+                ) : allUsers.length === 0 ? (
+                  <div className="text-center py-12 text-muted-foreground">
+                    <Users className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <p>No users found.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {allUsers.map((u) => (
+                      <div 
+                        key={u.id} 
+                        className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                        data-testid={`user-row-${u.id}`}
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: "#b47a5f" }}>
+                            <span className="text-white font-medium text-sm">
+                              {u.username.charAt(0).toUpperCase()}
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-medium">{u.username}</p>
+                            <p className="text-sm text-muted-foreground flex items-center gap-1">
+                              {u.role === "admin" && <Shield className="w-3 h-3" />}
+                              {u.role === "foundational" && <UserCheck className="w-3 h-3" />}
+                              {u.role}
+                            </p>
+                          </div>
+                        </div>
+                        
+                        {user?.id !== u.id && (
+                          <Select
+                            value={u.role}
+                            onValueChange={(newRole) => {
+                              updateUserRoleMutation.mutate({ userId: u.id, role: newRole });
+                            }}
+                            disabled={updateUserRoleMutation.isPending}
+                          >
+                            <SelectTrigger className="w-[180px]" data-testid={`select-role-${u.id}`}>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value={USER_ROLES.MEMBER}>Member</SelectItem>
+                              <SelectItem value={USER_ROLES.FOUNDATIONAL}>Foundational</SelectItem>
+                              {isAdmin && (
+                                <SelectItem value={USER_ROLES.ADMIN}>Admin</SelectItem>
+                              )}
+                            </SelectContent>
+                          </Select>
+                        )}
+                        
+                        {user?.id === u.id && (
+                          <span className="text-sm text-muted-foreground px-3 py-1 rounded-full bg-muted">
+                            You
+                          </span>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

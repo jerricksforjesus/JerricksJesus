@@ -197,14 +197,82 @@ export async function registerRoutes(
     }
   });
   
-  // Admin: Get all users
-  app.get("/api/admin/users", requireRole(USER_ROLES.ADMIN), async (req, res) => {
+  // Admin/Foundational: Get all users
+  app.get("/api/admin/users", requireAuth, async (req, res) => {
     try {
-      // Note: We'll need to add a getAllUsers method to storage
-      res.json({ message: "Not implemented yet" });
+      // Only admin and foundational members can view users
+      if (req.user!.role !== USER_ROLES.ADMIN && req.user!.role !== USER_ROLES.FOUNDATIONAL) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const allUsers = await storage.getAllUsers();
+      // Return users without passwords
+      const users = allUsers.map(u => ({
+        id: u.id,
+        username: u.username,
+        role: u.role,
+      }));
+      res.json(users);
     } catch (error) {
       console.error("Error fetching users:", error);
       res.status(500).json({ error: "Failed to fetch users" });
+    }
+  });
+  
+  // Admin/Foundational: Update user role
+  app.patch("/api/admin/users/:id/role", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { role } = req.body;
+      const currentUser = req.user!;
+      
+      // Validate role
+      if (!Object.values(USER_ROLES).includes(role)) {
+        return res.status(400).json({ error: "Invalid role" });
+      }
+      
+      // Get target user
+      const targetUser = await storage.getUser(id);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Prevent users from changing their own role
+      if (currentUser.id === id) {
+        return res.status(403).json({ error: "Cannot change your own role" });
+      }
+      
+      // Admin can set any role
+      if (currentUser.role === USER_ROLES.ADMIN) {
+        const updated = await storage.updateUserRole(id, role);
+        return res.json({ 
+          id: updated!.id, 
+          username: updated!.username, 
+          role: updated!.role 
+        });
+      }
+      
+      // Foundational members can only promote to foundational (not admin)
+      if (currentUser.role === USER_ROLES.FOUNDATIONAL) {
+        if (role === USER_ROLES.ADMIN) {
+          return res.status(403).json({ error: "Only admins can create admin accounts" });
+        }
+        // Foundational can't demote other foundational members or admins
+        if (targetUser.role === USER_ROLES.ADMIN || targetUser.role === USER_ROLES.FOUNDATIONAL) {
+          return res.status(403).json({ error: "Cannot modify this user's role" });
+        }
+        const updated = await storage.updateUserRole(id, role);
+        return res.json({ 
+          id: updated!.id, 
+          username: updated!.username, 
+          role: updated!.role 
+        });
+      }
+      
+      return res.status(403).json({ error: "Access denied" });
+    } catch (error) {
+      console.error("Error updating user role:", error);
+      res.status(500).json({ error: "Failed to update user role" });
     }
   });
 
