@@ -198,6 +198,37 @@ export async function registerRoutes(
     }
   });
 
+  // Helper function to get the OAuth redirect URI
+  // Uses PUBLIC_APP_URL env var for production, falls back to request host for development
+  function getOAuthRedirectUri(req: Request): string {
+    const publicAppUrl = process.env.PUBLIC_APP_URL;
+    if (publicAppUrl) {
+      // Use configured production URL
+      return `${publicAppUrl}/api/auth/google/callback`;
+    }
+    
+    // Fallback: derive from request (for development)
+    const host = req.get("host") || "";
+    const forwardedProto = req.get("x-forwarded-proto");
+    const isSecure = forwardedProto === "https" || req.protocol === "https" || host.includes("replit") || host.includes("jerricksforjesus");
+    const protocol = isSecure ? "https" : "http";
+    return `${protocol}://${host}/api/auth/google/callback`;
+  }
+
+  // Debug endpoint to check OAuth redirect URI (temporary)
+  app.get("/api/auth/google/debug", (req, res) => {
+    const redirectUri = getOAuthRedirectUri(req);
+    const publicAppUrl = process.env.PUBLIC_APP_URL;
+    const host = req.get("host") || "";
+    
+    res.json({
+      publicAppUrl: publicAppUrl || "(not set - using dynamic detection)",
+      host,
+      redirectUri,
+      message: "This is the redirect URI that will be sent to Google. Make sure it matches EXACTLY what's in your Google Console."
+    });
+  });
+
   // Google OAuth - Initiate login
   app.get("/api/auth/google", (req, res) => {
     const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -205,13 +236,10 @@ export async function registerRoutes(
       return res.status(500).json({ error: "Google OAuth not configured" });
     }
     
-    // Determine the redirect URI based on the request origin
-    const host = req.get("host") || "";
-    // Check X-Forwarded-Proto header for production reverse proxy, or detect from host
-    const forwardedProto = req.get("x-forwarded-proto");
-    const isSecure = forwardedProto === "https" || req.protocol === "https" || host.includes("replit") || host.includes("jerricksforjesus");
-    const protocol = isSecure ? "https" : "http";
-    const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+    const redirectUri = getOAuthRedirectUri(req);
+    
+    // Log for debugging
+    console.log("Google OAuth Debug:", { redirectUri });
     
     // Generate state parameter for CSRF protection
     const state = crypto.randomBytes(32).toString("hex");
@@ -258,12 +286,8 @@ export async function registerRoutes(
         return res.redirect("/login?error=config");
       }
       
-      // Determine the redirect URI based on the request origin
-      const host = req.get("host") || "";
-      const forwardedProto = req.get("x-forwarded-proto");
-      const isSecure = forwardedProto === "https" || req.protocol === "https" || host.includes("replit") || host.includes("jerricksforjesus");
-      const protocol = isSecure ? "https" : "http";
-      const redirectUri = `${protocol}://${host}/api/auth/google/callback`;
+      // Get the redirect URI (must match what was sent to Google)
+      const redirectUri = getOAuthRedirectUri(req);
       
       // Exchange code for tokens
       const oauth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
