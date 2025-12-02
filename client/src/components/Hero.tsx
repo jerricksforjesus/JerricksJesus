@@ -96,8 +96,8 @@ export function Hero() {
             Jerricks for Jesus
           </h1>
           <p className="text-lg md:text-xl font-sans font-light text-white/90 max-w-2xl mx-auto leading-relaxed">
-            A digital home for faith, fellowship, and the living word. 
-            Join us in spirit and truth.
+            A digital home for faith, fellowship, and the<br className="hidden md:block" />
+            living word. Join us in spirit and truth.
           </p>
         </motion.div>
 
