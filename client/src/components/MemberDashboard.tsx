@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
-import { BookOpen, Camera, ClipboardList, LogOut, Loader2, Trash2, Clock, CheckCircle, XCircle, Upload, Key } from "lucide-react";
+import { BookOpen, Camera, ClipboardList, LogOut, Loader2, Trash2, Clock, CheckCircle, XCircle, Upload, Key, Settings, Save, User as UserIcon } from "lucide-react";
 import type { UploadResult } from "@uppy/core";
 import {
   Dialog,
@@ -42,6 +42,12 @@ export function MemberDashboard() {
   // Force password change state
   const [forceNewPassword, setForceNewPassword] = useState("");
   const [forceConfirmPassword, setForceConfirmPassword] = useState("");
+
+  // Profile settings state
+  const [profileUsername, setProfileUsername] = useState(user?.username || "");
+  const [profileCurrentPassword, setProfileCurrentPassword] = useState("");
+  const [profileNewPassword, setProfileNewPassword] = useState("");
+  const [profileConfirmPassword, setProfileConfirmPassword] = useState("");
 
   const forcePasswordChangeMutation = useMutation({
     mutationFn: async (newPassword: string) => {
@@ -78,6 +84,70 @@ export function MemberDashboard() {
       return;
     }
     forcePasswordChangeMutation.mutate(forceNewPassword);
+  };
+
+  // Profile mutations
+  const updateUsernameMutation = useMutation({
+    mutationFn: async (newUsername: string) => {
+      const response = await fetch("/api/profile/username", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ username: newUsername }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update username");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Username Updated", description: "Your username has been updated successfully." });
+      queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const changePasswordMutation = useMutation({
+    mutationFn: async (data: { currentPassword: string; newPassword: string }) => {
+      const response = await fetch("/api/profile/password", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to change password");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Password Changed", description: "Your password has been updated successfully." });
+      setProfileCurrentPassword("");
+      setProfileNewPassword("");
+      setProfileConfirmPassword("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleChangePassword = () => {
+    if (profileNewPassword !== profileConfirmPassword) {
+      toast({ title: "Error", description: "New passwords do not match", variant: "destructive" });
+      return;
+    }
+    if (profileNewPassword.length < 6) {
+      toast({ title: "Error", description: "New password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+    changePasswordMutation.mutate({
+      currentPassword: profileCurrentPassword,
+      newPassword: profileNewPassword,
+    });
   };
 
   const handleLogout = async () => {
@@ -243,7 +313,7 @@ export function MemberDashboard() {
         </div>
 
         <Tabs defaultValue="quiz" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-3 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
             <TabsTrigger value="quiz" data-testid="tab-quiz" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
               <span className="hidden sm:inline">Bible Quiz</span>
@@ -258,6 +328,11 @@ export function MemberDashboard() {
               <ClipboardList className="h-4 w-4" />
               <span className="hidden sm:inline">Questionnaire</span>
               <span className="sm:hidden">Survey</span>
+            </TabsTrigger>
+            <TabsTrigger value="settings" data-testid="tab-settings" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">Settings</span>
+              <span className="sm:hidden">Settings</span>
             </TabsTrigger>
           </TabsList>
 
@@ -386,6 +461,115 @@ export function MemberDashboard() {
                     We're preparing a family questionnaire to help us better serve our congregation. 
                     Check back soon!
                   </p>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="settings" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <Settings className="w-6 h-6" style={{ color: "#b47a5f" }} />
+                  <div>
+                    <CardTitle className="font-serif">Profile Settings</CardTitle>
+                    <CardDescription>Manage your account settings and password.</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-8">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <UserIcon className="w-5 h-5" style={{ color: "#b47a5f" }} />
+                    <h3 className="font-medium text-lg">Update Username</h3>
+                  </div>
+                  <div className="flex gap-3">
+                    <Input
+                      id="profile-username"
+                      data-testid="input-profile-username"
+                      value={profileUsername}
+                      onChange={(e) => setProfileUsername(e.target.value)}
+                      placeholder="Enter new username"
+                      className="flex-1 max-w-md"
+                    />
+                    <Button
+                      onClick={() => updateUsernameMutation.mutate(profileUsername)}
+                      disabled={updateUsernameMutation.isPending || !profileUsername || profileUsername === user?.username}
+                      style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+                      data-testid="button-update-username"
+                    >
+                      {updateUsernameMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : (
+                        <Save className="w-4 h-4 mr-2" />
+                      )}
+                      Update
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="border-t pt-6 space-y-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Key className="w-5 h-5" style={{ color: "#b47a5f" }} />
+                    <h3 className="font-medium text-lg">Change Password</h3>
+                  </div>
+                  {user?.googleId ? (
+                    <div className="bg-muted/50 rounded-lg p-4 text-muted-foreground">
+                      <p className="flex items-center gap-2">
+                        <Key className="w-4 h-4" />
+                        Password changes are not available for Google Sign-In accounts.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4 max-w-md">
+                      <div className="space-y-2">
+                        <Label htmlFor="current-password">Current Password</Label>
+                        <Input
+                          id="current-password"
+                          data-testid="input-current-password"
+                          type="password"
+                          value={profileCurrentPassword}
+                          onChange={(e) => setProfileCurrentPassword(e.target.value)}
+                          placeholder="Enter current password"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="new-password">New Password</Label>
+                        <Input
+                          id="new-password"
+                          data-testid="input-new-password"
+                          type="password"
+                          value={profileNewPassword}
+                          onChange={(e) => setProfileNewPassword(e.target.value)}
+                          placeholder="Enter new password (min 6 characters)"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="confirm-password">Confirm New Password</Label>
+                        <Input
+                          id="confirm-password"
+                          data-testid="input-confirm-password"
+                          type="password"
+                          value={profileConfirmPassword}
+                          onChange={(e) => setProfileConfirmPassword(e.target.value)}
+                          placeholder="Confirm new password"
+                        />
+                      </div>
+                      <Button
+                        onClick={handleChangePassword}
+                        disabled={changePasswordMutation.isPending || !profileCurrentPassword || !profileNewPassword || !profileConfirmPassword}
+                        style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+                        data-testid="button-change-password"
+                      >
+                        {changePasswordMutation.isPending ? (
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                        ) : (
+                          <Key className="w-4 h-4 mr-2" />
+                        )}
+                        Change Password
+                      </Button>
+                    </div>
+                  )}
                 </div>
               </CardContent>
             </Card>
