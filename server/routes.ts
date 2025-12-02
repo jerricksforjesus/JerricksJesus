@@ -80,7 +80,7 @@ export async function registerRoutes(
       }
       
       const user = await storage.getUserByUsername(username);
-      if (!user) {
+      if (!user || !user.password) {
         return res.status(401).json({ error: "Invalid username or password" });
       }
       
@@ -314,7 +314,6 @@ export async function registerRoutes(
       
       const googleId = payload.sub;
       const email = payload.email;
-      const name = payload.name || email?.split("@")[0] || `user_${googleId.slice(-8)}`;
       
       // Check if user exists with this Google ID
       let user = await storage.getUserByGoogleId(googleId);
@@ -323,28 +322,12 @@ export async function registerRoutes(
         // Check if user exists with same email (link accounts)
         if (email) {
           user = await storage.getUserByEmail(email);
-          if (user) {
-            // Update existing user with Google ID - for now create new to avoid conflicts
-          }
         }
-        
-        // Create new user
-        // Generate a unique username from the name
-        let username = name.toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, 20);
-        let existingUser = await storage.getUserByUsername(username);
-        let counter = 1;
-        while (existingUser) {
-          username = `${name.toLowerCase().replace(/[^a-z0-9]/g, "_").slice(0, 15)}_${counter}`;
-          existingUser = await storage.getUserByUsername(username);
-          counter++;
-        }
-        
-        user = await storage.createUser({
-          username,
-          googleId,
-          email: email || undefined,
-          role: USER_ROLES.MEMBER,
-        });
+      }
+      
+      // If user still doesn't exist, they need to register first
+      if (!user) {
+        return res.redirect("/login?error=not_registered");
       }
       
       // Create session
@@ -357,10 +340,14 @@ export async function registerRoutes(
         expiresAt,
       });
       
+      // Determine if we should use secure cookies
+      const reqHost = req.get("host") || "";
+      const isSecure = process.env.NODE_ENV === "production" || reqHost.includes("replit");
+      
       // Set cookie
       res.cookie("sessionToken", token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === "production" || host.includes("replit"),
+        secure: isSecure,
         sameSite: "lax",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
       });

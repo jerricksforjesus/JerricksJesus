@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -21,11 +21,40 @@ export default function LoginPage() {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [showLoginPassword, setShowLoginPassword] = useState(false);
+  
+  const getInitialTab = () => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get("error") === "not_registered" ? "register" : "login";
+  };
+  
+  const [activeTab, setActiveTab] = useState(getInitialTab);
 
-  if (user) {
-    setLocation("/admin");
-    return null;
-  }
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const error = params.get("error");
+    
+    if (error === "not_registered") {
+      toast({
+        title: "Account not found",
+        description: "You need to register first before signing in with Google. Please use the Register tab to create an account.",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, "", "/login");
+    } else if (error === "auth_failed") {
+      toast({
+        title: "Sign in failed",
+        description: "There was a problem signing in with Google. Please try again.",
+        variant: "destructive",
+      });
+      window.history.replaceState({}, "", "/login");
+    }
+  }, [toast]);
+
+  useEffect(() => {
+    if (user) {
+      setLocation("/admin");
+    }
+  }, [user, setLocation]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -115,7 +144,7 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs defaultValue="login" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="grid w-full grid-cols-2 mb-6">
               <TabsTrigger value="login" data-testid="tab-login">Sign In</TabsTrigger>
               <TabsTrigger value="register" data-testid="tab-register">Register</TabsTrigger>
