@@ -439,6 +439,162 @@ export async function registerRoutes(
     }
   });
 
+  // Admin: Reset user password
+  app.post("/api/admin/users/:id/reset-password", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const currentUser = req.user!;
+      
+      // Get target user
+      const targetUser = await storage.getUser(id);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Can't reset password for Google SSO users
+      if (targetUser.googleId) {
+        return res.status(400).json({ error: "Cannot reset password for Google SSO users" });
+      }
+      
+      // Only admin can reset admin passwords
+      if (targetUser.role === USER_ROLES.ADMIN && currentUser.role !== USER_ROLES.ADMIN) {
+        return res.status(403).json({ error: "Only admins can reset admin passwords" });
+      }
+      
+      // Hash the default password "Jerrick#1"
+      const hashedPassword = await bcrypt.hash("Jerrick#1", 10);
+      
+      // Reset password with mustChangePassword flag set
+      const updated = await storage.resetUserPassword(id, hashedPassword);
+      
+      res.json({ 
+        success: true,
+        message: "Password has been reset. User must change password on next login."
+      });
+    } catch (error) {
+      console.error("Error resetting user password:", error);
+      res.status(500).json({ error: "Failed to reset password" });
+    }
+  });
+
+  // Profile: Update username
+  app.patch("/api/profile/username", requireAuth, async (req, res) => {
+    try {
+      const { username } = req.body;
+      const userId = req.user!.id;
+      
+      if (!username || typeof username !== "string" || username.length < 3) {
+        return res.status(400).json({ error: "Username must be at least 3 characters" });
+      }
+      
+      // Check if username is already taken
+      const existingUser = await storage.getUserByUsername(username);
+      if (existingUser && existingUser.id !== userId) {
+        return res.status(400).json({ error: "Username is already taken" });
+      }
+      
+      const updated = await storage.updateUsername(userId, username);
+      if (!updated) {
+        return res.status(500).json({ error: "Failed to update username" });
+      }
+      
+      res.json({ 
+        success: true,
+        user: {
+          id: updated.id,
+          username: updated.username,
+          role: updated.role,
+          googleId: updated.googleId,
+          mustChangePassword: updated.mustChangePassword,
+        }
+      });
+    } catch (error) {
+      console.error("Error updating username:", error);
+      res.status(500).json({ error: "Failed to update username" });
+    }
+  });
+
+  // Profile: Change password
+  app.patch("/api/profile/password", requireAuth, async (req, res) => {
+    try {
+      const { currentPassword, newPassword } = req.body;
+      const user = req.user!;
+      
+      // Can't change password for Google SSO users
+      if (user.googleId) {
+        return res.status(400).json({ error: "Password changes not available for Google SSO users" });
+      }
+      
+      if (!currentPassword || !newPassword) {
+        return res.status(400).json({ error: "Current password and new password are required" });
+      }
+      
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: "New password must be at least 6 characters" });
+      }
+      
+      // Verify current password
+      const fullUser = await storage.getUser(user.id);
+      if (!fullUser || !fullUser.password) {
+        return res.status(400).json({ error: "Cannot verify current password" });
+      }
+      
+      const passwordMatch = await bcrypt.compare(currentPassword, fullUser.password);
+      if (!passwordMatch) {
+        return res.status(401).json({ error: "Current password is incorrect" });
+      }
+      
+      // Hash and update new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      const updated = await storage.updateUserPassword(user.id, hashedPassword);
+      
+      if (!updated) {
+        return res.status(500).json({ error: "Failed to update password" });
+      }
+      
+      res.json({ 
+        success: true,
+        message: "Password updated successfully"
+      });
+    } catch (error) {
+      console.error("Error changing password:", error);
+      res.status(500).json({ error: "Failed to change password" });
+    }
+  });
+
+  // Force password change on login
+  app.post("/api/profile/force-change-password", requireAuth, async (req, res) => {
+    try {
+      const { newPassword } = req.body;
+      const user = req.user!;
+      
+      // Only allow this if mustChangePassword is set
+      if (user.mustChangePassword !== 1) {
+        return res.status(400).json({ error: "Password change not required" });
+      }
+      
+      if (!newPassword || newPassword.length < 6) {
+        return res.status(400).json({ error: "New password must be at least 6 characters" });
+      }
+      
+      // Hash and update new password
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      const updated = await storage.updateUserPassword(user.id, hashedPassword);
+      
+      if (!updated) {
+        return res.status(500).json({ error: "Failed to update password" });
+      }
+      
+      res.json({ 
+        success: true,
+        message: "Password updated successfully"
+      });
+    } catch (error) {
+      console.error("Error force changing password:", error);
+      res.status(500).json({ error: "Failed to change password" });
+    }
+  });
+
   // Video Upload Routes
   app.post("/api/objects/upload", async (req, res) => {
     try {

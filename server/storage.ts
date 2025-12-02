@@ -11,6 +11,10 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
   getAllUsers(): Promise<User[]>;
   updateUserRole(id: string, role: string): Promise<User | undefined>;
+  updateUsername(id: string, username: string): Promise<User | undefined>;
+  updateUserPassword(id: string, hashedPassword: string): Promise<User | undefined>;
+  resetUserPassword(id: string, hashedPassword: string): Promise<User | undefined>;
+  clearMustChangePassword(id: string): Promise<User | undefined>;
   
   // Session methods
   createSession(session: InsertSession): Promise<Session>;
@@ -114,6 +118,38 @@ export class DbStorage implements IStorage {
   async updateUserRole(id: string, role: string): Promise<User | undefined> {
     const [user] = await db.update(schema.users)
       .set({ role })
+      .where(eq(schema.users.id, id))
+      .returning();
+    return user;
+  }
+
+  async updateUsername(id: string, username: string): Promise<User | undefined> {
+    const [user] = await db.update(schema.users)
+      .set({ username })
+      .where(eq(schema.users.id, id))
+      .returning();
+    return user;
+  }
+
+  async updateUserPassword(id: string, hashedPassword: string): Promise<User | undefined> {
+    const [user] = await db.update(schema.users)
+      .set({ password: hashedPassword, mustChangePassword: 0 })
+      .where(eq(schema.users.id, id))
+      .returning();
+    return user;
+  }
+
+  async resetUserPassword(id: string, hashedPassword: string): Promise<User | undefined> {
+    const [user] = await db.update(schema.users)
+      .set({ password: hashedPassword, mustChangePassword: 1 })
+      .where(eq(schema.users.id, id))
+      .returning();
+    return user;
+  }
+
+  async clearMustChangePassword(id: string): Promise<User | undefined> {
+    const [user] = await db.update(schema.users)
+      .set({ mustChangePassword: 0 })
       .where(eq(schema.users.id, id))
       .returning();
     return user;
