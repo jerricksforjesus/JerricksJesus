@@ -6,24 +6,43 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2 } from "lucide-react";
+import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus } from "lucide-react";
 import { useState, useEffect } from "react";
+import { useLocation } from "wouter";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { VideoPlayerModal } from "@/components/VideoPlayerModal";
 import { VideoEditModal } from "@/components/VideoEditModal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth";
 import type { Video, Verse, InsertVideo, Photo, InsertPhoto, QuizQuestion } from "@shared/schema";
-import { ALL_BIBLE_BOOKS, BIBLE_BOOKS } from "@shared/schema";
+import { ALL_BIBLE_BOOKS, BIBLE_BOOKS, USER_ROLES } from "@shared/schema";
 import type { UploadResult } from "@uppy/core";
 import thumb1 from "@assets/generated_images/preacher_at_podium.png";
 import thumb2 from "@assets/generated_images/open_bible_on_table.png";
 import thumb3 from "@assets/generated_images/warm_limestone_wall_texture.png";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const fallbackImages = [thumb1, thumb2, thumb3];
 
 export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [, setLocation] = useLocation();
+  const { user, isLoading: authLoading, logout, isAdmin, canEdit } = useAuth();
   
   const [verse, setVerse] = useState("");
   const [reference, setReference] = useState("");
@@ -36,6 +55,47 @@ export default function AdminDashboard() {
   const [photoCaption, setPhotoCaption] = useState("");
   const [selectedQuizBook, setSelectedQuizBook] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
+  
+  const [isCreateUserOpen, setIsCreateUserOpen] = useState(false);
+  const [newUsername, setNewUsername] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [newUserRole, setNewUserRole] = useState<string>(USER_ROLES.MEMBER);
+
+  const handleLogout = async () => {
+    try {
+      await logout();
+      toast({ title: "Logged out", description: "You have been signed out." });
+      setLocation("/");
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to log out.", variant: "destructive" });
+    }
+  };
+
+  const createUserMutation = useMutation({
+    mutationFn: async (data: { username: string; password: string; role: string }) => {
+      const response = await fetch("/api/auth/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to create user");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "User Created", description: "New user account has been created." });
+      setIsCreateUserOpen(false);
+      setNewUsername("");
+      setNewPassword("");
+      setNewUserRole(USER_ROLES.MEMBER);
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
 
   const { data: activeVerse } = useQuery<Verse>({
     queryKey: ["active-verse"],
@@ -424,14 +484,81 @@ export default function AdminDashboard() {
     return photoSignedUrls[photo.id] || "";
   };
 
+  if (authLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center" style={{ background: "var(--alabaster)" }}>
+        <div className="text-center">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-4" style={{ color: "var(--burnt-clay)" }} />
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) {
+    setLocation("/login");
+    return null;
+  }
+
+  if (!canEdit) {
+    return (
+      <div className="min-h-screen" style={{ background: "var(--alabaster)" }}>
+        <Navigation />
+        <div className="container mx-auto px-4 py-16 text-center">
+          <h1 className="text-3xl font-serif mb-4" style={{ color: "var(--burnt-clay)" }}>
+            Access Restricted
+          </h1>
+          <p className="text-muted-foreground mb-8">
+            You don't have permission to access the admin panel.
+          </p>
+          <Button onClick={() => setLocation("/")} style={{ backgroundColor: "var(--burnt-clay)", color: "white" }}>
+            Return Home
+          </Button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-muted/20">
       <Navigation />
       
       <div className="pt-32 pb-12 px-6 max-w-5xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-serif font-bold">Admin Dashboard</h1>
-          <p className="text-muted-foreground">Manage website content and replays.</p>
+        <div className="mb-8 flex items-start justify-between">
+          <div>
+            <h1 className="text-3xl font-serif font-bold">Admin Dashboard</h1>
+            <p className="text-muted-foreground">
+              Logged in as <span className="font-medium">{user.username}</span>
+              <span className="ml-2 px-2 py-0.5 text-xs rounded-full" style={{ 
+                backgroundColor: user.role === "admin" ? "var(--burnt-clay)" : "var(--warm-stone)", 
+                color: user.role === "admin" ? "white" : "var(--charcoal)"
+              }}>
+                {user.role}
+              </span>
+            </p>
+          </div>
+          <div className="flex items-center gap-2">
+            {isAdmin && (
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => setIsCreateUserOpen(true)}
+                data-testid="button-create-user"
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add User
+              </Button>
+            )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleLogout}
+              data-testid="button-logout"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Log Out
+            </Button>
+          </div>
         </div>
 
         <Tabs defaultValue="verse" className="w-full">
@@ -919,6 +1046,68 @@ export default function AdminDashboard() {
           setSelectedVideo(null);
         }} 
       />
+
+      <Dialog open={isCreateUserOpen} onOpenChange={setIsCreateUserOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Create New User</DialogTitle>
+            <DialogDescription>
+              Add a new user with a specific role.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="new-username">Username</Label>
+              <Input
+                id="new-username"
+                data-testid="input-new-username"
+                value={newUsername}
+                onChange={(e) => setNewUsername(e.target.value)}
+                placeholder="Enter username"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-password">Password</Label>
+              <Input
+                id="new-password"
+                data-testid="input-new-password"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Enter password"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="new-role">Role</Label>
+              <Select value={newUserRole} onValueChange={setNewUserRole}>
+                <SelectTrigger data-testid="select-new-role">
+                  <SelectValue placeholder="Select role" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value={USER_ROLES.MEMBER}>Member (Quiz results only)</SelectItem>
+                  <SelectItem value={USER_ROLES.FOUNDATIONAL}>Foundational (Add/edit content)</SelectItem>
+                  <SelectItem value={USER_ROLES.ADMIN}>Admin (Full access)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateUserOpen(false)}>Cancel</Button>
+            <Button 
+              onClick={() => createUserMutation.mutate({ 
+                username: newUsername, 
+                password: newPassword, 
+                role: newUserRole 
+              })}
+              disabled={!newUsername || !newPassword || createUserMutation.isPending}
+              style={{ backgroundColor: "var(--burnt-clay)", color: "white" }}
+              data-testid="button-confirm-create-user"
+            >
+              {createUserMutation.isPending ? "Creating..." : "Create User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
