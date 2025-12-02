@@ -1005,7 +1005,7 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="verse" className="w-full">
-          <TabsList className={`grid w-full mb-8 ${isFoundational && !isAdmin ? 'grid-cols-9' : 'grid-cols-8'}`}>
+          <TabsList className={`grid w-full mb-8 ${isFoundational && !isAdmin ? 'grid-cols-8' : 'grid-cols-7'}`}>
             <TabsTrigger value="verse" data-testid="tab-verse">Verse</TabsTrigger>
             <TabsTrigger value="replays" data-testid="tab-replays">Replays</TabsTrigger>
             <TabsTrigger value="photos" data-testid="tab-photos">Photos</TabsTrigger>
@@ -1015,7 +1015,6 @@ export default function AdminDashboard() {
               <TabsTrigger value="take-quiz" data-testid="tab-take-quiz">Take Quiz</TabsTrigger>
             )}
             <TabsTrigger value="users" data-testid="tab-users">Users</TabsTrigger>
-            <TabsTrigger value="profile" data-testid="tab-profile">Profile</TabsTrigger>
             <TabsTrigger value="settings" data-testid="tab-settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -1572,109 +1571,6 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="profile">
-            <Card>
-              <CardHeader>
-                <div className="flex items-center gap-3">
-                  <UserIcon className="w-6 h-6" style={{ color: "#b47a5f" }} />
-                  <div>
-                    <CardTitle>Profile Settings</CardTitle>
-                    <CardDescription>Manage your account settings and password.</CardDescription>
-                  </div>
-                </div>
-              </CardHeader>
-              <CardContent className="space-y-8">
-                <div className="space-y-4">
-                  <h3 className="font-medium text-lg">Update Username</h3>
-                  <div className="flex gap-3">
-                    <Input
-                      id="profile-username"
-                      data-testid="input-profile-username"
-                      value={profileUsername}
-                      onChange={(e) => setProfileUsername(e.target.value)}
-                      placeholder="Enter new username"
-                      className="flex-1 max-w-md"
-                    />
-                    <Button
-                      onClick={() => updateUsernameMutation.mutate(profileUsername)}
-                      disabled={updateUsernameMutation.isPending || !profileUsername || profileUsername === user?.username}
-                      style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
-                      data-testid="button-update-username"
-                    >
-                      {updateUsernameMutation.isPending ? (
-                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                      ) : (
-                        <Save className="w-4 h-4 mr-2" />
-                      )}
-                      Update
-                    </Button>
-                  </div>
-                </div>
-
-                <div className="border-t pt-6 space-y-4">
-                  <h3 className="font-medium text-lg">Change Password</h3>
-                  {user?.googleId ? (
-                    <div className="bg-muted/50 rounded-lg p-4 text-muted-foreground">
-                      <p className="flex items-center gap-2">
-                        <Key className="w-4 h-4" />
-                        Password changes are not available for Google Sign-In accounts.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="space-y-4 max-w-md">
-                      <div className="space-y-2">
-                        <Label htmlFor="current-password">Current Password</Label>
-                        <Input
-                          id="current-password"
-                          data-testid="input-current-password"
-                          type="password"
-                          value={profileCurrentPassword}
-                          onChange={(e) => setProfileCurrentPassword(e.target.value)}
-                          placeholder="Enter current password"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="new-password">New Password</Label>
-                        <Input
-                          id="new-password"
-                          data-testid="input-new-password"
-                          type="password"
-                          value={profileNewPassword}
-                          onChange={(e) => setProfileNewPassword(e.target.value)}
-                          placeholder="Enter new password (min 6 characters)"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <Label htmlFor="confirm-password">Confirm New Password</Label>
-                        <Input
-                          id="confirm-password"
-                          data-testid="input-confirm-password"
-                          type="password"
-                          value={profileConfirmPassword}
-                          onChange={(e) => setProfileConfirmPassword(e.target.value)}
-                          placeholder="Confirm new password"
-                        />
-                      </div>
-                      <Button
-                        onClick={handleChangePassword}
-                        disabled={changePasswordMutation.isPending || !profileCurrentPassword || !profileNewPassword || !profileConfirmPassword}
-                        style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
-                        data-testid="button-change-password"
-                      >
-                        {changePasswordMutation.isPending ? (
-                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                        ) : (
-                          <Key className="w-4 h-4 mr-2" />
-                        )}
-                        Change Password
-                      </Button>
-                    </div>
-                  )}
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="settings">
             <Card>
               <CardHeader>
@@ -1682,11 +1578,11 @@ export default function AdminDashboard() {
                   <Settings className="w-6 h-6" style={{ color: "#b47a5f" }} />
                   <div>
                     <CardTitle>Site Settings</CardTitle>
-                    <CardDescription>Configure site-wide settings including meeting links.</CardDescription>
+                    <CardDescription>Configure site-wide settings, meeting links, and your profile.</CardDescription>
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-6">
+              <CardContent className="space-y-8">
                 <div className="space-y-4">
                   <div>
                     <h3 className="font-medium mb-2">Zoom Meeting Link</h3>
@@ -1721,6 +1617,102 @@ export default function AdminDashboard() {
                         Current link: <a href={zoomData.zoomLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{zoomData.zoomLink}</a>
                       </p>
                     )}
+                  </div>
+                </div>
+
+                <div className="border-t pt-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <UserIcon className="w-5 h-5" style={{ color: "#b47a5f" }} />
+                    <h3 className="font-medium text-lg">Profile Settings</h3>
+                  </div>
+                  <div className="space-y-6">
+                    <div className="space-y-4">
+                      <h4 className="font-medium">Update Username</h4>
+                      <div className="flex gap-3">
+                        <Input
+                          id="profile-username"
+                          data-testid="input-profile-username"
+                          value={profileUsername}
+                          onChange={(e) => setProfileUsername(e.target.value)}
+                          placeholder="Enter new username"
+                          className="flex-1 max-w-md"
+                        />
+                        <Button
+                          onClick={() => updateUsernameMutation.mutate(profileUsername)}
+                          disabled={updateUsernameMutation.isPending || !profileUsername || profileUsername === user?.username}
+                          style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+                          data-testid="button-update-username"
+                        >
+                          {updateUsernameMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          ) : (
+                            <Save className="w-4 h-4 mr-2" />
+                          )}
+                          Update
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-6 space-y-4">
+                      <h4 className="font-medium">Change Password</h4>
+                      {user?.googleId ? (
+                        <div className="bg-muted/50 rounded-lg p-4 text-muted-foreground">
+                          <p className="flex items-center gap-2">
+                            <Key className="w-4 h-4" />
+                            Password changes are not available for Google Sign-In accounts.
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="space-y-4 max-w-md">
+                          <div className="space-y-2">
+                            <Label htmlFor="current-password">Current Password</Label>
+                            <Input
+                              id="current-password"
+                              data-testid="input-current-password"
+                              type="password"
+                              value={profileCurrentPassword}
+                              onChange={(e) => setProfileCurrentPassword(e.target.value)}
+                              placeholder="Enter current password"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="new-password">New Password</Label>
+                            <Input
+                              id="new-password"
+                              data-testid="input-new-password"
+                              type="password"
+                              value={profileNewPassword}
+                              onChange={(e) => setProfileNewPassword(e.target.value)}
+                              placeholder="Enter new password (min 6 characters)"
+                            />
+                          </div>
+                          <div className="space-y-2">
+                            <Label htmlFor="confirm-password">Confirm New Password</Label>
+                            <Input
+                              id="confirm-password"
+                              data-testid="input-confirm-password"
+                              type="password"
+                              value={profileConfirmPassword}
+                              onChange={(e) => setProfileConfirmPassword(e.target.value)}
+                              placeholder="Confirm new password"
+                            />
+                          </div>
+                          <Button
+                            onClick={handleChangePassword}
+                            disabled={changePasswordMutation.isPending || !profileCurrentPassword || !profileNewPassword || !profileConfirmPassword}
+                            style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+                            data-testid="button-change-password"
+                          >
+                            {changePasswordMutation.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : (
+                              <Key className="w-4 h-4 mr-2" />
+                            )}
+                            Change Password
+                          </Button>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               </CardContent>
