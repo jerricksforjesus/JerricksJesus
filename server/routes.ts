@@ -238,8 +238,15 @@ export async function registerRoutes(
     
     const redirectUri = getOAuthRedirectUri(req);
     
+    // Determine if we should use secure cookies
+    const host = req.get("host") || "";
+    const isSecure = process.env.PUBLIC_APP_URL?.startsWith("https") || 
+                     req.get("x-forwarded-proto") === "https" || 
+                     host.includes("replit") || 
+                     host.includes("jerricksforjesus");
+    
     // Log for debugging
-    console.log("Google OAuth Debug:", { redirectUri });
+    console.log("Google OAuth Debug:", { redirectUri, isSecure });
     
     // Generate state parameter for CSRF protection
     const state = crypto.randomBytes(32).toString("hex");
