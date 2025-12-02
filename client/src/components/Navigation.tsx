@@ -82,7 +82,7 @@ export function Navigation() {
             </Link>
           ))}
           <Link href="/live">
-            <span className="cursor-pointer ml-4 px-6 py-1.5 bg-primary text-primary-foreground rounded-full text-xs font-bold uppercase tracking-widest hover:bg-primary/90 transition-transform hover:scale-105">
+            <span className="cursor-pointer ml-4 px-6 py-1 bg-primary text-primary-foreground rounded-full text-xs font-bold uppercase tracking-widest hover:bg-primary/90 transition-transform hover:scale-105">
               Watch Live
             </span>
           </Link>
