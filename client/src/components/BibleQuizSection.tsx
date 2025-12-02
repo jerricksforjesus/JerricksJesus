@@ -223,6 +223,7 @@ export function BibleQuizSection() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
+              className="px-4 md:px-8 lg:px-12"
             >
               {/* Old Testament */}
               <div className="mb-10">
