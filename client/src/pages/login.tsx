@@ -146,18 +146,6 @@ export default function LoginPage() {
                     required
                   />
                 </div>
-                <Button 
-                  type="submit" 
-                  data-testid="button-login"
-                  className="w-full"
-                  disabled={isLoading}
-                  style={{ 
-                    backgroundColor: "var(--burnt-clay)", 
-                    color: "white" 
-                  }}
-                >
-                  {isLoading ? "Signing in..." : "Sign In"}
-                </Button>
               </form>
             </TabsContent>
             
