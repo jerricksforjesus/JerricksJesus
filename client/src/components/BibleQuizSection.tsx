@@ -81,8 +81,11 @@ export function BibleQuizSection() {
       if (!response.ok) throw new Error("Failed to fetch history");
       return response.json();
     },
-    enabled: !!user && view === "history",
+    enabled: !!user,
   });
+  
+  // Track which books the user has completed (any attempt counts as completed)
+  const completedBooks = new Set(quizHistory.map(attempt => attempt.book));
 
   const oldTestamentBooks = books.filter(b => 
     (BIBLE_BOOKS.oldTestament as readonly string[]).includes(b.name)
@@ -225,22 +228,27 @@ export function BibleQuizSection() {
               <div className="mb-10">
                 <h3 className="text-xl font-serif font-bold mb-4 text-center">Old Testament</h3>
                 <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
-                  {oldTestamentBooks.map((book) => (
-                    <button
-                      key={book.name}
-                      onClick={() => book.hasQuiz && handleSelectBook(book.name)}
-                      disabled={!book.hasQuiz}
-                      className={`p-2 rounded-lg text-xs font-medium transition-all ${
-                        book.hasQuiz
-                          ? "bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer border border-primary/20"
-                          : "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
-                      }`}
-                      data-testid={`quiz-book-${book.name}`}
-                    >
-                      <span className="line-clamp-2">{book.name}</span>
-                      {book.hasQuiz && <CheckCircle className="w-3 h-3 mx-auto mt-1" />}
-                    </button>
-                  ))}
+                  {oldTestamentBooks.map((book) => {
+                    const isCompleted = completedBooks.has(book.name);
+                    return (
+                      <button
+                        key={book.name}
+                        onClick={() => book.hasQuiz && handleSelectBook(book.name)}
+                        disabled={!book.hasQuiz}
+                        className={`p-2 rounded-lg text-xs font-medium transition-all ${
+                          !book.hasQuiz
+                            ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+                            : isCompleted
+                            ? "bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer border border-primary/20"
+                            : "bg-card hover:bg-muted/50 text-foreground cursor-pointer border border-border"
+                        }`}
+                        data-testid={`quiz-book-${book.name}`}
+                      >
+                        <span className="line-clamp-2">{book.name}</span>
+                        {isCompleted && <CheckCircle className="w-3 h-3 mx-auto mt-1 text-primary" />}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
@@ -248,27 +256,35 @@ export function BibleQuizSection() {
               <div>
                 <h3 className="text-xl font-serif font-bold mb-4 text-center">New Testament</h3>
                 <div className="grid grid-cols-4 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10 gap-2">
-                  {newTestamentBooks.map((book) => (
-                    <button
-                      key={book.name}
-                      onClick={() => book.hasQuiz && handleSelectBook(book.name)}
-                      disabled={!book.hasQuiz}
-                      className={`p-2 rounded-lg text-xs font-medium transition-all ${
-                        book.hasQuiz
-                          ? "bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer border border-primary/20"
-                          : "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
-                      }`}
-                      data-testid={`quiz-book-${book.name}`}
-                    >
-                      <span className="line-clamp-2">{book.name}</span>
-                      {book.hasQuiz && <CheckCircle className="w-3 h-3 mx-auto mt-1" />}
-                    </button>
-                  ))}
+                  {newTestamentBooks.map((book) => {
+                    const isCompleted = completedBooks.has(book.name);
+                    return (
+                      <button
+                        key={book.name}
+                        onClick={() => book.hasQuiz && handleSelectBook(book.name)}
+                        disabled={!book.hasQuiz}
+                        className={`p-2 rounded-lg text-xs font-medium transition-all ${
+                          !book.hasQuiz
+                            ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
+                            : isCompleted
+                            ? "bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer border border-primary/20"
+                            : "bg-card hover:bg-muted/50 text-foreground cursor-pointer border border-border"
+                        }`}
+                        data-testid={`quiz-book-${book.name}`}
+                      >
+                        <span className="line-clamp-2">{book.name}</span>
+                        {isCompleted && <CheckCircle className="w-3 h-3 mx-auto mt-1 text-primary" />}
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               <p className="text-center text-sm text-muted-foreground mt-6">
-                Books with a checkmark have quizzes available. More coming soon!
+                {user 
+                  ? "Books with a checkmark are ones you've completed. Click any available book to take a quiz!"
+                  : "Sign in to track your progress and see completed books marked with checkmarks."
+                }
               </p>
               
               {/* User Actions */}
