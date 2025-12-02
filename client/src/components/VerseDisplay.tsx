@@ -27,7 +27,7 @@ export function VerseDisplay() {
         <img 
           src={paperTexture} 
           alt="Texture" 
-          className="w-full h-full object-cover opacity-40 grayscale-[20%]"
+          className="w-full h-full object-cover opacity-15 grayscale-[20%]"
         />
         <div className="absolute inset-0 bg-background/30 mix-blend-overlay" />
       </div>
