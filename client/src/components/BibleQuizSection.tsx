@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, CheckCircle, Trophy, ArrowLeft, Loader2, History, User } from "lucide-react";
+import { BookOpen, Book, CheckCircle, Trophy, ArrowLeft, Loader2, History, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BIBLE_BOOKS } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
@@ -240,12 +240,16 @@ export function BibleQuizSection() {
                             ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
                             : isCompleted
                             ? "bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer border border-primary/20"
-                            : "bg-card hover:bg-muted/50 text-foreground cursor-pointer border border-border"
+                            : "bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer border border-primary/20"
                         }`}
                         data-testid={`quiz-book-${book.name}`}
                       >
-                        <span className="line-clamp-2">{book.name}</span>
-                        {isCompleted && <CheckCircle className="w-3 h-3 mx-auto mt-1 text-primary" />}
+                        <span className="h-8 flex items-center justify-center text-center">{book.name}</span>
+                        {book.hasQuiz && (
+                          isCompleted 
+                            ? <CheckCircle className="w-3 h-3 mx-auto mt-1" />
+                            : <Book className="w-3 h-3 mx-auto mt-1" />
+                        )}
                       </button>
                     );
                   })}
@@ -268,12 +272,16 @@ export function BibleQuizSection() {
                             ? "bg-muted text-muted-foreground cursor-not-allowed opacity-50"
                             : isCompleted
                             ? "bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer border border-primary/20"
-                            : "bg-card hover:bg-muted/50 text-foreground cursor-pointer border border-border"
+                            : "bg-primary/10 hover:bg-primary/20 text-primary cursor-pointer border border-primary/20"
                         }`}
                         data-testid={`quiz-book-${book.name}`}
                       >
-                        <span className="line-clamp-2">{book.name}</span>
-                        {isCompleted && <CheckCircle className="w-3 h-3 mx-auto mt-1 text-primary" />}
+                        <span className="h-8 flex items-center justify-center text-center">{book.name}</span>
+                        {book.hasQuiz && (
+                          isCompleted 
+                            ? <CheckCircle className="w-3 h-3 mx-auto mt-1" />
+                            : <Book className="w-3 h-3 mx-auto mt-1" />
+                        )}
                       </button>
                     );
                   })}
@@ -282,8 +290,8 @@ export function BibleQuizSection() {
 
               <p className="text-center text-sm text-muted-foreground mt-6">
                 {user 
-                  ? "Books with a checkmark are ones you've completed. Click any available book to take a quiz!"
-                  : "Sign in to track your progress and see completed books marked with checkmarks."
+                  ? "Completed books show a checkmark. Books with a book icon are ready to take!"
+                  : "Sign in to track your progress and see your completed books marked with checkmarks."
                 }
               </p>
               
