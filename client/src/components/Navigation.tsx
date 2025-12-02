@@ -3,11 +3,13 @@ import { cn } from "@/lib/utils";
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
+import { motion } from "framer-motion";
 
 export function Navigation() {
   const [location] = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(0);
   const { user } = useAuth();
   
   const isHomePage = location === "/";
@@ -49,18 +51,36 @@ export function Navigation() {
         </Link>
 
         {/* Desktop Nav */}
-        <div className="hidden md:flex gap-8 items-center">
-          {navLinks.map((link) => (
+        <div 
+          className="hidden md:flex gap-2 items-center"
+          onMouseLeave={() => setHoveredIndex(navLinks.findIndex(link => link.href === location))}
+        >
+          {navLinks.map((link, index) => (
             <Link key={link.href} href={link.href}>
               <span
-                className={cn(
-                  "cursor-pointer text-sm font-medium tracking-widest uppercase transition-colors duration-300 hover:text-primary",
-                  location === link.href 
-                    ? "text-primary" 
-                    : isHomePage && !isScrolled ? "text-white/90" : "text-foreground/80"
-                )}
+                className="relative cursor-pointer px-4 py-2 block"
+                onMouseEnter={() => setHoveredIndex(index)}
               >
-                {link.label}
+                {hoveredIndex === index && (
+                  <motion.div
+                    layoutId="navHighlight"
+                    className={cn(
+                      "absolute inset-0 rounded-full",
+                      isHomePage && !isScrolled ? "bg-white/20" : "bg-primary/10"
+                    )}
+                    transition={{ type: "spring", stiffness: 400, damping: 30 }}
+                  />
+                )}
+                <span
+                  className={cn(
+                    "relative z-10 text-sm font-medium tracking-widest uppercase transition-colors duration-300",
+                    location === link.href 
+                      ? "text-primary" 
+                      : isHomePage && !isScrolled ? "text-white/90" : "text-foreground/80"
+                  )}
+                >
+                  {link.label}
+                </span>
               </span>
             </Link>
           ))}
