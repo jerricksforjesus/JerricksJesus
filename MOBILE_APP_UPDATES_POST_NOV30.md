@@ -26,6 +26,9 @@ All data displayed in the mobile app comes from the **same PostgreSQL database a
 | **YouTube Playlist** | YouTube API (cached on server) | `/api/youtube/playlist` |
 | **Quiz History** | PostgreSQL `quiz_attempts` table | `/api/quiz/my-history` |
 | **Settings (Zoom link)** | PostgreSQL `settings` table | `/api/settings/zoom-link` |
+| **Service Times** | PostgreSQL `settings` table | `/api/settings/service-times` |
+| **Church Info** | PostgreSQL `settings` table | `/api/settings/church-info` |
+| **Ministries** | PostgreSQL `settings` table | `/api/settings/ministries` |
 
 ### Mobile App Does NOT:
 - Generate quiz questions (questions already exist in database, created by admin on web)
@@ -1363,7 +1366,136 @@ GET /api/member-photos/approved
 
 ---
 
-## 16. Testing Checklist for Mobile App
+## 16. Church Configuration Endpoints (NEW - December 2, 2025)
+
+These endpoints replace hardcoded/mock data in the mobile app for church information, service times, and ministries.
+
+### 16.1 Service Times
+
+**GET /api/settings/service-times**
+
+Returns an array of service schedule items.
+
+**Response:**
+```json
+[
+  { "day": "Friday", "time": "6:00 AM", "timezone": "EST" },
+  { "day": "Friday", "time": "6:00 PM", "timezone": "EST" }
+]
+```
+
+**Usage in Mobile App:**
+- HomeScreen: Display next service time
+- LiveScreen: Show service schedule
+- Replace static `serviceTimes` array from churchStore
+
+---
+
+### 16.2 Church Info
+
+**GET /api/settings/church-info**
+
+Returns church contact and location information.
+
+**Response:**
+```json
+{
+  "name": "Jerricks for Jesus",
+  "address": "",
+  "email": "jerricksforjesus@gmail.com",
+  "phone": ""
+}
+```
+
+**Usage in Mobile App:**
+- HomeScreen: Display church name
+- Footer/Contact section: Show address, email, phone
+- Replace static `churchInfo` object from churchStore
+
+---
+
+### 16.3 Ministries
+
+**GET /api/settings/ministries**
+
+Returns an array of ministry information for display.
+
+**Response:**
+```json
+[
+  {
+    "id": "worship",
+    "title": "Worship & Music",
+    "description": "Join our worship team to praise and glorify God through music and song.",
+    "icon": "music"
+  },
+  {
+    "id": "community",
+    "title": "Community Outreach",
+    "description": "Serve our local community through various outreach programs and charitable initiatives.",
+    "icon": "heart"
+  },
+  {
+    "id": "education",
+    "title": "Bible Study",
+    "description": "Deepen your understanding of Scripture through our weekly Bible study sessions.",
+    "icon": "book"
+  }
+]
+```
+
+**Icon Mapping:**
+| Icon Value | Suggested Icon |
+|------------|----------------|
+| `music` | Music note / headphones |
+| `heart` | Heart / hands |
+| `book` | Book / Bible |
+
+**Usage in Mobile App:**
+- HomeScreen: Display ministry sections
+- Replace static `ministries` array from churchStore
+
+---
+
+### 16.4 Mobile App Implementation
+
+**Remove from churchStore:**
+```javascript
+// DELETE these mock data arrays
+serviceTimes: [...]
+churchInfo: {...}
+ministries: [...]
+```
+
+**Add API calls:**
+```javascript
+// Fetch service times on app load
+const fetchServiceTimes = async () => {
+  const response = await fetch(`${API_BASE_URL}/api/settings/service-times`);
+  return response.json();
+};
+
+// Fetch church info on app load
+const fetchChurchInfo = async () => {
+  const response = await fetch(`${API_BASE_URL}/api/settings/church-info`);
+  return response.json();
+};
+
+// Fetch ministries on app load
+const fetchMinistries = async () => {
+  const response = await fetch(`${API_BASE_URL}/api/settings/ministries`);
+  return response.json();
+};
+```
+
+**Caching Recommendation:**
+- Cache these values locally (they rarely change)
+- Refresh on app launch
+- Consider 24-hour cache expiry
+
+---
+
+## 17. Testing Checklist for Mobile App (Renumbered)
 
 ### Authentication
 - [ ] Login with username works
@@ -1401,7 +1533,7 @@ GET /api/member-photos/approved
 
 ---
 
-## 17. Files for Reference
+## 18. Files for Reference
 
 | File | Purpose |
 |------|---------|
