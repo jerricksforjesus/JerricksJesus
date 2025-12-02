@@ -29,7 +29,7 @@ export function VerseDisplay() {
           alt="Texture" 
           className="w-full h-full object-cover opacity-40 grayscale-[20%]"
         />
-        <div className="absolute inset-0 bg-background/60 mix-blend-overlay" />
+        <div className="absolute inset-0 bg-background/30 mix-blend-overlay" />
       </div>
 
       <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
