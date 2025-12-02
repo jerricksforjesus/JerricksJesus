@@ -44,10 +44,13 @@ export function Navigation() {
     >
       <div className="max-w-7xl mx-auto flex justify-between items-center">
         <Link href="/">
-          <span className={cn(
-            "cursor-pointer font-serif text-2xl md:text-3xl font-bold tracking-tighter hover:opacity-80 transition-colors duration-300",
-            isHomePage && !isScrolled ? "text-white" : "text-foreground"
-          )}>JERRICKS FOR JESUS</span>
+          <span 
+            className={cn(
+              "cursor-pointer font-serif text-2xl md:text-3xl font-bold tracking-tighter hover:opacity-80 transition-colors duration-300",
+              isHomePage && !isScrolled ? "text-white" : "text-foreground"
+            )}
+            onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+          >JERRICKS FOR JESUS</span>
         </Link>
 
         {/* Desktop Nav */}
