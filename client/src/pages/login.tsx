@@ -164,12 +164,12 @@ export default function LoginPage() {
             <TabsContent value="login">
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="login-username">Username</Label>
+                  <Label htmlFor="login-username">Username or Email</Label>
                   <Input
                     id="login-username"
                     data-testid="input-login-username"
                     type="text"
-                    placeholder="Enter your username"
+                    placeholder="Enter your username or email"
                     value={loginUsername}
                     onChange={(e) => setLoginUsername(e.target.value)}
                     required

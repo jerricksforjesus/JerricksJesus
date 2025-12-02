@@ -76,12 +76,16 @@ export async function registerRoutes(
       const { username, password } = req.body;
       
       if (!username || !password) {
-        return res.status(400).json({ error: "Username and password are required" });
+        return res.status(400).json({ error: "Username/email and password are required" });
       }
       
-      const user = await storage.getUserByUsername(username);
+      // Try to find user by username first, then by email
+      let user = await storage.getUserByUsername(username);
+      if (!user) {
+        user = await storage.getUserByEmail(username);
+      }
       if (!user || !user.password) {
-        return res.status(401).json({ error: "Invalid username or password" });
+        return res.status(401).json({ error: "Invalid username/email or password" });
       }
       
       const passwordMatch = await bcrypt.compare(password, user.password);
