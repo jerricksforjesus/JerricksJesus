@@ -1,14 +1,19 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Radio } from "lucide-react";
+import { Radio, Video } from "lucide-react";
 import { Link } from "wouter";
+import { Button } from "@/components/ui/button";
 import heroBg from "@assets/generated_images/sunlight_through_stained_glass_in_modern_church.png";
 
 interface LiveStatus {
   isLive: boolean;
   videoId: string | null;
   title: string | null;
+}
+
+interface ZoomSettings {
+  zoomLink: string | null;
 }
 
 export function Hero() {
@@ -30,6 +35,15 @@ export function Hero() {
       return response.json();
     },
     refetchInterval: 30000,
+  });
+
+  const { data: zoomData } = useQuery<ZoomSettings>({
+    queryKey: ["zoom-link"],
+    queryFn: async () => {
+      const response = await fetch("/api/settings/zoom-link");
+      if (!response.ok) throw new Error("Failed to fetch zoom link");
+      return response.json();
+    },
   });
 
   const isLive = liveStatus?.isLive ?? false;
@@ -86,6 +100,29 @@ export function Hero() {
             Join us in spirit and truth.
           </p>
         </motion.div>
+
+        {/* Join Zoom Button */}
+        {zoomData?.zoomLink && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.6 }}
+            className="mt-8"
+          >
+            <Button 
+              asChild
+              size="lg" 
+              className="font-bold px-8"
+              style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+              data-testid="button-join-zoom-hero"
+            >
+              <a href={zoomData.zoomLink} target="_blank" rel="noopener noreferrer">
+                <Video className="w-5 h-5 mr-2" />
+                Join the Zoom
+              </a>
+            </Button>
+          </motion.div>
+        )}
         
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
