@@ -1,4 +1,5 @@
 import { Navigation } from "@/components/Navigation";
+import { MemberDashboard } from "@/components/MemberDashboard";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,7 +7,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus, Users, Shield, UserCheck } from "lucide-react";
+import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus, Users, Shield, UserCheck, Camera, CheckCircle, XCircle, Clock } from "lucide-react";
 import { useState, useEffect, useLayoutEffect } from "react";
 import { useLocation } from "wouter";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -14,7 +15,7 @@ import { VideoPlayerModal } from "@/components/VideoPlayerModal";
 import { VideoEditModal } from "@/components/VideoEditModal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
-import type { Video, Verse, InsertVideo, Photo, InsertPhoto, QuizQuestion } from "@shared/schema";
+import type { Video, Verse, InsertVideo, Photo, InsertPhoto, QuizQuestion, MemberPhoto } from "@shared/schema";
 import { ALL_BIBLE_BOOKS, BIBLE_BOOKS, USER_ROLES } from "@shared/schema";
 import type { UploadResult } from "@uppy/core";
 import thumb1 from "@assets/generated_images/preacher_at_podium.png";
@@ -37,6 +38,215 @@ import {
 } from "@/components/ui/select";
 
 const fallbackImages = [thumb1, thumb2, thumb3];
+
+function ApprovePhotosTab() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [photoSignedUrls, setPhotoSignedUrls] = useState<Record<number, string>>({});
+
+  const { data: pendingPhotos = [], isLoading } = useQuery<MemberPhoto[]>({
+    queryKey: ["pending-member-photos"],
+    queryFn: async () => {
+      const response = await fetch("/api/member-photos/pending", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch photos");
+      return response.json();
+    },
+  });
+
+  const { data: allMemberPhotos = [] } = useQuery<MemberPhoto[]>({
+    queryKey: ["all-member-photos"],
+    queryFn: async () => {
+      const response = await fetch("/api/member-photos/all", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch photos");
+      return response.json();
+    },
+  });
+
+  useEffect(() => {
+    const fetchSignedUrls = async () => {
+      const allPhotos = [...pendingPhotos, ...allMemberPhotos];
+      for (const photo of allPhotos) {
+        if (!photoSignedUrls[photo.id]) {
+          try {
+            const response = await fetch(`/api/objects/signed-url?path=${encodeURIComponent(photo.imagePath)}`);
+            if (response.ok) {
+              const { url } = await response.json();
+              setPhotoSignedUrls(prev => ({ ...prev, [photo.id]: url }));
+            }
+          } catch (error) {
+            console.error("Error fetching signed URL:", error);
+          }
+        }
+      }
+    };
+    if (pendingPhotos.length > 0 || allMemberPhotos.length > 0) {
+      fetchSignedUrls();
+    }
+  }, [pendingPhotos, allMemberPhotos]);
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const response = await fetch(`/api/member-photos/${id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) throw new Error("Failed to update status");
+      return response.json();
+    },
+    onSuccess: (_, { status }) => {
+      toast({
+        title: status === "approved" ? "Photo Approved" : "Photo Rejected",
+        description: `The photo has been ${status}.`,
+      });
+      queryClient.invalidateQueries({ queryKey: ["pending-member-photos"] });
+      queryClient.invalidateQueries({ queryKey: ["all-member-photos"] });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update photo status.", variant: "destructive" });
+    },
+  });
+
+  const getStatusIcon = (status: string) => {
+    switch (status) {
+      case "pending":
+        return <Clock className="h-4 w-4 text-yellow-500" />;
+      case "approved":
+        return <CheckCircle className="h-4 w-4 text-green-500" />;
+      case "rejected":
+        return <XCircle className="h-4 w-4 text-red-500" />;
+      default:
+        return null;
+    }
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Camera className="w-5 h-5" />
+          Approve Family Photos
+        </CardTitle>
+        <CardDescription>
+          Review and approve photos submitted by congregation members.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-8">
+        {/* Pending Photos Section */}
+        <div>
+          <h3 className="font-semibold text-lg mb-4 flex items-center gap-2">
+            <Clock className="h-5 w-5 text-yellow-500" />
+            Pending Approval ({pendingPhotos.length})
+          </h3>
+          {isLoading ? (
+            <div className="flex items-center justify-center py-8">
+              <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--burnt-clay)" }} />
+            </div>
+          ) : pendingPhotos.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground border rounded-lg bg-muted/20">
+              <CheckCircle className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No photos pending approval!</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+              {pendingPhotos.map((photo) => (
+                <Card key={photo.id} className="overflow-hidden">
+                  <div className="aspect-square relative bg-muted">
+                    {photoSignedUrls[photo.id] ? (
+                      <img
+                        src={photoSignedUrls[photo.id]}
+                        alt={photo.caption || "Member photo"}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <CardContent className="p-4 space-y-3">
+                    {photo.caption && (
+                      <p className="text-sm text-muted-foreground">{photo.caption}</p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Submitted: {new Date(photo.createdAt).toLocaleDateString()}
+                    </p>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        className="flex-1"
+                        onClick={() => updateStatusMutation.mutate({ id: photo.id, status: "approved" })}
+                        style={{ backgroundColor: "#22c55e", color: "white" }}
+                        data-testid={`button-approve-${photo.id}`}
+                      >
+                        <CheckCircle className="h-4 w-4 mr-1" />
+                        Approve
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => updateStatusMutation.mutate({ id: photo.id, status: "rejected" })}
+                        data-testid={`button-reject-${photo.id}`}
+                      >
+                        <XCircle className="h-4 w-4 mr-1" />
+                        Reject
+                      </Button>
+                    </div>
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* All Photos History */}
+        <div>
+          <h3 className="font-semibold text-lg mb-4">All Submitted Photos</h3>
+          {allMemberPhotos.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground border rounded-lg bg-muted/20">
+              <Camera className="h-12 w-12 mx-auto mb-4 opacity-50" />
+              <p>No photos have been submitted yet.</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {allMemberPhotos.map((photo) => (
+                <Card key={photo.id} className="overflow-hidden">
+                  <div className="aspect-square relative bg-muted">
+                    {photoSignedUrls[photo.id] ? (
+                      <img
+                        src={photoSignedUrls[photo.id]}
+                        alt={photo.caption || "Member photo"}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+                      </div>
+                    )}
+                    <div className="absolute top-2 right-2">
+                      {getStatusIcon(photo.status)}
+                    </div>
+                  </div>
+                  <CardContent className="p-3">
+                    <div className="flex items-center justify-between text-xs text-muted-foreground">
+                      <span className="capitalize">{photo.status}</span>
+                      <span>{new Date(photo.createdAt).toLocaleDateString()}</span>
+                    </div>
+                    {photo.caption && (
+                      <p className="text-sm mt-1 truncate">{photo.caption}</p>
+                    )}
+                  </CardContent>
+                </Card>
+              ))}
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function AdminDashboard() {
   const { toast } = useToast();
@@ -579,22 +789,7 @@ export default function AdminDashboard() {
   }
 
   if (!canEdit) {
-    return (
-      <div className="min-h-screen" style={{ background: "var(--alabaster)" }}>
-        <Navigation />
-        <div className="container mx-auto px-4 py-16 text-center">
-          <h1 className="text-3xl font-serif mb-4" style={{ color: "var(--burnt-clay)" }}>
-            Access Restricted
-          </h1>
-          <p className="text-muted-foreground mb-8">
-            You don't have permission to access the admin panel.
-          </p>
-          <Button onClick={() => setLocation("/")} style={{ backgroundColor: "var(--burnt-clay)", color: "white" }}>
-            Return Home
-          </Button>
-        </div>
-      </div>
-    );
+    return <MemberDashboard />;
   }
 
   return (
@@ -634,10 +829,11 @@ export default function AdminDashboard() {
         </div>
 
         <Tabs defaultValue="verse" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 mb-8">
+          <TabsList className="grid w-full grid-cols-6 mb-8">
             <TabsTrigger value="verse" data-testid="tab-verse">Verse</TabsTrigger>
             <TabsTrigger value="replays" data-testid="tab-replays">Replays</TabsTrigger>
             <TabsTrigger value="photos" data-testid="tab-photos">Photos</TabsTrigger>
+            <TabsTrigger value="approve-photos" data-testid="tab-approve-photos">Approve Photos</TabsTrigger>
             <TabsTrigger value="quiz" data-testid="tab-quiz">Bible Quiz</TabsTrigger>
             <TabsTrigger value="users" data-testid="tab-users">Users</TabsTrigger>
           </TabsList>
@@ -860,6 +1056,10 @@ export default function AdminDashboard() {
                 </div>
               </CardContent>
             </Card>
+          </TabsContent>
+
+          <TabsContent value="approve-photos">
+            <ApprovePhotosTab />
           </TabsContent>
 
           <TabsContent value="quiz">

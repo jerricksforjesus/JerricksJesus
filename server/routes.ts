@@ -732,6 +732,134 @@ export async function registerRoutes(
     }
   });
 
+  // Member Photo Submission Routes
+  
+  // Get current user's submitted photos
+  app.get("/api/member-photos/my", requireAuth, async (req, res) => {
+    try {
+      const photos = await storage.getMemberPhotosByUser(req.user!.id);
+      res.json(photos);
+    } catch (error) {
+      console.error("Error fetching member photos:", error);
+      res.status(500).json({ error: "Failed to fetch photos" });
+    }
+  });
+
+  // Submit a new photo (any authenticated user)
+  app.post("/api/member-photos", requireAuth, async (req, res) => {
+    try {
+      const { imagePath, caption } = req.body;
+      
+      if (!imagePath) {
+        return res.status(400).json({ error: "Image path is required" });
+      }
+      
+      let normalizedPath = imagePath;
+      if (!normalizedPath.startsWith("/objects/")) {
+        normalizedPath = `/objects/${normalizedPath.replace(/^\/+/, "")}`;
+      }
+      
+      const photo = await storage.createMemberPhoto({
+        userId: req.user!.id,
+        imagePath: normalizedPath,
+        caption: caption || null,
+        status: "pending",
+      });
+      
+      res.json(photo);
+    } catch (error) {
+      console.error("Error submitting member photo:", error);
+      res.status(500).json({ error: "Failed to submit photo" });
+    }
+  });
+
+  // Get all pending photos (admin/foundational only)
+  app.get("/api/member-photos/pending", requireAuth, async (req, res) => {
+    try {
+      if (req.user!.role !== USER_ROLES.ADMIN && req.user!.role !== USER_ROLES.FOUNDATIONAL) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const photos = await storage.getMemberPhotosByStatus("pending");
+      res.json(photos);
+    } catch (error) {
+      console.error("Error fetching pending photos:", error);
+      res.status(500).json({ error: "Failed to fetch pending photos" });
+    }
+  });
+
+  // Get all member photos (admin/foundational only)
+  app.get("/api/member-photos/all", requireAuth, async (req, res) => {
+    try {
+      if (req.user!.role !== USER_ROLES.ADMIN && req.user!.role !== USER_ROLES.FOUNDATIONAL) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const photos = await storage.getAllMemberPhotos();
+      res.json(photos);
+    } catch (error) {
+      console.error("Error fetching all member photos:", error);
+      res.status(500).json({ error: "Failed to fetch photos" });
+    }
+  });
+
+  // Get approved member photos (public)
+  app.get("/api/member-photos/approved", async (req, res) => {
+    try {
+      const photos = await storage.getApprovedMemberPhotos();
+      res.json(photos);
+    } catch (error) {
+      console.error("Error fetching approved photos:", error);
+      res.status(500).json({ error: "Failed to fetch approved photos" });
+    }
+  });
+
+  // Approve or reject a photo (admin/foundational only)
+  app.patch("/api/member-photos/:id/status", requireAuth, async (req, res) => {
+    try {
+      if (req.user!.role !== USER_ROLES.ADMIN && req.user!.role !== USER_ROLES.FOUNDATIONAL) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      const id = parseInt(req.params.id);
+      const { status } = req.body;
+      
+      if (!["approved", "rejected"].includes(status)) {
+        return res.status(400).json({ error: "Status must be 'approved' or 'rejected'" });
+      }
+      
+      const photo = await storage.updateMemberPhotoStatus(id, status, req.user!.id);
+      if (!photo) {
+        return res.status(404).json({ error: "Photo not found" });
+      }
+      
+      res.json(photo);
+    } catch (error) {
+      console.error("Error updating photo status:", error);
+      res.status(500).json({ error: "Failed to update photo status" });
+    }
+  });
+
+  // Delete a member photo (owner or admin/foundational)
+  app.delete("/api/member-photos/:id", requireAuth, async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const photos = await storage.getMemberPhotosByUser(req.user!.id);
+      const isOwner = photos.some(p => p.id === id);
+      const isAdmin = req.user!.role === USER_ROLES.ADMIN || req.user!.role === USER_ROLES.FOUNDATIONAL;
+      
+      if (!isOwner && !isAdmin) {
+        return res.status(403).json({ error: "Access denied" });
+      }
+      
+      await storage.deleteMemberPhoto(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting member photo:", error);
+      res.status(500).json({ error: "Failed to delete photo" });
+    }
+  });
+
   // Get signed URL for video streaming (works in production without sidecar)
   app.get("/api/objects/signed-url", async (req, res) => {
     try {
