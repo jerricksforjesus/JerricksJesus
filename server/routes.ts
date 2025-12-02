@@ -1113,6 +1113,38 @@ export async function registerRoutes(
     }
   });
 
+  // Migrate local quiz progress to user account
+  app.post("/api/quiz/migrate", requireAuth, async (req, res) => {
+    try {
+      const { books } = req.body;
+      
+      if (!books || !Array.isArray(books)) {
+        return res.status(400).json({ error: "Invalid request body" });
+      }
+
+      const existingAttempts = await storage.getQuizAttemptsByUser(req.user!.id);
+      const existingBooks = new Set(existingAttempts.map(a => a.book));
+
+      let migratedCount = 0;
+      for (const book of books) {
+        if (!existingBooks.has(book)) {
+          await storage.createQuizAttempt({
+            book,
+            score: 0,
+            totalQuestions: 0,
+            userId: req.user!.id,
+          });
+          migratedCount++;
+        }
+      }
+
+      res.json({ success: true, migratedCount });
+    } catch (error) {
+      console.error("Error migrating quiz progress:", error);
+      res.status(500).json({ error: "Failed to migrate progress" });
+    }
+  });
+
   // Get quiz statistics
   app.get("/api/quiz/stats", async (req, res) => {
     try {

@@ -1,11 +1,12 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Book, CheckCircle, Trophy, ArrowLeft, Loader2, History, User } from "lucide-react";
+import { BookOpen, Book, CheckCircle, Trophy, ArrowLeft, Loader2, History, User, UserPlus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BIBLE_BOOKS } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
+import { useQuizProgress } from "@/hooks/useQuizProgress";
 
 interface BookStatus {
   name: string;
@@ -54,6 +55,7 @@ export function BibleQuizSection() {
   const [, setLocation] = useLocation();
   
   const { user } = useAuth();
+  const { completedBooks, markCompleted, serverHistory } = useQuizProgress();
 
   const { data: books = [] } = useQuery<BookStatus[]>({
     queryKey: ["quiz-books"],
@@ -74,18 +76,8 @@ export function BibleQuizSection() {
     enabled: !!selectedBook && view === "quiz",
   });
   
-  const { data: quizHistory = [], isLoading: loadingHistory } = useQuery<QuizAttempt[]>({
-    queryKey: ["quiz-history"],
-    queryFn: async () => {
-      const response = await fetch("/api/quiz/my-history", { credentials: "include" });
-      if (!response.ok) throw new Error("Failed to fetch history");
-      return response.json();
-    },
-    enabled: !!user,
-  });
-  
-  // Track which books the user has completed (any attempt counts as completed)
-  const completedBooks = new Set(quizHistory.map(attempt => attempt.book));
+  const quizHistory = serverHistory;
+  const loadingHistory = false;
 
   const oldTestamentBooks = books.filter(b => 
     (BIBLE_BOOKS.oldTestament as readonly string[]).includes(b.name)
@@ -168,6 +160,7 @@ export function BibleQuizSection() {
       const response = await fetch("/api/quiz/submit", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ book: selectedBook, answers: finalAnswers }),
       });
       
@@ -175,6 +168,9 @@ export function BibleQuizSection() {
         const data = await response.json();
         setResults(data);
         setView("results");
+        if (selectedBook) {
+          markCompleted(selectedBook);
+        }
       }
     } catch (error) {
       console.error("Failed to submit quiz:", error);
@@ -533,6 +529,25 @@ export function BibleQuizSection() {
                   </Button>
                 </div>
               </div>
+
+              {/* Signup prompt for guest users */}
+              {!user && (
+                <div className="mt-6 bg-primary/5 border border-primary/20 rounded-xl p-6 text-center">
+                  <UserPlus className="w-10 h-10 mx-auto mb-3 text-primary" />
+                  <h4 className="font-serif font-bold text-lg mb-2">Save Your Progress!</h4>
+                  <p className="text-muted-foreground mb-4">
+                    Create an account to permanently save your quiz scores and track your Bible knowledge journey.
+                  </p>
+                  <Button 
+                    onClick={() => setLocation("/login")} 
+                    style={{ backgroundColor: "#b47a5f", color: "white" }}
+                    data-testid="button-signup-prompt"
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Create Account
+                  </Button>
+                </div>
+              )}
 
               {/* Show which answers were correct/incorrect */}
               <div className="mt-8 space-y-3">
