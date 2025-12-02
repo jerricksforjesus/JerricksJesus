@@ -153,6 +153,7 @@ Preferred communication style: Simple, everyday language.
 
 **Mobile App Integration**
 - Comprehensive API documentation available in `MOBILE_APP_API_DOCUMENTATION.md`
+- Updates changelog for mobile developers in `MOBILE_APP_UPDATES_POST_NOV30.md`
 - Mobile app shares same PostgreSQL database and API endpoints as web application
 - RESTful API with session-based authentication (HTTP-only cookies)
 - All endpoints documented with request/response schemas, authentication requirements, and role-based access
