@@ -112,12 +112,10 @@ export default function LoginPage() {
     
     try {
       await register(registerUsername, registerEmail, registerPassword);
-      toast({ title: "Account created!", description: "Please login with your new account." });
-      setLoginUsername(registerUsername);
-      setRegisterUsername("");
-      setRegisterEmail("");
-      setRegisterPassword("");
-      setConfirmPassword("");
+      // Automatically log in after successful registration
+      await login(registerUsername, registerPassword);
+      toast({ title: "Welcome!", description: "Your account has been created and you're now signed in." });
+      setLocation("/admin");
     } catch (error: any) {
       toast({ 
         title: "Registration failed", 
