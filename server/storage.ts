@@ -15,6 +15,7 @@ export interface IStorage {
   updateUserPassword(id: string, hashedPassword: string): Promise<User | undefined>;
   resetUserPassword(id: string, hashedPassword: string): Promise<User | undefined>;
   clearMustChangePassword(id: string): Promise<User | undefined>;
+  deleteUser(id: string): Promise<void>;
   
   // Session methods
   createSession(session: InsertSession): Promise<Session>;
@@ -153,6 +154,13 @@ export class DbStorage implements IStorage {
       .where(eq(schema.users.id, id))
       .returning();
     return user;
+  }
+
+  async deleteUser(id: string): Promise<void> {
+    // Delete user's sessions first
+    await db.delete(sessions).where(eq(sessions.userId, id));
+    // Delete the user
+    await db.delete(schema.users).where(eq(schema.users.id, id));
   }
 
   async createSession(session: InsertSession): Promise<Session> {

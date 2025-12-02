@@ -405,6 +405,30 @@ export default function AdminDashboard() {
     },
   });
 
+  const deleteUserMutation = useMutation({
+    mutationFn: async (userId: string) => {
+      const response = await fetch(`/api/admin/users/${userId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to delete user");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ 
+        title: "User Deleted", 
+        description: "The user has been removed from the system." 
+      });
+      queryClient.invalidateQueries({ queryKey: ["admin-users"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   // Profile settings state
   const [profileUsername, setProfileUsername] = useState("");
   const [profileCurrentPassword, setProfileCurrentPassword] = useState("");
@@ -1583,6 +1607,23 @@ export default function AdminDashboard() {
                               >
                                 <Key className="w-4 h-4 mr-1" />
                                 Password Reset
+                              </Button>
+                            )}
+                            {u.role !== "admin" && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  if (confirm(`Are you sure you want to delete user "${u.username}"? This action cannot be undone.`)) {
+                                    deleteUserMutation.mutate(u.id);
+                                  }
+                                }}
+                                disabled={deleteUserMutation.isPending}
+                                data-testid={`button-delete-user-${u.id}`}
+                                title="Delete user"
+                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="w-4 h-4" />
                               </Button>
                             )}
                           </div>

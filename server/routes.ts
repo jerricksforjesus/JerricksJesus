@@ -500,6 +500,41 @@ export async function registerRoutes(
     }
   });
 
+  // Admin: Delete user
+  app.delete("/api/admin/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const currentUser = req.user!;
+      
+      // Can't delete yourself
+      if (id === currentUser.id) {
+        return res.status(400).json({ error: "Cannot delete your own account" });
+      }
+      
+      // Get target user
+      const targetUser = await storage.getUser(id);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User not found" });
+      }
+      
+      // Can't delete admin users
+      if (targetUser.role === USER_ROLES.ADMIN) {
+        return res.status(403).json({ error: "Cannot delete admin users" });
+      }
+      
+      // Delete the user
+      await storage.deleteUser(id);
+      
+      res.json({ 
+        success: true,
+        message: "User has been deleted."
+      });
+    } catch (error) {
+      console.error("Error deleting user:", error);
+      res.status(500).json({ error: "Failed to delete user" });
+    }
+  });
+
   // Profile: Update username
   app.patch("/api/profile/username", requireAuth, async (req, res) => {
     try {
