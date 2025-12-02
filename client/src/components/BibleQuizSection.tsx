@@ -305,10 +305,11 @@ export function BibleQuizSection() {
                       const optionText = question?.[`option${option}` as keyof QuizQuestion] as string;
                       
                       const isSelected = selectedAnswer === option;
+                      const hasResult = answerResult !== null;
                       const isCorrectAnswer = answerResult?.correctAnswer === option;
-                      const showCorrect = isShowingFeedback && isSelected && answerResult?.correct;
-                      const showWrong = isShowingFeedback && isSelected && !answerResult?.correct;
-                      const showCorrectHighlight = isShowingFeedback && !answerResult?.correct && isCorrectAnswer;
+                      const showCorrect = isShowingFeedback && hasResult && isSelected && answerResult?.correct;
+                      const showWrong = isShowingFeedback && hasResult && isSelected && !answerResult?.correct;
+                      const showCorrectHighlight = isShowingFeedback && hasResult && !answerResult?.correct && isCorrectAnswer;
                       
                       let buttonClass = "w-full text-left p-4 rounded-lg border-2 transition-all ";
                       
