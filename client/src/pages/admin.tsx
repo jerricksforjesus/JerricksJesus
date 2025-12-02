@@ -478,6 +478,47 @@ export default function AdminDashboard() {
     changePasswordMutation.mutate({ currentPassword: profileCurrentPassword, newPassword: profileNewPassword });
   };
 
+  // Force password change state
+  const [forceNewPassword, setForceNewPassword] = useState("");
+  const [forceConfirmPassword, setForceConfirmPassword] = useState("");
+
+  const forcePasswordChangeMutation = useMutation({
+    mutationFn: async (newPassword: string) => {
+      const response = await fetch("/api/profile/force-change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ newPassword }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to change password");
+      }
+      return response.json();
+    },
+    onSuccess: async (data) => {
+      toast({ title: "Password Changed", description: "Your password has been updated successfully." });
+      queryClient.setQueryData(["/api/auth/me"], { user: data.user });
+      setForceNewPassword("");
+      setForceConfirmPassword("");
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const handleForcePasswordChange = () => {
+    if (forceNewPassword !== forceConfirmPassword) {
+      toast({ title: "Error", description: "Passwords do not match", variant: "destructive" });
+      return;
+    }
+    if (forceNewPassword.length < 6) {
+      toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
+      return;
+    }
+    forcePasswordChangeMutation.mutate(forceNewPassword);
+  };
+
   const { data: activeVerse } = useQuery<Verse>({
     queryKey: ["active-verse"],
     queryFn: async () => {
@@ -1763,6 +1804,64 @@ export default function AdminDashboard() {
               data-testid="button-confirm-create-user"
             >
               {createUserMutation.isPending ? "Creating..." : "Create User"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={user?.mustChangePassword === 1}>
+        <DialogContent className="sm:max-w-md" onPointerDownOutside={(e) => e.preventDefault()} onEscapeKeyDown={(e) => e.preventDefault()}>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Key className="w-5 h-5" style={{ color: "#b47a5f" }} />
+              Password Change Required
+            </DialogTitle>
+            <DialogDescription>
+              Your password has been reset by an administrator. Please create a new password to continue.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="force-new-password">New Password</Label>
+              <Input
+                id="force-new-password"
+                data-testid="input-force-new-password"
+                type="password"
+                value={forceNewPassword}
+                onChange={(e) => setForceNewPassword(e.target.value)}
+                placeholder="Enter new password (min 6 characters)"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="force-confirm-password">Confirm Password</Label>
+              <Input
+                id="force-confirm-password"
+                data-testid="input-force-confirm-password"
+                type="password"
+                value={forceConfirmPassword}
+                onChange={(e) => setForceConfirmPassword(e.target.value)}
+                placeholder="Confirm new password"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button 
+              onClick={handleForcePasswordChange}
+              disabled={!forceNewPassword || !forceConfirmPassword || forcePasswordChangeMutation.isPending}
+              style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+              data-testid="button-force-change-password"
+            >
+              {forcePasswordChangeMutation.isPending ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                  Updating...
+                </>
+              ) : (
+                <>
+                  <Key className="w-4 h-4 mr-2" />
+                  Change Password
+                </>
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

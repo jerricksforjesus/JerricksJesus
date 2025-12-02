@@ -5,6 +5,8 @@ interface User {
   id: string;
   username: string;
   role: "admin" | "foundational" | "member";
+  googleId?: string | null;
+  mustChangePassword?: number;
 }
 
 interface AuthContextType {

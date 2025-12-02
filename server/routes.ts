@@ -144,7 +144,9 @@ export async function registerRoutes(
       user: { 
         id: req.user.id, 
         username: req.user.username, 
-        role: req.user.role 
+        role: req.user.role,
+        googleId: req.user.googleId,
+        mustChangePassword: req.user.mustChangePassword,
       } 
     });
   });
@@ -587,7 +589,14 @@ export async function registerRoutes(
       
       res.json({ 
         success: true,
-        message: "Password updated successfully"
+        message: "Password updated successfully",
+        user: {
+          id: updated.id,
+          username: updated.username,
+          role: updated.role,
+          googleId: updated.googleId,
+          mustChangePassword: updated.mustChangePassword,
+        }
       });
     } catch (error) {
       console.error("Error force changing password:", error);
