@@ -576,12 +576,6 @@ export default function AdminDashboard() {
             <h1 className="text-3xl font-serif font-bold">Admin Dashboard</h1>
             <p className="text-muted-foreground">
               Logged in as <span className="font-medium">{user.username}</span>
-              <span className="ml-2 px-2 py-0.5 text-xs rounded-full" style={{ 
-                backgroundColor: user.role === "admin" ? "var(--burnt-clay)" : "var(--warm-stone)", 
-                color: user.role === "admin" ? "white" : "var(--charcoal)"
-              }}>
-                {user.role}
-              </span>
             </p>
           </div>
           <div className="flex items-center gap-2">
