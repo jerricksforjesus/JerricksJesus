@@ -467,6 +467,32 @@ export async function registerRoutes(
     }
   });
 
+  // Check a single answer for immediate feedback
+  app.post("/api/quiz/check-answer", async (req, res) => {
+    try {
+      const { questionId, selectedAnswer } = req.body;
+      
+      if (!questionId || !selectedAnswer) {
+        return res.status(400).json({ error: "Missing questionId or selectedAnswer" });
+      }
+      
+      const question = await storage.getQuestionById(questionId);
+      if (!question) {
+        return res.status(404).json({ error: "Question not found" });
+      }
+      
+      const isCorrect = question.correctAnswer === selectedAnswer;
+      
+      res.json({ 
+        correct: isCorrect, 
+        correctAnswer: question.correctAnswer 
+      });
+    } catch (error) {
+      console.error("Error checking answer:", error);
+      res.status(500).json({ error: "Failed to check answer" });
+    }
+  });
+
   // Submit quiz answers and get score
   app.post("/api/quiz/submit", async (req, res) => {
     try {

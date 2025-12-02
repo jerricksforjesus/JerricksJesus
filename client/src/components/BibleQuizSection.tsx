@@ -38,6 +38,9 @@ export function BibleQuizSection() {
   const [answers, setAnswers] = useState<{ questionId: number; selectedAnswer: string }[]>([]);
   const [results, setResults] = useState<{ score: number; totalQuestions: number; results: QuizResult[] } | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedAnswer, setSelectedAnswer] = useState<string | null>(null);
+  const [answerResult, setAnswerResult] = useState<{ correct: boolean; correctAnswer: string } | null>(null);
+  const [isShowingFeedback, setIsShowingFeedback] = useState(false);
 
   const { data: books = [] } = useQuery<BookStatus[]>({
     queryKey: ["quiz-books"],
@@ -73,14 +76,63 @@ export function BibleQuizSection() {
     setView("quiz");
   };
 
-  const handleAnswer = (answer: string) => {
-    const question = questions[currentQuestionIndex];
-    setAnswers([...answers, { questionId: question.id, selectedAnswer: answer }]);
+  const handleAnswer = async (answer: string) => {
+    if (isShowingFeedback) return;
     
-    if (currentQuestionIndex < questions.length - 1) {
-      setCurrentQuestionIndex(currentQuestionIndex + 1);
-    } else {
-      submitQuiz([...answers, { questionId: question.id, selectedAnswer: answer }]);
+    const question = questions[currentQuestionIndex];
+    setSelectedAnswer(answer);
+    setIsShowingFeedback(true);
+    
+    const moveToNextQuestion = (newAnswers: { questionId: number; selectedAnswer: string }[]) => {
+      setTimeout(() => {
+        setSelectedAnswer(null);
+        setAnswerResult(null);
+        setIsShowingFeedback(false);
+        
+        if (currentQuestionIndex < questions.length - 1) {
+          setCurrentQuestionIndex(currentQuestionIndex + 1);
+        } else {
+          submitQuiz(newAnswers);
+        }
+      }, 1500);
+    };
+    
+    try {
+      const response = await fetch("/api/quiz/check-answer", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ questionId: question.id, selectedAnswer: answer }),
+      });
+      
+      const newAnswers = [...answers, { questionId: question.id, selectedAnswer: answer }];
+      setAnswers(newAnswers);
+      
+      if (response.ok) {
+        const result = await response.json();
+        setAnswerResult({ correct: result.correct, correctAnswer: result.correctAnswer });
+        moveToNextQuestion(newAnswers);
+      } else {
+        setSelectedAnswer(null);
+        setAnswerResult(null);
+        setIsShowingFeedback(false);
+        if (currentQuestionIndex < questions.length - 1) {
+          setCurrentQuestionIndex(currentQuestionIndex + 1);
+        } else {
+          submitQuiz(newAnswers);
+        }
+      }
+    } catch (error) {
+      console.error("Failed to check answer:", error);
+      const newAnswers = [...answers, { questionId: question.id, selectedAnswer: answer }];
+      setAnswers(newAnswers);
+      setSelectedAnswer(null);
+      setAnswerResult(null);
+      setIsShowingFeedback(false);
+      if (currentQuestionIndex < questions.length - 1) {
+        setCurrentQuestionIndex(currentQuestionIndex + 1);
+      } else {
+        submitQuiz(newAnswers);
+      }
     }
   };
 
@@ -252,16 +304,39 @@ export function BibleQuizSection() {
                       const question = questions[currentQuestionIndex];
                       const optionText = question?.[`option${option}` as keyof QuizQuestion] as string;
                       
+                      const isSelected = selectedAnswer === option;
+                      const isCorrectAnswer = answerResult?.correctAnswer === option;
+                      const showCorrect = isShowingFeedback && isSelected && answerResult?.correct;
+                      const showWrong = isShowingFeedback && isSelected && !answerResult?.correct;
+                      const showCorrectHighlight = isShowingFeedback && !answerResult?.correct && isCorrectAnswer;
+                      
+                      let buttonClass = "w-full text-left p-4 rounded-lg border-2 transition-all ";
+                      
+                      if (showCorrect) {
+                        buttonClass += "border-green-500 bg-green-100 text-green-800";
+                      } else if (showWrong) {
+                        buttonClass += "border-red-500 bg-red-100 text-red-800";
+                      } else if (showCorrectHighlight) {
+                        buttonClass += "border-green-500 bg-green-50";
+                      } else if (isShowingFeedback) {
+                        buttonClass += "border-border opacity-50 cursor-not-allowed";
+                      } else {
+                        buttonClass += "border-border hover:border-primary hover:bg-primary/5 cursor-pointer";
+                      }
+                      
                       return (
                         <button
                           key={option}
                           onClick={() => handleAnswer(option)}
-                          disabled={isSubmitting}
-                          className="w-full text-left p-4 rounded-lg border border-border hover:border-primary hover:bg-primary/5 transition-all"
+                          disabled={isSubmitting || isShowingFeedback}
+                          className={buttonClass}
                           data-testid={`quiz-option-${option}`}
                         >
                           <span className="font-bold mr-3">{option}.</span>
                           {optionText}
+                          {showCorrect && <span className="float-right text-green-600 font-bold">✓ Correct!</span>}
+                          {showWrong && <span className="float-right text-red-600 font-bold">✗ Wrong</span>}
+                          {showCorrectHighlight && <span className="float-right text-green-600 font-bold">✓ Correct Answer</span>}
                         </button>
                       );
                     })}

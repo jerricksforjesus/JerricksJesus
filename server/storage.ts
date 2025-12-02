@@ -30,6 +30,7 @@ export interface IStorage {
   deletePhoto(id: number): Promise<void>;
   
   // Quiz methods
+  getQuestionById(id: number): Promise<QuizQuestion | undefined>;
   getQuestionsByBook(book: string, approvedOnly?: boolean): Promise<QuizQuestion[]>;
   getAllQuestions(): Promise<QuizQuestion[]>;
   getQuestionCountByBook(): Promise<{ book: string; count: number; approvedCount: number }[]>;
@@ -184,6 +185,12 @@ export class DbStorage implements IStorage {
   }
 
   // Quiz methods
+  async getQuestionById(id: number): Promise<QuizQuestion | undefined> {
+    return await db.query.quizQuestions.findFirst({
+      where: (q, { eq }) => eq(q.id, id),
+    });
+  }
+
   async getQuestionsByBook(book: string, approvedOnly: boolean = true): Promise<QuizQuestion[]> {
     if (approvedOnly) {
       return await db.query.quizQuestions.findMany({
