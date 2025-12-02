@@ -154,10 +154,29 @@ export async function registerRoutes(
   // Register new user (admin can create foundational members, anyone can register as member)
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { username, password, role } = req.body;
+      const { username, email, password, role } = req.body;
       
       if (!username || !password) {
         return res.status(400).json({ error: "Username and password are required" });
+      }
+      
+      // Email validation for regular user registration (not admin-created accounts)
+      if (!role || role === USER_ROLES.MEMBER) {
+        if (!email) {
+          return res.status(400).json({ error: "Email is required" });
+        }
+        
+        // Simple email format validation
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+          return res.status(400).json({ error: "Invalid email format" });
+        }
+        
+        // Check if email already exists
+        const existingEmail = await storage.getUserByEmail(email);
+        if (existingEmail) {
+          return res.status(400).json({ error: "Email already registered" });
+        }
       }
       
       // Check if username already exists
@@ -183,6 +202,7 @@ export async function registerRoutes(
       // Create user
       const user = await storage.createUser({
         username,
+        email: email || null,
         password: hashedPassword,
         role: userRole,
       });

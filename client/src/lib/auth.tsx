@@ -14,7 +14,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
-  register: (username: string, password: string) => Promise<void>;
+  register: (username: string, email: string, password: string) => Promise<void>;
   isAdmin: boolean;
   isFoundational: boolean;
   canEdit: boolean;
@@ -79,12 +79,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const registerMutation = useMutation({
-    mutationFn: async ({ username, password }: { username: string; password: string }) => {
+    mutationFn: async ({ username, email, password }: { username: string; email: string; password: string }) => {
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ username, password }),
+        body: JSON.stringify({ username, email, password }),
       });
       if (!res.ok) {
         const error = await res.json();
@@ -102,8 +102,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await logoutMutation.mutateAsync();
   };
 
-  const register = async (username: string, password: string) => {
-    await registerMutation.mutateAsync({ username, password });
+  const register = async (username: string, email: string, password: string) => {
+    await registerMutation.mutateAsync({ username, email, password });
   };
 
   const isAdmin = user?.role === "admin";

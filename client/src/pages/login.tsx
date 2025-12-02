@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [loginUsername, setLoginUsername] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
   const [registerUsername, setRegisterUsername] = useState("");
+  const [registerEmail, setRegisterEmail] = useState("");
   const [registerPassword, setRegisterPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
@@ -78,6 +79,17 @@ export default function LoginPage() {
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
     
+    // Email validation
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!registerEmail || !emailRegex.test(registerEmail)) {
+      toast({ 
+        title: "Invalid email", 
+        description: "Please enter a valid email address.",
+        variant: "destructive" 
+      });
+      return;
+    }
+    
     if (registerPassword !== confirmPassword) {
       toast({ 
         title: "Passwords don't match", 
@@ -99,10 +111,11 @@ export default function LoginPage() {
     setIsLoading(true);
     
     try {
-      await register(registerUsername, registerPassword);
+      await register(registerUsername, registerEmail, registerPassword);
       toast({ title: "Account created!", description: "Please login with your new account." });
       setLoginUsername(registerUsername);
       setRegisterUsername("");
+      setRegisterEmail("");
       setRegisterPassword("");
       setConfirmPassword("");
     } catch (error: any) {
@@ -256,6 +269,18 @@ export default function LoginPage() {
                     placeholder="Choose a username"
                     value={registerUsername}
                     onChange={(e) => setRegisterUsername(e.target.value)}
+                    required
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="register-email">Email</Label>
+                  <Input
+                    id="register-email"
+                    data-testid="input-register-email"
+                    type="email"
+                    placeholder="Enter your email address"
+                    value={registerEmail}
+                    onChange={(e) => setRegisterEmail(e.target.value)}
                     required
                   />
                 </div>
