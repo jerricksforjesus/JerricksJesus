@@ -1495,6 +1495,165 @@ const fetchMinistries = async () => {
 
 ---
 
+## 16.5 YouTube Playlist API (For Worship & Music Section)
+
+The web app fetches worship videos from a YouTube playlist. The mobile app should use this same endpoint.
+
+### Endpoint
+
+**`GET /api/youtube/playlist/:playlistId`**
+
+**No authentication required** - This is a public endpoint.
+
+### Parameters
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `playlistId` | string (path) | The YouTube playlist ID |
+
+### Current Playlist ID
+
+The church uses this playlist for the "Worship & Music" section:
+```
+PLkDsdLHKY8laSsy8xYfILnVzFMedR0Rgy
+```
+
+### Full Request URL
+
+```
+GET https://jerricksforjesus.com/api/youtube/playlist/PLkDsdLHKY8laSsy8xYfILnVzFMedR0Rgy
+```
+
+### Response Schema
+
+```typescript
+interface PlaylistResponse {
+  videos: PlaylistVideo[];
+  error?: string; // Only present if there's an error
+}
+
+interface PlaylistVideo {
+  videoId: string;      // YouTube video ID (e.g., "dQw4w9WgXcQ")
+  title: string;        // Video title
+  description: string;  // Video description
+  thumbnail: string;    // Thumbnail URL (medium size, typically 320x180)
+  publishedAt: string;  // ISO 8601 date string
+  position: number;     // Position in playlist (0-indexed)
+}
+```
+
+### Example Response
+
+```json
+{
+  "videos": [
+    {
+      "videoId": "abc123xyz",
+      "title": "Sunday Worship Service - December 1, 2025",
+      "description": "Join us for our weekly worship service...",
+      "thumbnail": "https://i.ytimg.com/vi/abc123xyz/mqdefault.jpg",
+      "publishedAt": "2025-12-01T14:00:00Z",
+      "position": 0
+    },
+    {
+      "videoId": "def456uvw",
+      "title": "Praise and Worship Night",
+      "description": "A special evening of praise...",
+      "thumbnail": "https://i.ytimg.com/vi/def456uvw/mqdefault.jpg",
+      "publishedAt": "2025-11-28T19:00:00Z",
+      "position": 1
+    }
+  ]
+}
+```
+
+### Error Response
+
+```json
+{
+  "videos": [],
+  "error": "YouTube API key not configured"
+}
+```
+
+### Mobile App Implementation
+
+```javascript
+const WORSHIP_PLAYLIST_ID = "PLkDsdLHKY8laSsy8xYfILnVzFMedR0Rgy";
+
+const fetchPlaylistVideos = async () => {
+  try {
+    const response = await fetch(
+      `${API_BASE_URL}/api/youtube/playlist/${WORSHIP_PLAYLIST_ID}`
+    );
+    
+    if (!response.ok) {
+      throw new Error("Failed to fetch playlist");
+    }
+    
+    const data = await response.json();
+    
+    if (data.error) {
+      console.warn("Playlist warning:", data.error);
+      return [];
+    }
+    
+    return data.videos;
+  } catch (error) {
+    console.error("Error fetching playlist:", error);
+    return [];
+  }
+};
+```
+
+### Playing Videos
+
+To play a video, use the YouTube embed URL or deep link:
+
+```javascript
+// Web embed URL (for WebView)
+const embedUrl = `https://www.youtube.com/embed/${video.videoId}`;
+
+// YouTube app deep link (opens YouTube app if installed)
+const youtubeAppUrl = `https://www.youtube.com/watch?v=${video.videoId}`;
+
+// Full playlist link
+const playlistUrl = `https://youtube.com/playlist?list=${WORSHIP_PLAYLIST_ID}`;
+```
+
+### Caching Notes
+
+- Server caches playlist data for **5 minutes**
+- Mobile app should also cache locally
+- Refresh when user pulls to refresh or app comes to foreground
+- Videos are sorted by `position` (playlist order)
+
+### Live Stream Status Endpoint
+
+There's also an endpoint to check if the church is currently live streaming:
+
+**`GET /api/youtube/live-status`**
+
+**Response:**
+```json
+{
+  "isLive": true,
+  "videoId": "liveVideoId123",
+  "title": "Friday Morning Service"
+}
+```
+
+Or when not live:
+```json
+{
+  "isLive": false,
+  "videoId": null,
+  "title": null
+}
+```
+
+---
+
 ## 17. Testing Checklist for Mobile App (Renumbered)
 
 ### Authentication

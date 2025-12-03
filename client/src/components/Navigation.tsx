@@ -67,7 +67,10 @@ export function Navigation() {
                 {hoveredIndex === index && (
                   <motion.div
                     layoutId="navHighlight"
-                    className="absolute inset-0 rounded-full bg-white"
+                    className={cn(
+                      "absolute inset-0 rounded-full",
+                      isScrolled ? "bg-background" : "bg-white"
+                    )}
                     transition={{ type: "spring", stiffness: 400, damping: 30 }}
                   />
                 )}

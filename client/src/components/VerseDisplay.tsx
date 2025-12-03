@@ -41,7 +41,7 @@ export function VerseDisplay() {
           <span className="block text-primary tracking-widest uppercase mb-8 text-[30px] font-black" data-testid="text-verse-label">
             Verse of the Day
           </span>
-          <h3 className="font-serif md:text-6xl text-foreground mb-8 italic font-black text-[65px]" data-testid="text-verse-text">
+          <h3 className="font-serif md:text-6xl text-foreground mb-8 italic font-black text-[46px]" data-testid="text-verse-text">
             "{verse?.verseText}"
           </h3>
           <span className="block font-sans text-muted-foreground tracking-wide text-[30px] font-black" data-testid="text-verse-reference">
