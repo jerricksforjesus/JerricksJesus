@@ -38,7 +38,7 @@ export function VerseDisplay() {
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
         >
-          <span className="block text-primary text-sm font-bold tracking-widest uppercase mb-8" data-testid="text-verse-label">
+          <span className="block text-primary tracking-widest uppercase mb-8 text-[30px] font-black" data-testid="text-verse-label">
             Verse of the Day
           </span>
           <h3 className="font-serif md:text-6xl text-foreground mb-8 italic font-black text-[65px]" data-testid="text-verse-text">
