@@ -4,7 +4,6 @@ import { BibleQuizSection } from "@/components/BibleQuizSection";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
@@ -541,6 +540,7 @@ export default function AdminDashboard() {
   const [newPassword, setNewPassword] = useState("");
   const [newUserRole, setNewUserRole] = useState<string>(USER_ROLES.MEMBER);
   const [zoomLinkInput, setZoomLinkInput] = useState("");
+  const [activeSection, setActiveSection] = useState("verse");
 
   const { data: zoomData, isLoading: zoomLoading } = useQuery<{ zoomLink: string }>({
     queryKey: ["zoom-link"],
@@ -1268,22 +1268,58 @@ export default function AdminDashboard() {
     return <MemberDashboard />;
   }
 
+  const sidebarItems = [
+    { id: "verse", label: "Daily Verse", icon: BookOpen },
+    { id: "replays", label: "Sermon Replays", icon: Play },
+    { id: "photos", label: "Family Photos", icon: Image },
+    { id: "approve-photos", label: "Approve Photos", icon: CheckCircle },
+    ...(isAdmin ? [{ id: "quiz", label: "Manage Quiz", icon: BookOpen }] : []),
+    ...(isFoundational && !isAdmin ? [{ id: "take-quiz", label: "Take Quiz", icon: BookOpen }] : []),
+    { id: "worship", label: "Worship Playlist", icon: Music },
+    { id: "users", label: "Users", icon: Users },
+    { id: "settings", label: "Settings", icon: Settings },
+  ];
+
   return (
     <div className="min-h-screen bg-muted/20">
       <Navigation />
       
-      <div className="pt-32 pb-12 px-6 max-w-5xl mx-auto">
-        <div className="mb-8 flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-serif font-bold">Admin Dashboard</h1>
-            <p className="text-muted-foreground">
+      <div className="pt-24 flex">
+        {/* Sidebar */}
+        <aside className="w-64 min-h-[calc(100vh-6rem)] bg-card border-r sticky top-24 self-start hidden lg:block">
+          <div className="p-6 border-b">
+            <h1 className="text-xl font-serif font-bold">Admin Dashboard</h1>
+            <p className="text-sm text-muted-foreground mt-1">
               Logged in as <span className="font-medium">{user.username}</span>
             </p>
           </div>
-          <div className="flex items-center gap-2">
+          
+          <nav className="p-4 space-y-1">
+            {sidebarItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => setActiveSection(item.id)}
+                  data-testid={`tab-${item.id}`}
+                  className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
+                    activeSection === item.id
+                      ? "bg-[#b47a5f]/10 text-[#b47a5f] font-medium"
+                      : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                  }`}
+                >
+                  <Icon className="w-4 h-4 flex-shrink-0" />
+                  {item.label}
+                </button>
+              );
+            })}
+          </nav>
+          
+          <div className="absolute bottom-0 left-0 right-0 p-4 border-t bg-card space-y-2">
             {isAdmin && (
               <Button 
                 size="sm"
+                className="w-full"
                 onClick={() => setIsCreateUserOpen(true)}
                 data-testid="button-create-user"
                 style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
@@ -1295,6 +1331,7 @@ export default function AdminDashboard() {
             <Button 
               variant="outline" 
               size="sm" 
+              className="w-full"
               onClick={handleLogout}
               data-testid="button-logout"
             >
@@ -1302,26 +1339,51 @@ export default function AdminDashboard() {
               Log Out
             </Button>
           </div>
+        </aside>
+
+        {/* Mobile Header */}
+        <div className="lg:hidden fixed top-20 left-0 right-0 z-40 bg-card border-b p-4">
+          <Select value={activeSection} onValueChange={setActiveSection}>
+            <SelectTrigger className="w-full" data-testid="mobile-section-select">
+              <SelectValue placeholder="Select section" />
+            </SelectTrigger>
+            <SelectContent>
+              {sidebarItems.map((item) => (
+                <SelectItem key={item.id} value={item.id}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
         </div>
 
-        <Tabs defaultValue="verse" className="w-full">
-          <TabsList className={`grid w-full mb-8 ${isFoundational && !isAdmin ? 'grid-cols-7' : 'grid-cols-7'}`}>
-            <TabsTrigger value="verse" data-testid="tab-verse">Verse</TabsTrigger>
-            <TabsTrigger value="replays" data-testid="tab-replays">Replays</TabsTrigger>
-            <TabsTrigger value="photos" data-testid="tab-photos">Photos</TabsTrigger>
-            <TabsTrigger value="approve-photos" data-testid="tab-approve-photos">Approve Photos</TabsTrigger>
+        {/* Main Content */}
+        <main className="flex-1 p-6 lg:p-8 max-w-4xl lg:pt-8 pt-24">
+          {/* Mobile logout buttons */}
+          <div className="lg:hidden flex gap-2 mb-6">
             {isAdmin && (
-              <TabsTrigger value="quiz" data-testid="tab-quiz">Manage Quiz</TabsTrigger>
+              <Button 
+                size="sm"
+                onClick={() => setIsCreateUserOpen(true)}
+                data-testid="button-create-user-mobile"
+                style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add User
+              </Button>
             )}
-            {isFoundational && !isAdmin && (
-              <TabsTrigger value="take-quiz" data-testid="tab-take-quiz">Take Quiz</TabsTrigger>
-            )}
-            <TabsTrigger value="worship" data-testid="tab-worship">Worship Playlist</TabsTrigger>
-            <TabsTrigger value="users" data-testid="tab-users">Users</TabsTrigger>
-            <TabsTrigger value="settings" data-testid="tab-settings">Settings</TabsTrigger>
-          </TabsList>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleLogout}
+              data-testid="button-logout-mobile"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Log Out
+            </Button>
+          </div>
 
-          <TabsContent value="verse">
+          {activeSection === "verse" && (
             <Card>
               <CardHeader>
                 <CardTitle>Edit Verse</CardTitle>
@@ -1353,9 +1415,9 @@ export default function AdminDashboard() {
                 </Button>
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
-          <TabsContent value="replays">
+          {activeSection === "replays" && (
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-start">
@@ -1466,9 +1528,9 @@ export default function AdminDashboard() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
-          <TabsContent value="photos">
+          {activeSection === "photos" && (
             <Card>
               <CardHeader>
                 <div className="flex justify-between items-start">
@@ -1543,13 +1605,13 @@ export default function AdminDashboard() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
-          <TabsContent value="approve-photos">
+          {activeSection === "approve-photos" && (
             <ApprovePhotosTab />
-          </TabsContent>
+          )}
 
-          <TabsContent value="quiz">
+          {activeSection === "quiz" && isAdmin && (
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
@@ -1778,15 +1840,15 @@ export default function AdminDashboard() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-
-          {isFoundational && !isAdmin && (
-            <TabsContent value="take-quiz" className="-mx-6">
-              <BibleQuizSection />
-            </TabsContent>
           )}
 
-          <TabsContent value="worship">
+          {activeSection === "take-quiz" && isFoundational && !isAdmin && (
+            <div className="-mx-6">
+              <BibleQuizSection />
+            </div>
+          )}
+
+          {activeSection === "worship" && (
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-3">
@@ -1803,9 +1865,9 @@ export default function AdminDashboard() {
                 <WorshipPlaylistManager />
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
-          <TabsContent value="users">
+          {activeSection === "users" && (
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-3">
@@ -1943,9 +2005,9 @@ export default function AdminDashboard() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+          )}
 
-          <TabsContent value="settings">
+          {activeSection === "settings" && (
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-3">
@@ -2190,8 +2252,8 @@ export default function AdminDashboard() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+          )}
+        </main>
       </div>
 
       <VideoPlayerModal 
