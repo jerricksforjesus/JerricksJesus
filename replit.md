@@ -45,7 +45,8 @@ Preferred communication style: Simple, everyday language.
 
 **YouTube Integration**
 - Worship & Music section displays videos from YouTube playlist (PLkDsdLHKY8laSsy8xYfILnVzFMedR0Rgy)
-- Videos fetched via YouTube Data API v3 with 5-minute caching to minimize API calls
+- Videos fetched via YouTube Data API v3 with 1-hour caching to minimize API calls
+- Manual refresh endpoint (`POST /api/youtube/playlist/:id/refresh`) for admin/foundational users
 - Embedded YouTube player in modal for video playback
 
 ### Backend Architecture

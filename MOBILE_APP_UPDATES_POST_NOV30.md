@@ -23,7 +23,7 @@ All data displayed in the mobile app comes from the **same PostgreSQL database a
 | **Member Photos** | PostgreSQL `member_photos` table | `/api/member-photos/*` |
 | **Sermon Videos** | PostgreSQL `videos` table + Object Storage | `/api/videos`, `/api/objects/signed-url` |
 | **Bible Verses** | PostgreSQL `verses` table | `/api/verses/active` |
-| **YouTube Playlist** | YouTube API (cached on server) | `/api/youtube/playlist` |
+| **YouTube Playlist** | YouTube API (cached 1 hour) | `/api/youtube/playlist`, `/api/youtube/playlist/:id/refresh` (admin) |
 | **Quiz History** | PostgreSQL `quiz_attempts` table | `/api/quiz/my-history` |
 | **Settings (Zoom link)** | PostgreSQL `settings` table | `/api/settings/zoom-link` |
 | **Service Times** | PostgreSQL `settings` table | `/api/settings/service-times` |
@@ -1623,10 +1623,56 @@ const playlistUrl = `https://youtube.com/playlist?list=${WORSHIP_PLAYLIST_ID}`;
 
 ### Caching Notes
 
-- Server caches playlist data for **5 minutes**
+- Server caches playlist data for **1 hour** (changed from 5 minutes on Dec 3, 2025)
 - Mobile app should also cache locally
 - Refresh when user pulls to refresh or app comes to foreground
 - Videos are sorted by `position` (playlist order)
+
+### Manual Playlist Refresh (Admin/Foundational Only)
+
+If new videos are added to the YouTube playlist and you need to refresh the cache before the 1-hour expiration, admin and foundational users can manually refresh:
+
+**`POST /api/youtube/playlist/:playlistId/refresh`**
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `playlistId` | string (path) | The YouTube playlist ID |
+
+**Authentication Required:** Yes (admin or foundational role only)
+
+**Request:**
+```http
+POST https://jerricksforjesus.com/api/youtube/playlist/PLkDsdLHKY8laSsy8xYfILnVzFMedR0Rgy/refresh
+Cookie: session=<session_token>
+```
+
+**Success Response (200):**
+```json
+{
+  "success": true,
+  "videoCount": 15,
+  "message": "Playlist refreshed successfully"
+}
+```
+
+**Error Response (403 - Not Authorized):**
+```json
+{
+  "error": "Role admin or foundational required"
+}
+```
+
+**Error Response (500 - YouTube API Error):**
+```json
+{
+  "error": "Failed to refresh playlist"
+}
+```
+
+**Mobile App Implementation Notes:**
+- Only show refresh button to admin/foundational users
+- Regular members and guests should not see this option
+- After successful refresh, the GET endpoint will return the updated data
 
 ### Live Stream Status Endpoint
 
@@ -1689,6 +1735,7 @@ Or when not live:
 - [ ] Password reset disabled for SSO users
 - [ ] Two-step deletion confirmation works
 - [ ] Can approve/reject member photos
+- [ ] Can manually refresh YouTube playlist (admin/foundational only)
 
 ---
 
