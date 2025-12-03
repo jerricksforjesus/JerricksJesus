@@ -44,7 +44,7 @@ export function VerseDisplay() {
           <h3 className="font-serif md:text-6xl text-foreground mb-8 italic font-black text-[65px]" data-testid="text-verse-text">
             "{verse?.verseText}"
           </h3>
-          <span className="block font-sans text-lg text-muted-foreground tracking-wide" data-testid="text-verse-reference">
+          <span className="block font-sans text-muted-foreground tracking-wide text-[30px] font-black" data-testid="text-verse-reference">
             — {verse?.reference}
           </span>
         </motion.div>
