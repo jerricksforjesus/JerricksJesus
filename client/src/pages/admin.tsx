@@ -8,7 +8,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus, Users, Shield, UserCheck, Camera, CheckCircle, XCircle, Clock, Settings, Key, User as UserIcon, Eye, EyeOff } from "lucide-react";
+import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus, Users, Shield, UserCheck, Camera, CheckCircle, XCircle, Clock, Settings, Key, User as UserIcon, Eye, EyeOff, Music, Youtube, Link2, ExternalLink } from "lucide-react";
 import { useState, useEffect, useLayoutEffect } from "react";
 import { useLocation } from "wouter";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -246,6 +246,274 @@ function ApprovePhotosTab() {
         </div>
       </CardContent>
     </Card>
+  );
+}
+
+interface WorshipVideo {
+  id: number;
+  youtubeVideoId: string;
+  title: string;
+  description: string | null;
+  thumbnailUrl: string | null;
+  publishedAt: string | null;
+  position: number;
+  addedBy: string | null;
+}
+
+interface YouTubeConnectionStatus {
+  connected: boolean;
+  channelName?: string;
+  channelId?: string;
+  connectedAt?: string;
+}
+
+function WorshipPlaylistManager() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const { isAdmin } = useAuth();
+  const [youtubeUrl, setYoutubeUrl] = useState("");
+  const [isAddingVideo, setIsAddingVideo] = useState(false);
+
+  const { data: connectionStatus } = useQuery<YouTubeConnectionStatus>({
+    queryKey: ["youtube-connection-status"],
+    queryFn: async () => {
+      const response = await fetch("/api/youtube/connection-status", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to check connection");
+      return response.json();
+    },
+  });
+
+  const { data: videos = [], isLoading } = useQuery<WorshipVideo[]>({
+    queryKey: ["worship-videos-admin"],
+    queryFn: async () => {
+      const response = await fetch("/api/worship-videos");
+      if (!response.ok) throw new Error("Failed to fetch videos");
+      return response.json();
+    },
+  });
+
+  const addVideoMutation = useMutation({
+    mutationFn: async (url: string) => {
+      const response = await fetch("/api/worship-videos", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ youtubeUrl: url }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to add video");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Video Added", description: "The video has been added to the worship playlist." });
+      setYoutubeUrl("");
+      queryClient.invalidateQueries({ queryKey: ["worship-videos-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["worship-videos"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const deleteVideoMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/worship-videos/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to delete video");
+    },
+    onSuccess: () => {
+      toast({ title: "Video Removed", description: "The video has been removed from the playlist." });
+      queryClient.invalidateQueries({ queryKey: ["worship-videos-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["worship-videos"] });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to remove video.", variant: "destructive" });
+    },
+  });
+
+  const connectYouTube = async () => {
+    try {
+      const response = await fetch("/api/youtube/connect", { credentials: "include" });
+      const data = await response.json();
+      if (data.authUrl) {
+        window.location.href = data.authUrl;
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to initiate YouTube connection.", variant: "destructive" });
+    }
+  };
+
+  const disconnectYouTube = async () => {
+    try {
+      const response = await fetch("/api/youtube/disconnect", {
+        method: "POST",
+        credentials: "include",
+      });
+      if (response.ok) {
+        toast({ title: "Disconnected", description: "YouTube channel has been disconnected." });
+        queryClient.invalidateQueries({ queryKey: ["youtube-connection-status"] });
+      }
+    } catch (error) {
+      toast({ title: "Error", description: "Failed to disconnect YouTube.", variant: "destructive" });
+    }
+  };
+
+  const handleAddVideo = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!youtubeUrl.trim()) return;
+    addVideoMutation.mutate(youtubeUrl);
+  };
+
+  return (
+    <div className="space-y-6">
+      {isAdmin && (
+        <div className="border rounded-lg p-4 bg-muted/30">
+          <div className="flex items-center gap-3 mb-3">
+            <Youtube className="w-5 h-5" style={{ color: "#FF0000" }} />
+            <h3 className="font-medium">YouTube Channel Connection</h3>
+          </div>
+          {connectionStatus?.connected ? (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2 text-sm text-green-600">
+                <CheckCircle className="w-4 h-4" />
+                <span>Connected to: <strong>{connectionStatus.channelName}</strong></span>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Videos added will automatically sync to your YouTube playlist.
+              </p>
+              <Button variant="outline" size="sm" onClick={disconnectYouTube} data-testid="button-disconnect-youtube">
+                Disconnect YouTube
+              </Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              <p className="text-sm text-muted-foreground">
+                Connect your YouTube channel to automatically add videos to your playlist when foundational members add them here.
+              </p>
+              <Button onClick={connectYouTube} style={{ backgroundColor: "#FF0000", color: "#ffffff" }} data-testid="button-connect-youtube">
+                <Youtube className="w-4 h-4 mr-2" />
+                Connect YouTube Channel
+              </Button>
+            </div>
+          )}
+        </div>
+      )}
+
+      <div className="space-y-4">
+        <h3 className="font-medium">Add Video to Playlist</h3>
+        <form onSubmit={handleAddVideo} className="flex gap-3">
+          <div className="flex-1">
+            <Input
+              value={youtubeUrl}
+              onChange={(e) => setYoutubeUrl(e.target.value)}
+              placeholder="Paste YouTube video URL (e.g., https://youtube.com/watch?v=...)"
+              data-testid="input-youtube-url"
+            />
+          </div>
+          <Button
+            type="submit"
+            disabled={addVideoMutation.isPending || !youtubeUrl.trim()}
+            style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+            data-testid="button-add-video"
+          >
+            {addVideoMutation.isPending ? (
+              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+            ) : (
+              <Plus className="w-4 h-4 mr-2" />
+            )}
+            Add Video
+          </Button>
+        </form>
+      </div>
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="font-medium">Current Playlist ({videos.length} videos)</h3>
+          <Button variant="outline" size="sm" asChild>
+            <a
+              href="https://youtube.com/playlist?list=PLkDsdLHKY8laSsy8xYfILnVzFMedR0Rgy"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink className="w-4 h-4 mr-2" />
+              View on YouTube
+            </a>
+          </Button>
+        </div>
+
+        {isLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+          </div>
+        ) : videos.length === 0 ? (
+          <div className="text-center py-8 text-muted-foreground border rounded-lg bg-muted/20">
+            <Music className="h-12 w-12 mx-auto mb-4 opacity-50" />
+            <p>No videos in the playlist yet.</p>
+            <p className="text-sm mt-1">Add a YouTube URL above to get started.</p>
+          </div>
+        ) : (
+          <div className="space-y-2">
+            {videos.map((video) => (
+              <div
+                key={video.id}
+                className="flex items-center gap-4 p-3 border rounded-lg bg-card hover:bg-muted/30 transition-colors"
+                data-testid={`worship-video-item-${video.id}`}
+              >
+                <div className="w-24 h-14 rounded overflow-hidden bg-muted flex-shrink-0">
+                  {video.thumbnailUrl ? (
+                    <img
+                      src={video.thumbnailUrl}
+                      alt={video.title}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Play className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-sm line-clamp-1">{video.title}</h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    ID: {video.youtubeVideoId}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    asChild
+                    className="text-muted-foreground hover:text-foreground"
+                  >
+                    <a
+                      href={`https://youtube.com/watch?v=${video.youtubeVideoId}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => deleteVideoMutation.mutate(video.id)}
+                    disabled={deleteVideoMutation.isPending}
+                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                    data-testid={`button-delete-video-${video.id}`}
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
 
@@ -1048,6 +1316,7 @@ export default function AdminDashboard() {
             {isFoundational && !isAdmin && (
               <TabsTrigger value="take-quiz" data-testid="tab-take-quiz">Take Quiz</TabsTrigger>
             )}
+            <TabsTrigger value="worship" data-testid="tab-worship">Worship Playlist</TabsTrigger>
             <TabsTrigger value="users" data-testid="tab-users">Users</TabsTrigger>
             <TabsTrigger value="settings" data-testid="tab-settings">Settings</TabsTrigger>
           </TabsList>
@@ -1516,6 +1785,25 @@ export default function AdminDashboard() {
               <BibleQuizSection />
             </TabsContent>
           )}
+
+          <TabsContent value="worship">
+            <Card>
+              <CardHeader>
+                <div className="flex items-center gap-3">
+                  <Music className="w-6 h-6" style={{ color: "#b47a5f" }} />
+                  <div>
+                    <CardTitle>Manage Worship Playlist</CardTitle>
+                    <CardDescription>
+                      Add YouTube videos to the worship music section. Videos will also be synced to the church's YouTube playlist if connected.
+                    </CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <WorshipPlaylistManager />
+              </CardContent>
+            </Card>
+          </TabsContent>
 
           <TabsContent value="users">
             <Card>

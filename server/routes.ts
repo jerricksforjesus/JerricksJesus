@@ -411,6 +411,312 @@ export async function registerRoutes(
       res.redirect("/login?error=auth_failed");
     }
   });
+
+  // ============= YOUTUBE PLAYLIST OAUTH (Admin Only) =============
+  
+  const YOUTUBE_PLAYLIST_ID = "PLkDsdLHKY8laSsy8xYfILnVzFMedR0Rgy";
+  
+  // Check YouTube connection status
+  app.get("/api/youtube/connection-status", requireAuth, requireRole(USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
+    try {
+      const auth = await storage.getYoutubeAuth();
+      if (!auth) {
+        return res.json({ connected: false });
+      }
+      res.json({ 
+        connected: true, 
+        channelName: auth.channelName,
+        channelId: auth.channelId,
+        connectedAt: auth.createdAt,
+      });
+    } catch (error) {
+      console.error("Error checking YouTube connection:", error);
+      res.status(500).json({ error: "Failed to check connection status" });
+    }
+  });
+
+  // Initiate YouTube OAuth (Admin only)
+  app.get("/api/youtube/connect", requireAuth, requireRole(USER_ROLES.ADMIN), async (req, res) => {
+    try {
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      if (!clientId) {
+        return res.status(500).json({ error: "Google OAuth not configured" });
+      }
+
+      const redirectUri = getOAuthRedirectUri(req).replace("/api/auth/google/callback", "/api/youtube/callback");
+      const state = crypto.randomBytes(32).toString("hex");
+      
+      res.cookie("youtube_oauth_state", state, {
+        httpOnly: true,
+        secure: req.secure || req.headers["x-forwarded-proto"] === "https",
+        sameSite: "lax",
+        maxAge: 10 * 60 * 1000,
+      });
+
+      const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
+      authUrl.searchParams.set("client_id", clientId);
+      authUrl.searchParams.set("redirect_uri", redirectUri);
+      authUrl.searchParams.set("response_type", "code");
+      authUrl.searchParams.set("scope", "https://www.googleapis.com/auth/youtube");
+      authUrl.searchParams.set("access_type", "offline");
+      authUrl.searchParams.set("prompt", "consent");
+      authUrl.searchParams.set("state", state);
+
+      res.json({ authUrl: authUrl.toString() });
+    } catch (error) {
+      console.error("YouTube OAuth initiation error:", error);
+      res.status(500).json({ error: "Failed to initiate YouTube connection" });
+    }
+  });
+
+  // YouTube OAuth callback
+  app.get("/api/youtube/callback", authMiddleware, async (req, res) => {
+    try {
+      const { code, state } = req.query;
+      const savedState = req.cookies?.youtube_oauth_state;
+      res.clearCookie("youtube_oauth_state");
+
+      if (!code || !state || state !== savedState) {
+        return res.redirect("/admin?youtube_error=invalid_state");
+      }
+
+      const clientId = process.env.GOOGLE_CLIENT_ID;
+      const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+
+      if (!clientId || !clientSecret) {
+        return res.redirect("/admin?youtube_error=not_configured");
+      }
+
+      const redirectUri = getOAuthRedirectUri(req).replace("/api/auth/google/callback", "/api/youtube/callback");
+      const oauth2Client = new OAuth2Client(clientId, clientSecret, redirectUri);
+      
+      const { tokens } = await oauth2Client.getToken(code as string);
+      oauth2Client.setCredentials(tokens);
+
+      // Fetch channel info
+      const channelResponse = await fetch(
+        `https://www.googleapis.com/youtube/v3/channels?part=snippet&mine=true`,
+        { headers: { Authorization: `Bearer ${tokens.access_token}` } }
+      );
+      const channelData = await channelResponse.json();
+      const channel = channelData.items?.[0];
+
+      // Save the auth tokens
+      await storage.saveYoutubeAuth({
+        accessToken: tokens.access_token!,
+        refreshToken: tokens.refresh_token!,
+        expiresAt: new Date(tokens.expiry_date!),
+        channelId: channel?.id || null,
+        channelName: channel?.snippet?.title || null,
+        connectedBy: req.user?.id || null,
+      });
+
+      console.log(`YouTube connected by admin: ${req.user?.username}, channel: ${channel?.snippet?.title}`);
+      res.redirect("/admin?youtube_connected=true");
+    } catch (error) {
+      console.error("YouTube OAuth callback error:", error);
+      res.redirect("/admin?youtube_error=auth_failed");
+    }
+  });
+
+  // Disconnect YouTube (Admin only)
+  app.post("/api/youtube/disconnect", requireAuth, requireRole(USER_ROLES.ADMIN), async (req, res) => {
+    try {
+      await storage.deleteYoutubeAuth();
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error disconnecting YouTube:", error);
+      res.status(500).json({ error: "Failed to disconnect YouTube" });
+    }
+  });
+
+  // Helper to get valid YouTube access token (refreshes if needed)
+  async function getValidYoutubeToken(): Promise<string | null> {
+    const auth = await storage.getYoutubeAuth();
+    if (!auth) return null;
+
+    // Check if token is expired or will expire in next 5 minutes
+    const now = new Date();
+    const expiresAt = new Date(auth.expiresAt);
+    const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
+
+    if (expiresAt > fiveMinutesFromNow) {
+      return auth.accessToken;
+    }
+
+    // Refresh the token
+    const clientId = process.env.GOOGLE_CLIENT_ID;
+    const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
+    if (!clientId || !clientSecret) return null;
+
+    try {
+      const oauth2Client = new OAuth2Client(clientId, clientSecret);
+      oauth2Client.setCredentials({ refresh_token: auth.refreshToken });
+      const { credentials } = await oauth2Client.refreshAccessToken();
+      
+      if (credentials.access_token && credentials.expiry_date) {
+        await storage.updateYoutubeAuthTokens(
+          credentials.access_token,
+          new Date(credentials.expiry_date)
+        );
+        return credentials.access_token;
+      }
+    } catch (error) {
+      console.error("Error refreshing YouTube token:", error);
+    }
+
+    return null;
+  }
+
+  // Get worship videos from database
+  app.get("/api/worship-videos", async (req, res) => {
+    try {
+      const videos = await storage.getAllWorshipVideos();
+      res.json(videos);
+    } catch (error) {
+      console.error("Error fetching worship videos:", error);
+      res.status(500).json({ error: "Failed to fetch worship videos" });
+    }
+  });
+
+  // Add video to worship playlist (Foundational/Admin only)
+  app.post("/api/worship-videos", requireAuth, requireRole(USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
+    try {
+      const { youtubeUrl } = req.body;
+      
+      if (!youtubeUrl) {
+        return res.status(400).json({ error: "YouTube URL is required" });
+      }
+
+      // Extract video ID from URL
+      const videoIdMatch = youtubeUrl.match(/(?:v=|youtu\.be\/|embed\/)([a-zA-Z0-9_-]{11})/);
+      if (!videoIdMatch) {
+        return res.status(400).json({ error: "Invalid YouTube URL" });
+      }
+      const videoId = videoIdMatch[1];
+
+      // Check if video already exists
+      const existing = await storage.getWorshipVideoByYoutubeId(videoId);
+      if (existing) {
+        return res.status(400).json({ error: "This video is already in the playlist" });
+      }
+
+      // Fetch video info from YouTube API
+      const apiKey = process.env.YOUTUBE_API_KEY;
+      if (!apiKey) {
+        return res.status(500).json({ error: "YouTube API not configured" });
+      }
+
+      const videoResponse = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`
+      );
+      const videoData = await videoResponse.json();
+      const videoInfo = videoData.items?.[0];
+
+      if (!videoInfo) {
+        return res.status(404).json({ error: "Video not found on YouTube" });
+      }
+
+      // Add to YouTube playlist if connected
+      const accessToken = await getValidYoutubeToken();
+      if (accessToken) {
+        try {
+          const playlistResponse = await fetch(
+            `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet`,
+            {
+              method: "POST",
+              headers: {
+                "Authorization": `Bearer ${accessToken}`,
+                "Content-Type": "application/json",
+              },
+              body: JSON.stringify({
+                snippet: {
+                  playlistId: YOUTUBE_PLAYLIST_ID,
+                  resourceId: {
+                    kind: "youtube#video",
+                    videoId: videoId,
+                  },
+                },
+              }),
+            }
+          );
+
+          if (!playlistResponse.ok) {
+            const errorData = await playlistResponse.json();
+            console.error("YouTube playlist add error:", errorData);
+            // Continue to save locally even if YouTube add fails
+          } else {
+            console.log(`Video ${videoId} added to YouTube playlist by ${req.user?.username}`);
+          }
+        } catch (error) {
+          console.error("Error adding to YouTube playlist:", error);
+          // Continue to save locally
+        }
+      }
+
+      // Save to our database
+      const video = await storage.createWorshipVideo({
+        youtubeVideoId: videoId,
+        title: videoInfo.snippet.title,
+        description: videoInfo.snippet.description,
+        thumbnailUrl: videoInfo.snippet.thumbnails?.medium?.url || videoInfo.snippet.thumbnails?.default?.url,
+        publishedAt: new Date(videoInfo.snippet.publishedAt),
+        addedBy: req.user!.id,
+      });
+
+      res.json(video);
+    } catch (error) {
+      console.error("Error adding worship video:", error);
+      res.status(500).json({ error: "Failed to add video" });
+    }
+  });
+
+  // Remove video from worship playlist (Foundational/Admin only)
+  app.delete("/api/worship-videos/:id", requireAuth, requireRole(USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const video = await storage.getWorshipVideo(id);
+      
+      if (!video) {
+        return res.status(404).json({ error: "Video not found" });
+      }
+
+      // Remove from YouTube playlist if connected
+      const accessToken = await getValidYoutubeToken();
+      if (accessToken) {
+        try {
+          // First, find the playlist item ID
+          const listResponse = await fetch(
+            `https://www.googleapis.com/youtube/v3/playlistItems?part=id&playlistId=${YOUTUBE_PLAYLIST_ID}&videoId=${video.youtubeVideoId}`,
+            { headers: { "Authorization": `Bearer ${accessToken}` } }
+          );
+          const listData = await listResponse.json();
+          const playlistItemId = listData.items?.[0]?.id;
+
+          if (playlistItemId) {
+            await fetch(
+              `https://www.googleapis.com/youtube/v3/playlistItems?id=${playlistItemId}`,
+              {
+                method: "DELETE",
+                headers: { "Authorization": `Bearer ${accessToken}` },
+              }
+            );
+            console.log(`Video ${video.youtubeVideoId} removed from YouTube playlist by ${req.user?.username}`);
+          }
+        } catch (error) {
+          console.error("Error removing from YouTube playlist:", error);
+          // Continue to delete locally
+        }
+      }
+
+      // Delete from our database
+      await storage.deleteWorshipVideo(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting worship video:", error);
+      res.status(500).json({ error: "Failed to delete video" });
+    }
+  });
   
   // Admin/Foundational: Get all users
   app.get("/api/admin/users", requireAuth, async (req, res) => {

@@ -126,6 +126,32 @@ export const siteSettings = pgTable("site_settings", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// YouTube OAuth tokens for playlist management (admin only)
+export const youtubeAuth = pgTable("youtube_auth", {
+  id: serial("id").primaryKey(),
+  accessToken: text("access_token").notNull(),
+  refreshToken: text("refresh_token").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  channelId: text("channel_id"),
+  channelName: text("channel_name"),
+  connectedBy: varchar("connected_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Worship playlist videos (stored locally for reliable display)
+export const worshipVideos = pgTable("worship_videos", {
+  id: serial("id").primaryKey(),
+  youtubeVideoId: text("youtube_video_id").notNull().unique(),
+  title: text("title").notNull(),
+  description: text("description"),
+  thumbnailUrl: text("thumbnail_url"),
+  publishedAt: timestamp("published_at"),
+  position: integer("position").default(0).notNull(),
+  addedBy: varchar("added_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -177,6 +203,17 @@ export const insertSiteSettingSchema = createInsertSchema(siteSettings).omit({
   updatedAt: true,
 });
 
+export const insertYoutubeAuthSchema = createInsertSchema(youtubeAuth).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertWorshipVideoSchema = createInsertSchema(worshipVideos).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -203,3 +240,9 @@ export type MemberPhoto = typeof memberPhotos.$inferSelect;
 
 export type InsertSiteSetting = z.infer<typeof insertSiteSettingSchema>;
 export type SiteSetting = typeof siteSettings.$inferSelect;
+
+export type InsertYoutubeAuth = z.infer<typeof insertYoutubeAuthSchema>;
+export type YoutubeAuth = typeof youtubeAuth.$inferSelect;
+
+export type InsertWorshipVideo = z.infer<typeof insertWorshipVideoSchema>;
+export type WorshipVideo = typeof worshipVideos.$inferSelect;

@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, type QuizQuestion, type InsertQuizQuestion, type QuizAttempt, type InsertQuizAttempt, type Session, type InsertSession, type MemberPhoto, type InsertMemberPhoto, type SiteSetting, videos, verses, users, photos, quizQuestions, quizAttempts, sessions, memberPhotos, siteSettings } from "@shared/schema";
+import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, type QuizQuestion, type InsertQuizQuestion, type QuizAttempt, type InsertQuizAttempt, type Session, type InsertSession, type MemberPhoto, type InsertMemberPhoto, type SiteSetting, type YoutubeAuth, type InsertYoutubeAuth, type WorshipVideo, type InsertWorshipVideo, videos, verses, users, photos, quizQuestions, quizAttempts, sessions, memberPhotos, siteSettings, youtubeAuth, worshipVideos } from "@shared/schema";
 import { db } from "./db";
 import { eq, asc, and, sql, gt } from "drizzle-orm";
 import * as schema from "@shared/schema";
@@ -75,6 +75,20 @@ export interface IStorage {
   // Site settings methods
   getSetting(key: string): Promise<string | undefined>;
   setSetting(key: string, value: string): Promise<SiteSetting>;
+  
+  // YouTube auth methods
+  getYoutubeAuth(): Promise<YoutubeAuth | undefined>;
+  saveYoutubeAuth(auth: InsertYoutubeAuth): Promise<YoutubeAuth>;
+  updateYoutubeAuthTokens(accessToken: string, expiresAt: Date): Promise<YoutubeAuth | undefined>;
+  deleteYoutubeAuth(): Promise<void>;
+  
+  // Worship video methods
+  getAllWorshipVideos(): Promise<WorshipVideo[]>;
+  getWorshipVideo(id: number): Promise<WorshipVideo | undefined>;
+  getWorshipVideoByYoutubeId(youtubeVideoId: string): Promise<WorshipVideo | undefined>;
+  createWorshipVideo(video: InsertWorshipVideo): Promise<WorshipVideo>;
+  deleteWorshipVideo(id: number): Promise<void>;
+  updateWorshipVideoPosition(id: number, position: number): Promise<WorshipVideo | undefined>;
 }
 
 export class DbStorage implements IStorage {
@@ -485,6 +499,80 @@ export class DbStorage implements IStorage {
       const [created] = await db.insert(siteSettings).values({ key, value }).returning();
       return created;
     }
+  }
+
+  // YouTube auth methods
+  async getYoutubeAuth(): Promise<YoutubeAuth | undefined> {
+    const result = await db.query.youtubeAuth.findFirst({
+      orderBy: (a, { desc }) => [desc(a.createdAt)],
+    });
+    return result;
+  }
+
+  async saveYoutubeAuth(auth: InsertYoutubeAuth): Promise<YoutubeAuth> {
+    await db.delete(youtubeAuth);
+    const [created] = await db.insert(youtubeAuth).values(auth).returning();
+    return created;
+  }
+
+  async updateYoutubeAuthTokens(accessToken: string, expiresAt: Date): Promise<YoutubeAuth | undefined> {
+    const existing = await this.getYoutubeAuth();
+    if (!existing) return undefined;
+    
+    const [updated] = await db.update(youtubeAuth)
+      .set({ accessToken, expiresAt, updatedAt: new Date() })
+      .where(eq(youtubeAuth.id, existing.id))
+      .returning();
+    return updated;
+  }
+
+  async deleteYoutubeAuth(): Promise<void> {
+    await db.delete(youtubeAuth);
+  }
+
+  // Worship video methods
+  async getAllWorshipVideos(): Promise<WorshipVideo[]> {
+    return await db.query.worshipVideos.findMany({
+      orderBy: (v, { asc }) => [asc(v.position)],
+    });
+  }
+
+  async getWorshipVideo(id: number): Promise<WorshipVideo | undefined> {
+    const result = await db.query.worshipVideos.findFirst({
+      where: (v, { eq }) => eq(v.id, id),
+    });
+    return result;
+  }
+
+  async getWorshipVideoByYoutubeId(youtubeVideoId: string): Promise<WorshipVideo | undefined> {
+    const result = await db.query.worshipVideos.findFirst({
+      where: (v, { eq }) => eq(v.youtubeVideoId, youtubeVideoId),
+    });
+    return result;
+  }
+
+  async createWorshipVideo(video: InsertWorshipVideo): Promise<WorshipVideo> {
+    const maxPosition = await db.query.worshipVideos.findFirst({
+      orderBy: (v, { desc }) => [desc(v.position)],
+    });
+    const position = (maxPosition?.position ?? -1) + 1;
+    
+    const [created] = await db.insert(worshipVideos)
+      .values({ ...video, position })
+      .returning();
+    return created;
+  }
+
+  async deleteWorshipVideo(id: number): Promise<void> {
+    await db.delete(worshipVideos).where(eq(worshipVideos.id, id));
+  }
+
+  async updateWorshipVideoPosition(id: number, position: number): Promise<WorshipVideo | undefined> {
+    const [updated] = await db.update(worshipVideos)
+      .set({ position })
+      .where(eq(worshipVideos.id, id))
+      .returning();
+    return updated;
   }
 }
 
