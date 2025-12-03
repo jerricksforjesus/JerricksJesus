@@ -31,7 +31,6 @@ export function VerseDisplay() {
         />
         <div className="absolute inset-0 bg-background/30 mix-blend-overlay" />
       </div>
-
       <div className="relative z-10 max-w-4xl mx-auto px-6 text-center">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -42,7 +41,7 @@ export function VerseDisplay() {
           <span className="block text-primary text-sm font-bold tracking-widest uppercase mb-8" data-testid="text-verse-label">
             Verse of the Day
           </span>
-          <h3 className="font-serif text-4xl md:text-6xl leading-tight text-foreground mb-8 italic" data-testid="text-verse-text">
+          <h3 className="font-serif md:text-6xl text-foreground mb-8 italic font-black text-[65px]" data-testid="text-verse-text">
             "{verse?.verseText}"
           </h3>
           <span className="block font-sans text-lg text-muted-foreground tracking-wide" data-testid="text-verse-reference">
