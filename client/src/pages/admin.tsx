@@ -37,7 +37,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
-import { AdminPanelProvider, useAdminPanel } from "@/contexts/AdminPanelContext";
 
 const fallbackImages = [thumb1, thumb2, thumb3];
 
@@ -543,6 +542,7 @@ export default function AdminDashboard() {
   const [newUserRole, setNewUserRole] = useState<string>(USER_ROLES.MEMBER);
   const [zoomLinkInput, setZoomLinkInput] = useState("");
   const [activeSection, setActiveSection] = useState("verse");
+  const [isNavOpen, setIsNavOpen] = useState(false);
 
   const { data: zoomData, isLoading: zoomLoading } = useQuery<{ zoomLink: string }>({
     queryKey: ["zoom-link"],
@@ -1270,79 +1270,7 @@ export default function AdminDashboard() {
     return <MemberDashboard />;
   }
 
-  return (
-    <AdminDashboardLayout
-      user={user}
-      isAdmin={isAdmin}
-      isFoundational={isFoundational}
-      activeSection={activeSection}
-      setActiveSection={setActiveSection}
-      isCreateUserOpen={isCreateUserOpen}
-      setIsCreateUserOpen={setIsCreateUserOpen}
-      handleLogout={handleLogout}
-    >
-      {renderActiveSection()}
-    </AdminDashboardLayout>
-  );
-
-  function renderActiveSection() {
-    return (
-      <>
-        {activeSection === "verse" && (
-          <Card>
-            <CardHeader>
-              <CardTitle>Edit Verse</CardTitle>
-              <CardDescription>Update the featured verse displayed on the homepage.</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-2">
-                <Label htmlFor="verse-text">Verse Text</Label>
-                <Textarea 
-                  id="verse-text" 
-                  value={verse}
-                  onChange={(e) => setVerse(e.target.value)}
-                  className="min-h-[120px] text-lg font-serif"
-                  data-testid="input-verse-text"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="reference">Reference</Label>
-                <Input 
-                  id="reference" 
-                  value={reference}
-                  onChange={(e) => setReference(e.target.value)}
-                  className="font-medium"
-                  data-testid="input-reference"
-                />
-              </div>
-              <Button onClick={handleSaveVerse} className="w-full sm:w-auto" data-testid="button-save-verse">
-                <Save className="w-4 h-4 mr-2" /> Update Verse
-              </Button>
-            </CardContent>
-          </Card>
-        )}
-      </>
-    );
-  }
-}
-
-interface AdminDashboardLayoutProps {
-  user: any;
-  isAdmin: boolean;
-  isFoundational: boolean;
-  activeSection: string;
-  setActiveSection: (section: string) => void;
-  isCreateUserOpen: boolean;
-  setIsCreateUserOpen: (open: boolean) => void;
-  handleLogout: () => void;
-  children: React.ReactNode;
-}
-
-function AdminDashboardLayout({
-  user, isAdmin, isFoundational, activeSection, setActiveSection,
-  isCreateUserOpen, setIsCreateUserOpen, handleLogout, children
-}: AdminDashboardLayoutProps) {
-  const { isOpen, panelWidth, close } = useAdminPanel();
+  const navPanelWidth = 320;
 
   const navItems = [
     { id: "verse", label: "Daily Verse", icon: BookOpen },
@@ -1358,37 +1286,71 @@ function AdminDashboardLayout({
 
   const handleNavSelect = (id: string) => {
     setActiveSection(id);
-    close();
+    setIsNavOpen(false);
   };
 
   return (
     <div className="min-h-screen bg-muted/20 overflow-x-hidden">
       <Navigation />
+      
+      {/* Floating Menu Button */}
+      <motion.button
+        onClick={() => setIsNavOpen(!isNavOpen)}
+        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center"
+        style={{ backgroundColor: "#b47a5f" }}
+        whileHover={{ scale: 1.05 }}
+        whileTap={{ scale: 0.95 }}
+        data-testid="button-toggle-nav"
+      >
+        <AnimatePresence mode="wait">
+          {isNavOpen ? (
+            <motion.div
+              key="close"
+              initial={{ rotate: -90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: 90, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <X className="w-6 h-6 text-white" />
+            </motion.div>
+          ) : (
+            <motion.div
+              key="menu"
+              initial={{ rotate: 90, opacity: 0 }}
+              animate={{ rotate: 0, opacity: 1 }}
+              exit={{ rotate: -90, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <Menu className="w-6 h-6 text-white" />
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </motion.button>
 
       {/* Overlay when nav is open */}
       <AnimatePresence>
-        {isOpen && (
+        {isNavOpen && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.3 }}
             className="fixed inset-0 bg-black/20 z-40"
-            onClick={close}
+            onClick={() => setIsNavOpen(false)}
           />
         )}
       </AnimatePresence>
 
       {/* Sliding Navigation Panel from Right */}
       <AnimatePresence>
-        {isOpen && (
+        {isNavOpen && (
           <motion.aside
-            initial={{ x: panelWidth }}
+            initial={{ x: navPanelWidth }}
             animate={{ x: 0 }}
-            exit={{ x: panelWidth }}
+            exit={{ x: navPanelWidth }}
             transition={{ type: "spring", stiffness: 300, damping: 30 }}
             className="fixed top-0 right-0 h-full bg-card border-l shadow-2xl z-50 flex flex-col"
-            style={{ width: panelWidth }}
+            style={{ width: navPanelWidth }}
           >
             {/* Header */}
             <div className="p-6 border-b" style={{ backgroundColor: "#b47a5f" }}>
@@ -1400,7 +1362,7 @@ function AdminDashboardLayout({
                   </p>
                 </div>
                 <button
-                  onClick={close}
+                  onClick={() => setIsNavOpen(false)}
                   className="p-2 rounded-full hover:bg-white/20 transition-colors"
                 >
                   <X className="w-5 h-5 text-white" />
@@ -1448,7 +1410,7 @@ function AdminDashboardLayout({
                   className="w-full"
                   onClick={() => {
                     setIsCreateUserOpen(true);
-                    close();
+                    setIsNavOpen(false);
                   }}
                   data-testid="button-create-user"
                   style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
@@ -1475,8 +1437,8 @@ function AdminDashboardLayout({
       {/* Main Content - shifts left when nav is open */}
       <motion.main
         animate={{ 
-          x: isOpen ? -panelWidth / 2 : 0,
-          scale: isOpen ? 0.98 : 1
+          x: isNavOpen ? -navPanelWidth / 2 : 0,
+          scale: isNavOpen ? 0.98 : 1
         }}
         transition={{ type: "spring", stiffness: 300, damping: 30 }}
         className="pt-28 pb-24 px-6 max-w-4xl mx-auto"

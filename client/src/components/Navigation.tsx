@@ -4,22 +4,15 @@ import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { motion } from "framer-motion";
-import { useAdminPanelOptional, prepareOpenOnMount } from "@/contexts/AdminPanelContext";
 
-interface NavigationProps {
-  className?: string;
-}
-
-export function Navigation({ className }: NavigationProps) {
-  const [location, setLocation] = useLocation();
+export function Navigation() {
+  const [location] = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(0);
   const { user } = useAuth();
-  const adminPanel = useAdminPanelOptional();
   
   const isHomePage = location === "/";
-  const isAdminPage = location === "/admin";
 
   useEffect(() => {
     const handleScroll = () => {
@@ -35,30 +28,18 @@ export function Navigation({ className }: NavigationProps) {
     return "My Account";
   };
 
-  const handleAdminClick = (e: React.MouseEvent) => {
-    if (isAdminPage && adminPanel) {
-      e.preventDefault();
-      adminPanel.toggle();
-    } else if (!isAdminPage && user) {
-      prepareOpenOnMount();
-    }
-  };
-
   const navLinks = [
     { href: "/", label: "Sanctuary" },
     { href: "/live", label: "Live Stream" },
     { href: "/replays", label: "Replays" },
-    { href: user ? "/admin" : "/login", label: getAccountLabel(), onClick: handleAdminClick },
+    { href: user ? "/admin" : "/login", label: getAccountLabel() },
   ];
 
   return (
-    <motion.nav
-      animate={{ x: adminPanel?.isOpen ? -(adminPanel.panelWidth / 2) : 0 }}
-      transition={{ type: "spring", stiffness: 300, damping: 30 }}
+    <nav
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-in-out px-6 py-4 md:py-6",
-        isScrolled ? "bg-background/90 backdrop-blur-md shadow-sm py-3" : "bg-transparent",
-        className
+        isScrolled ? "bg-background/90 backdrop-blur-md shadow-sm py-3" : "bg-transparent"
       )}
     >
       <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -78,7 +59,7 @@ export function Navigation({ className }: NavigationProps) {
           onMouseLeave={() => setHoveredIndex(navLinks.findIndex(link => link.href === location))}
         >
           {navLinks.map((link, index) => (
-            <Link key={link.href} href={link.href} onClick={link.onClick}>
+            <Link key={link.href} href={link.href}>
               <span
                 className="relative cursor-pointer px-5 py-1 block"
                 onMouseEnter={() => setHoveredIndex(index)}
@@ -128,7 +109,7 @@ export function Navigation({ className }: NavigationProps) {
       {mobileMenuOpen && (
         <div className="absolute top-full left-0 right-0 bg-background border-b p-6 md:hidden flex flex-col gap-4 animate-in slide-in-from-top-5">
           {navLinks.map((link) => (
-            <Link key={link.href} href={link.href} onClick={link.onClick}>
+            <Link key={link.href} href={link.href}>
               <span
                 className="cursor-pointer text-lg font-serif font-medium"
                 onClick={() => setMobileMenuOpen(false)}
@@ -139,6 +120,6 @@ export function Navigation({ className }: NavigationProps) {
           ))}
         </div>
       )}
-    </motion.nav>
+    </nav>
   );
 }
