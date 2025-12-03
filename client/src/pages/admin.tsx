@@ -542,6 +542,7 @@ export default function AdminDashboard() {
   const [newUserRole, setNewUserRole] = useState<string>(USER_ROLES.MEMBER);
   const [zoomLinkInput, setZoomLinkInput] = useState("");
   const [activeSection, setActiveSection] = useState("verse");
+  const [isNavOpen, setIsNavOpen] = useState(false);
 
   const { data: zoomData, isLoading: zoomLoading } = useQuery<{ zoomLink: string }>({
     queryKey: ["zoom-link"],
@@ -1269,7 +1270,6 @@ export default function AdminDashboard() {
     return <MemberDashboard />;
   }
 
-  const [isNavOpen, setIsNavOpen] = useState(false);
   const navPanelWidth = 320;
 
   const navItems = [
