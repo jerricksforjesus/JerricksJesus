@@ -1319,7 +1319,71 @@ export async function registerRoutes(
 
   // YouTube Playlist Videos Cache
   let playlistCache: { videos: any[]; timestamp: number } | null = null;
-  const CACHE_DURATION = 5 * 60 * 1000; // 5 minutes
+  const CACHE_DURATION = 60 * 60 * 1000; // 1 hour
+
+  // Helper function to fetch playlist from YouTube API
+  async function fetchPlaylistFromYouTube(playlistId: string, apiKey: string): Promise<any[]> {
+    const videos: any[] = [];
+    let nextPageToken: string | null = null;
+
+    do {
+      const url = new URL("https://www.googleapis.com/youtube/v3/playlistItems");
+      url.searchParams.set("part", "snippet,contentDetails");
+      url.searchParams.set("playlistId", playlistId);
+      url.searchParams.set("maxResults", "50");
+      url.searchParams.set("key", apiKey);
+      if (nextPageToken) {
+        url.searchParams.set("pageToken", nextPageToken);
+      }
+
+      const response = await fetch(url.toString());
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error("YouTube API error:", errorText);
+        throw new Error("Failed to fetch playlist");
+      }
+
+      const data = await response.json();
+      
+      for (const item of data.items || []) {
+        videos.push({
+          videoId: item.contentDetails.videoId,
+          title: item.snippet.title,
+          description: item.snippet.description,
+          thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url,
+          publishedAt: item.snippet.publishedAt,
+          position: item.snippet.position,
+        });
+      }
+
+      nextPageToken = data.nextPageToken || null;
+    } while (nextPageToken);
+
+    return videos;
+  }
+
+  // Manual Refresh Playlist Cache (Foundational/Admin only)
+  app.post("/api/youtube/playlist/:playlistId/refresh", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+    try {
+      const { playlistId } = req.params;
+      const apiKey = process.env.YOUTUBE_API_KEY;
+      
+      if (!apiKey) {
+        return res.status(400).json({ error: "YouTube API key not configured" });
+      }
+
+      const videos = await fetchPlaylistFromYouTube(playlistId, apiKey);
+      
+      // Update cache
+      playlistCache = { videos, timestamp: Date.now() };
+      
+      console.log(`Playlist cache manually refreshed by ${req.user?.username}`);
+      res.json({ success: true, videoCount: videos.length, message: "Playlist refreshed successfully" });
+    } catch (error) {
+      console.error("Error refreshing playlist:", error);
+      res.status(500).json({ error: "Failed to refresh playlist" });
+    }
+  });
 
   // YouTube Playlist Route - Fetch videos from a specific playlist
   app.get("/api/youtube/playlist/:playlistId", async (req, res) => {
@@ -1332,48 +1396,14 @@ export async function registerRoutes(
         return res.json({ videos: [], error: "YouTube API key not configured" });
       }
 
-      // Check cache
+      // Check cache - return cached data if still valid
       if (playlistCache && Date.now() - playlistCache.timestamp < CACHE_DURATION) {
         return res.json({ videos: playlistCache.videos });
       }
 
-      // Fetch playlist items from YouTube API
-      const videos: any[] = [];
-      let nextPageToken: string | null = null;
-
-      do {
-        const url = new URL("https://www.googleapis.com/youtube/v3/playlistItems");
-        url.searchParams.set("part", "snippet,contentDetails");
-        url.searchParams.set("playlistId", playlistId);
-        url.searchParams.set("maxResults", "50");
-        url.searchParams.set("key", apiKey);
-        if (nextPageToken) {
-          url.searchParams.set("pageToken", nextPageToken);
-        }
-
-        const response = await fetch(url.toString());
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error("YouTube API error:", errorText);
-          return res.status(500).json({ error: "Failed to fetch playlist" });
-        }
-
-        const data = await response.json();
-        
-        for (const item of data.items || []) {
-          videos.push({
-            videoId: item.contentDetails.videoId,
-            title: item.snippet.title,
-            description: item.snippet.description,
-            thumbnail: item.snippet.thumbnails?.medium?.url || item.snippet.thumbnails?.default?.url,
-            publishedAt: item.snippet.publishedAt,
-            position: item.snippet.position,
-          });
-        }
-
-        nextPageToken = data.nextPageToken || null;
-      } while (nextPageToken);
-
+      // Fetch fresh data using helper function
+      const videos = await fetchPlaylistFromYouTube(playlistId, apiKey);
+      
       // Update cache
       playlistCache = { videos, timestamp: Date.now() };
 

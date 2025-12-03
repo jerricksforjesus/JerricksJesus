@@ -1674,41 +1674,85 @@ export default function AdminDashboard() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-8">
-                {isAdmin && (
-                  <div className="space-y-4">
-                    <div>
-                      <h3 className="font-medium mb-2">Zoom Meeting Link</h3>
-                      <p className="text-sm text-muted-foreground mb-4">
-                        This link will be displayed on the Live Stream page for members to join the Zoom meeting.
-                      </p>
-                      <div className="flex gap-3">
-                        <Input
-                          id="zoom-link"
-                          data-testid="input-zoom-link"
-                          value={zoomLinkInput}
-                          onChange={(e) => setZoomLinkInput(e.target.value)}
-                          placeholder="https://zoom.us/j/..."
-                          className="flex-1"
-                        />
-                        <Button
-                          onClick={() => updateZoomLinkMutation.mutate(zoomLinkInput)}
-                          disabled={updateZoomLinkMutation.isPending || !zoomLinkInput}
-                          style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
-                          data-testid="button-save-zoom-link"
-                        >
-                          {updateZoomLinkMutation.isPending ? (
-                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
-                          ) : (
-                            <Save className="w-4 h-4 mr-2" />
-                          )}
-                          Save
-                        </Button>
-                      </div>
-                      {zoomData?.zoomLink && (
-                        <p className="text-sm text-muted-foreground mt-2">
-                          Current link: <a href={zoomData.zoomLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{zoomData.zoomLink}</a>
+                {(isAdmin || isFoundational) && (
+                  <div className="space-y-6">
+                    {isAdmin && (
+                      <div>
+                        <h3 className="font-medium mb-2">Zoom Meeting Link</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          This link will be displayed on the Live Stream page for members to join the Zoom meeting.
                         </p>
-                      )}
+                        <div className="flex gap-3">
+                          <Input
+                            id="zoom-link"
+                            data-testid="input-zoom-link"
+                            value={zoomLinkInput}
+                            onChange={(e) => setZoomLinkInput(e.target.value)}
+                            placeholder="https://zoom.us/j/..."
+                            className="flex-1"
+                          />
+                          <Button
+                            onClick={() => updateZoomLinkMutation.mutate(zoomLinkInput)}
+                            disabled={updateZoomLinkMutation.isPending || !zoomLinkInput}
+                            style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+                            data-testid="button-save-zoom-link"
+                          >
+                            {updateZoomLinkMutation.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : (
+                              <Save className="w-4 h-4 mr-2" />
+                            )}
+                            Save
+                          </Button>
+                        </div>
+                        {zoomData?.zoomLink && (
+                          <p className="text-sm text-muted-foreground mt-2">
+                            Current link: <a href={zoomData.zoomLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{zoomData.zoomLink}</a>
+                          </p>
+                        )}
+                      </div>
+                    )}
+
+                    <div className={isAdmin ? "border-t pt-6" : ""}>
+                      <h3 className="font-medium mb-2">Refresh YouTube Playlist</h3>
+                      <p className="text-sm text-muted-foreground mb-4">
+                        The YouTube playlist is cached for 1 hour to reduce API calls. Click below to manually refresh the worship music section if new videos were added.
+                      </p>
+                      <Button
+                        onClick={async () => {
+                          try {
+                            const response = await fetch("/api/youtube/playlist/PLkDsdLHKY8laSsy8xYfILnVzFMedR0Rgy/refresh", {
+                              method: "POST",
+                              credentials: "include",
+                            });
+                            if (response.ok) {
+                              const data = await response.json();
+                              toast({
+                                title: "Playlist Refreshed",
+                                description: `Successfully loaded ${data.videoCount} videos from YouTube.`,
+                              });
+                            } else {
+                              const error = await response.json();
+                              toast({
+                                title: "Refresh Failed",
+                                description: error.error || "Failed to refresh playlist. YouTube quota may be exceeded.",
+                                variant: "destructive",
+                              });
+                            }
+                          } catch (error) {
+                            toast({
+                              title: "Error",
+                              description: "Failed to refresh playlist.",
+                              variant: "destructive",
+                            });
+                          }
+                        }}
+                        variant="outline"
+                        data-testid="button-refresh-playlist"
+                      >
+                        <RefreshCw className="w-4 h-4 mr-2" />
+                        Refresh Playlist
+                      </Button>
                     </div>
                   </div>
                 )}
