@@ -1270,8 +1270,6 @@ export default function AdminDashboard() {
     return <MemberDashboard />;
   }
 
-  const navPanelWidth = 320;
-
   const navItems = [
     { id: "verse", label: "Daily Verse", icon: BookOpen },
     { id: "replays", label: "Sermon Replays", icon: Play },
@@ -1284,184 +1282,111 @@ export default function AdminDashboard() {
     { id: "settings", label: "Settings", icon: Settings },
   ];
 
-  const handleNavSelect = (id: string) => {
-    setActiveSection(id);
-    setIsNavOpen(false);
-  };
-
   return (
-    <div className="min-h-screen bg-muted/20 overflow-x-hidden">
+    <div className="min-h-screen bg-muted/20">
       <Navigation />
       
-      {/* Floating Menu Button */}
-      <motion.button
-        onClick={() => setIsNavOpen(!isNavOpen)}
-        className="fixed bottom-6 right-6 z-50 w-14 h-14 rounded-full shadow-lg flex items-center justify-center"
-        style={{ backgroundColor: "#b47a5f" }}
-        whileHover={{ scale: 1.05 }}
-        whileTap={{ scale: 0.95 }}
-        data-testid="button-toggle-nav"
-      >
-        <AnimatePresence mode="wait">
-          {isNavOpen ? (
-            <motion.div
-              key="close"
-              initial={{ rotate: -90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: 90, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <X className="w-6 h-6 text-white" />
-            </motion.div>
-          ) : (
-            <motion.div
-              key="menu"
-              initial={{ rotate: 90, opacity: 0 }}
-              animate={{ rotate: 0, opacity: 1 }}
-              exit={{ rotate: -90, opacity: 0 }}
-              transition={{ duration: 0.2 }}
-            >
-              <Menu className="w-6 h-6 text-white" />
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </motion.button>
-
-      {/* Overlay when nav is open */}
-      <AnimatePresence>
-        {isNavOpen && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            transition={{ duration: 0.3 }}
-            className="fixed inset-0 bg-black/20 z-40"
-            onClick={() => setIsNavOpen(false)}
-          />
-        )}
-      </AnimatePresence>
-
-      {/* Sliding Navigation Panel from Right */}
-      <AnimatePresence>
-        {isNavOpen && (
-          <motion.aside
-            initial={{ x: navPanelWidth }}
-            animate={{ x: 0 }}
-            exit={{ x: navPanelWidth }}
-            transition={{ type: "spring", stiffness: 300, damping: 30 }}
-            className="fixed top-0 right-0 h-full bg-card border-l shadow-2xl z-50 flex flex-col"
-            style={{ width: navPanelWidth }}
-          >
-            {/* Header */}
-            <div className="p-6 border-b" style={{ backgroundColor: "#b47a5f" }}>
-              <div className="flex items-center justify-between">
-                <div>
-                  <h2 className="text-xl font-serif font-bold text-white">Navigation</h2>
-                  <p className="text-sm text-white/80 mt-1">
-                    {user.username}
-                  </p>
-                </div>
-                <button
-                  onClick={() => setIsNavOpen(false)}
-                  className="p-2 rounded-full hover:bg-white/20 transition-colors"
-                >
-                  <X className="w-5 h-5 text-white" />
-                </button>
-              </div>
+      <div className="pt-20 lg:pt-24 flex min-h-[calc(100vh-5rem)]">
+        {/* Desktop Sidebar - Always visible on large screens */}
+        <aside className="hidden lg:flex w-64 flex-col bg-card border-r">
+          <div className="p-6 border-b" style={{ backgroundColor: "#b47a5f" }}>
+            <h1 className="text-xl font-serif font-bold text-white">Admin Dashboard</h1>
+            <p className="text-sm text-white/80 mt-1">
+              {user.username}
+            </p>
+          </div>
+          
+          <nav className="flex-1 p-3 overflow-y-auto">
+            <div className="space-y-1">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setActiveSection(item.id)}
+                    data-testid={`tab-${item.id}`}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
+                      activeSection === item.id
+                        ? "bg-[#b47a5f] text-white font-medium"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    {item.label}
+                  </button>
+                );
+              })}
             </div>
+          </nav>
+          
+          <div className="p-3 border-t space-y-2">
+            {isAdmin && (
+              <Button 
+                size="sm"
+                className="w-full"
+                onClick={() => setIsCreateUserOpen(true)}
+                data-testid="button-create-user"
+                style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+              >
+                <UserPlus className="h-4 w-4 mr-2" />
+                Add User
+              </Button>
+            )}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="w-full"
+              onClick={handleLogout}
+              data-testid="button-logout"
+            >
+              <LogOut className="h-4 w-4 mr-2" />
+              Log Out
+            </Button>
+          </div>
+        </aside>
 
-            {/* Navigation Items */}
-            <nav className="flex-1 p-4 overflow-y-auto">
-              <div className="space-y-1">
-                {navItems.map((item, index) => {
-                  const Icon = item.icon;
-                  return (
-                    <motion.button
-                      key={item.id}
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      onClick={() => handleNavSelect(item.id)}
-                      data-testid={`tab-${item.id}`}
-                      className={`w-full flex items-center justify-between px-4 py-3 rounded-lg text-left transition-all ${
-                        activeSection === item.id
-                          ? "bg-[#b47a5f] text-white font-medium shadow-md"
-                          : "text-foreground hover:bg-muted"
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        <Icon className="w-5 h-5 flex-shrink-0" />
-                        <span>{item.label}</span>
-                      </div>
-                      <ChevronRight className={`w-4 h-4 transition-transform ${
-                        activeSection === item.id ? "opacity-100" : "opacity-0"
-                      }`} />
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </nav>
-
-            {/* Footer Actions */}
-            <div className="p-4 border-t bg-muted/30 space-y-2">
+        {/* Mobile Navigation */}
+        <div className="lg:hidden fixed top-20 left-0 right-0 z-30 bg-card border-b shadow-sm">
+          <div className="p-3 flex items-center justify-between gap-3">
+            <Select value={activeSection} onValueChange={setActiveSection}>
+              <SelectTrigger className="flex-1" data-testid="mobile-section-select">
+                <SelectValue placeholder="Select section" />
+              </SelectTrigger>
+              <SelectContent>
+                {navItems.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <div className="flex gap-2">
               {isAdmin && (
                 <Button 
                   size="sm"
-                  className="w-full"
-                  onClick={() => {
-                    setIsCreateUserOpen(true);
-                    setIsNavOpen(false);
-                  }}
-                  data-testid="button-create-user"
+                  onClick={() => setIsCreateUserOpen(true)}
+                  data-testid="button-create-user-mobile"
                   style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
                 >
-                  <UserPlus className="h-4 w-4 mr-2" />
-                  Add User
+                  <UserPlus className="h-4 w-4" />
                 </Button>
               )}
               <Button 
                 variant="outline" 
-                size="sm" 
-                className="w-full"
+                size="sm"
                 onClick={handleLogout}
-                data-testid="button-logout"
+                data-testid="button-logout-mobile"
               >
-                <LogOut className="h-4 w-4 mr-2" />
-                Log Out
+                <LogOut className="h-4 w-4" />
               </Button>
             </div>
-          </motion.aside>
-        )}
-      </AnimatePresence>
-
-      {/* Main Content - shifts left when nav is open */}
-      <motion.main
-        animate={{ 
-          x: isNavOpen ? -navPanelWidth / 2 : 0,
-          scale: isNavOpen ? 0.98 : 1
-        }}
-        transition={{ type: "spring", stiffness: 300, damping: 30 }}
-        className="pt-28 pb-24 px-6 max-w-4xl mx-auto"
-      >
-        {/* Page Header */}
-        <div className="mb-8">
-          <div className="flex items-center gap-3 mb-2">
-            {navItems.find(item => item.id === activeSection)?.icon && (
-              (() => {
-                const Icon = navItems.find(item => item.id === activeSection)!.icon;
-                return <Icon className="w-6 h-6" style={{ color: "#b47a5f" }} />;
-              })()
-            )}
-            <h1 className="text-2xl font-serif font-bold">
-              {navItems.find(item => item.id === activeSection)?.label || "Admin Dashboard"}
-            </h1>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Logged in as <span className="font-medium">{user.username}</span>
-          </p>
         </div>
 
-        {activeSection === "verse" && (
+        {/* Main Content */}
+        <main className="flex-1 p-6 lg:p-8 pt-20 lg:pt-8 pb-12 overflow-y-auto">
+          <div className="max-w-4xl mx-auto">
+            {activeSection === "verse" && (
             <Card>
               <CardHeader>
                 <CardTitle>Edit Verse</CardTitle>
@@ -2331,7 +2256,9 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           )}
-      </motion.main>
+          </div>
+        </main>
+      </div>
 
       <VideoPlayerModal 
         video={selectedVideo} 
