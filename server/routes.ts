@@ -554,9 +554,17 @@ export async function registerRoutes(
             
             for (const item of data.items || []) {
               const snippet = item.snippet;
+              const videoId = snippet.resourceId?.videoId || item.contentDetails?.videoId;
+              
+              // Skip placeholder items (deleted/private videos have no videoId)
+              if (!videoId) {
+                console.log(`Initial sync: Skipping item without videoId: ${snippet.title || 'unknown'}`);
+                continue;
+              }
+              
               videos.push({
-                youtubeVideoId: snippet.resourceId?.videoId || item.contentDetails?.videoId,
-                title: snippet.title,
+                youtubeVideoId: videoId,
+                title: snippet.title || "Untitled Video",
                 description: snippet.description || null,
                 thumbnailUrl: snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url || null,
                 publishedAt: snippet.publishedAt ? new Date(snippet.publishedAt) : null,
