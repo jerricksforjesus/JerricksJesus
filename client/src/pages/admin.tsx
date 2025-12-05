@@ -267,12 +267,19 @@ interface YouTubeConnectionStatus {
   connectedAt?: string;
 }
 
+interface SyncStatus {
+  connected: boolean;
+  channelName: string | null;
+  lastSync: string | null;
+}
+
 function WorshipPlaylistManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { isAdmin } = useAuth();
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [isAddingVideo, setIsAddingVideo] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
 
   const { data: connectionStatus } = useQuery<YouTubeConnectionStatus>({
     queryKey: ["youtube-connection-status"],
@@ -282,6 +289,46 @@ function WorshipPlaylistManager() {
       return response.json();
     },
   });
+
+  const { data: syncStatus, refetch: refetchSyncStatus } = useQuery<SyncStatus>({
+    queryKey: ["worship-videos-sync-status"],
+    queryFn: async () => {
+      const response = await fetch("/api/worship-videos/sync-status", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to get sync status");
+      return response.json();
+    },
+  });
+
+  const syncFromYouTube = async () => {
+    setIsSyncing(true);
+    try {
+      const response = await fetch("/api/worship-videos/sync", {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || "Failed to sync");
+      }
+      
+      toast({ 
+        title: "Sync Complete", 
+        description: `${data.created} added, ${data.updated} updated, ${data.deleted} removed.` 
+      });
+      queryClient.invalidateQueries({ queryKey: ["worship-videos-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["worship-videos"] });
+      refetchSyncStatus();
+    } catch (error: any) {
+      toast({ 
+        title: "Sync Failed", 
+        description: error.message || "Could not sync from YouTube.", 
+        variant: "destructive" 
+      });
+    } finally {
+      setIsSyncing(false);
+    }
+  };
 
   const { data: videos = [], isLoading } = useQuery<WorshipVideo[]>({
     queryKey: ["worship-videos-admin"],
@@ -382,12 +429,33 @@ function WorshipPlaylistManager() {
                 <CheckCircle className="w-4 h-4" />
                 <span>Connected to: <strong>{connectionStatus.channelName}</strong></span>
               </div>
+              {syncStatus?.lastSync && (
+                <p className="text-xs text-muted-foreground">
+                  Last synced: {new Date(syncStatus.lastSync).toLocaleString()}
+                </p>
+              )}
               <p className="text-xs text-muted-foreground">
-                Videos added will automatically sync to your YouTube playlist.
+                Videos will be synced from your YouTube playlist. Use the sync button to fetch the latest videos.
               </p>
-              <Button variant="outline" size="sm" onClick={disconnectYouTube} data-testid="button-disconnect-youtube">
-                Disconnect YouTube
-              </Button>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={syncFromYouTube}
+                  disabled={isSyncing}
+                  data-testid="button-sync-youtube"
+                >
+                  {isSyncing ? (
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <RefreshCw className="w-4 h-4 mr-2" />
+                  )}
+                  {isSyncing ? "Syncing..." : "Sync from YouTube"}
+                </Button>
+                <Button variant="outline" size="sm" onClick={disconnectYouTube} data-testid="button-disconnect-youtube">
+                  Disconnect YouTube
+                </Button>
+              </div>
             </div>
           ) : (
             <div className="space-y-3">

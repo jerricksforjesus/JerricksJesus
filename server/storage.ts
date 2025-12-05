@@ -89,6 +89,7 @@ export interface IStorage {
   createWorshipVideo(video: InsertWorshipVideo): Promise<WorshipVideo>;
   deleteWorshipVideo(id: number): Promise<void>;
   updateWorshipVideoPosition(id: number, position: number): Promise<WorshipVideo | undefined>;
+  syncWorshipVideosFromPlaylist(videos: InsertWorshipVideo[]): Promise<{ created: number; updated: number; deleted: number }>;
 }
 
 export class DbStorage implements IStorage {
@@ -573,6 +574,51 @@ export class DbStorage implements IStorage {
       .where(eq(worshipVideos.id, id))
       .returning();
     return updated;
+  }
+
+  async syncWorshipVideosFromPlaylist(videos: InsertWorshipVideo[]): Promise<{ created: number; updated: number; deleted: number }> {
+    let created = 0;
+    let updated = 0;
+    let deleted = 0;
+
+    // Get all existing videos
+    const existingVideos = await this.getAllWorshipVideos();
+    const existingVideoIds = new Set(existingVideos.map(v => v.youtubeVideoId));
+    const incomingVideoIds = new Set(videos.map(v => v.youtubeVideoId));
+
+    // Upsert incoming videos
+    for (let i = 0; i < videos.length; i++) {
+      const video = videos[i];
+      const existing = await this.getWorshipVideoByYoutubeId(video.youtubeVideoId);
+      
+      if (existing) {
+        // Update existing video
+        await db.update(worshipVideos)
+          .set({
+            title: video.title,
+            description: video.description,
+            thumbnailUrl: video.thumbnailUrl,
+            position: i,
+          })
+          .where(eq(worshipVideos.id, existing.id));
+        updated++;
+      } else {
+        // Create new video
+        await db.insert(worshipVideos)
+          .values({ ...video, position: i });
+        created++;
+      }
+    }
+
+    // Delete videos that are no longer in the playlist
+    for (const existing of existingVideos) {
+      if (!incomingVideoIds.has(existing.youtubeVideoId)) {
+        await db.delete(worshipVideos).where(eq(worshipVideos.id, existing.id));
+        deleted++;
+      }
+    }
+
+    return { created, updated, deleted };
   }
 }
 

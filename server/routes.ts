@@ -512,7 +512,69 @@ export async function registerRoutes(
       });
 
       console.log(`YouTube connected by admin: ${req.user?.username}, channel: ${channel?.snippet?.title}`);
-      res.redirect("/admin?youtube_connected=true");
+      
+      // Trigger initial playlist sync in the background (fire-and-forget)
+      // This runs after we redirect, so the user sees the connected state immediately
+      setTimeout(async () => {
+        try {
+          console.log("Starting initial YouTube playlist sync...");
+          // Perform sync directly using stored tokens
+          const auth = await storage.getYoutubeAuth();
+          if (!auth) return;
+          
+          const videos: Array<{
+            youtubeVideoId: string;
+            title: string;
+            description: string | null;
+            thumbnailUrl: string | null;
+            publishedAt: Date | null;
+          }> = [];
+
+          let nextPageToken: string | undefined;
+          
+          do {
+            const url = new URL("https://www.googleapis.com/youtube/v3/playlistItems");
+            url.searchParams.set("part", "snippet,contentDetails");
+            url.searchParams.set("playlistId", YOUTUBE_PLAYLIST_ID);
+            url.searchParams.set("maxResults", "50");
+            if (nextPageToken) {
+              url.searchParams.set("pageToken", nextPageToken);
+            }
+
+            const response = await fetch(url.toString(), {
+              headers: { "Authorization": `Bearer ${auth.accessToken}` },
+            });
+
+            if (!response.ok) {
+              console.error("YouTube playlist fetch error during initial sync");
+              return;
+            }
+
+            const data = await response.json();
+            
+            for (const item of data.items || []) {
+              const snippet = item.snippet;
+              videos.push({
+                youtubeVideoId: snippet.resourceId?.videoId || item.contentDetails?.videoId,
+                title: snippet.title,
+                description: snippet.description || null,
+                thumbnailUrl: snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url || null,
+                publishedAt: snippet.publishedAt ? new Date(snippet.publishedAt) : null,
+              });
+            }
+
+            nextPageToken = data.nextPageToken;
+          } while (nextPageToken);
+
+          const result = await storage.syncWorshipVideosFromPlaylist(videos);
+          await storage.setSetting("youtube_last_sync", new Date().toISOString());
+          console.log(`Initial YouTube playlist sync complete: ${result.created} created, ${result.updated} updated, ${result.deleted} deleted`);
+        } catch (syncError) {
+          console.error("Initial playlist sync failed:", syncError);
+        }
+      }, 1000);
+      
+      res.redirect("/admin?youtube_connected=true&sync_started=true");
     } catch (error) {
       console.error("YouTube OAuth callback error:", error);
       res.redirect("/admin?youtube_error=auth_failed");
@@ -715,6 +777,134 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting worship video:", error);
       res.status(500).json({ error: "Failed to delete video" });
+    }
+  });
+
+  // Helper function to sync videos from YouTube playlist
+  async function syncPlaylistFromYoutube(): Promise<{ created: number; updated: number; deleted: number } | null> {
+    const accessToken = await getValidYoutubeToken();
+    if (!accessToken) {
+      console.log("No valid YouTube token for sync");
+      return null;
+    }
+
+    try {
+      const videos: Array<{
+        youtubeVideoId: string;
+        title: string;
+        description: string | null;
+        thumbnailUrl: string | null;
+        publishedAt: Date | null;
+      }> = [];
+
+      let nextPageToken: string | undefined;
+      
+      // Fetch all playlist items (paginated)
+      do {
+        const url = new URL("https://www.googleapis.com/youtube/v3/playlistItems");
+        url.searchParams.set("part", "snippet,contentDetails");
+        url.searchParams.set("playlistId", YOUTUBE_PLAYLIST_ID);
+        url.searchParams.set("maxResults", "50");
+        if (nextPageToken) {
+          url.searchParams.set("pageToken", nextPageToken);
+        }
+
+        const response = await fetch(url.toString(), {
+          headers: { "Authorization": `Bearer ${accessToken}` },
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          console.error("YouTube playlist fetch error:", errorData);
+          throw new Error("Failed to fetch playlist from YouTube");
+        }
+
+        const data = await response.json();
+        
+        for (const item of data.items || []) {
+          const snippet = item.snippet;
+          const videoId = snippet.resourceId?.videoId || item.contentDetails?.videoId;
+          
+          // Skip placeholder items (deleted/private videos have no videoId)
+          if (!videoId) {
+            console.log(`Skipping playlist item without videoId: ${snippet.title || 'unknown'}`);
+            continue;
+          }
+          
+          videos.push({
+            youtubeVideoId: videoId,
+            title: snippet.title || "Untitled Video",
+            description: snippet.description || null,
+            thumbnailUrl: snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url || null,
+            publishedAt: snippet.publishedAt ? new Date(snippet.publishedAt) : null,
+          });
+        }
+
+        nextPageToken = data.nextPageToken;
+      } while (nextPageToken);
+
+      // Sync to database
+      const result = await storage.syncWorshipVideosFromPlaylist(videos);
+      console.log(`YouTube playlist sync complete: ${result.created} created, ${result.updated} updated, ${result.deleted} deleted`);
+      
+      // Update last sync timestamp
+      await storage.setSetting("youtube_last_sync", new Date().toISOString());
+      
+      return result;
+    } catch (error) {
+      console.error("Error syncing YouTube playlist:", error);
+      throw error;
+    }
+  }
+
+  // Sync worship videos from YouTube playlist (Admin/Foundational only)
+  app.post("/api/worship-videos/sync", requireAuth, requireRole(USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
+    try {
+      // Check rate limit - only allow sync once per 5 minutes
+      const lastSync = await storage.getSetting("youtube_last_sync");
+      if (lastSync) {
+        const lastSyncTime = new Date(lastSync);
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        if (lastSyncTime > fiveMinutesAgo) {
+          const waitSeconds = Math.ceil((lastSyncTime.getTime() + 5 * 60 * 1000 - Date.now()) / 1000);
+          return res.status(429).json({ 
+            error: `Please wait ${Math.ceil(waitSeconds / 60)} minute(s) before syncing again`,
+            nextSyncAvailable: new Date(lastSyncTime.getTime() + 5 * 60 * 1000).toISOString(),
+          });
+        }
+      }
+
+      const result = await syncPlaylistFromYoutube();
+      
+      if (!result) {
+        return res.status(400).json({ error: "YouTube channel not connected" });
+      }
+
+      res.json({
+        success: true,
+        ...result,
+        message: `Synced ${result.created + result.updated} videos from YouTube playlist`,
+      });
+    } catch (error) {
+      console.error("Error syncing worship videos:", error);
+      res.status(500).json({ error: "Failed to sync playlist from YouTube" });
+    }
+  });
+
+  // Get sync status
+  app.get("/api/worship-videos/sync-status", requireAuth, requireRole(USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
+    try {
+      const lastSync = await storage.getSetting("youtube_last_sync");
+      const auth = await storage.getYoutubeAuth();
+      
+      res.json({
+        connected: !!auth,
+        channelName: auth?.channelName || null,
+        lastSync: lastSync || null,
+      });
+    } catch (error) {
+      console.error("Error getting sync status:", error);
+      res.status(500).json({ error: "Failed to get sync status" });
     }
   });
   
