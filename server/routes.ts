@@ -671,15 +671,24 @@ export async function registerRoutes(
         return res.status(400).json({ error: "This video is already in the playlist" });
       }
 
-      // Fetch video info from YouTube API
-      const apiKey = process.env.YOUTUBE_API_KEY;
-      if (!apiKey) {
-        return res.status(500).json({ error: "YouTube API not configured" });
+      // Get OAuth token for all YouTube operations (avoids API key referrer restrictions)
+      const accessToken = await getValidYoutubeToken();
+      if (!accessToken) {
+        return res.status(400).json({ error: "YouTube channel not connected. Please connect YouTube first." });
       }
 
+      // Fetch video info using OAuth token (no referrer restrictions)
       const videoResponse = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}`,
+        { headers: { "Authorization": `Bearer ${accessToken}` } }
       );
+      
+      if (!videoResponse.ok) {
+        const errorData = await videoResponse.json();
+        console.error("YouTube video fetch error:", errorData);
+        return res.status(500).json({ error: "Failed to fetch video info from YouTube" });
+      }
+      
       const videoData = await videoResponse.json();
       const videoInfo = videoData.items?.[0];
 
@@ -687,41 +696,38 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Video not found on YouTube" });
       }
 
-      // Add to YouTube playlist if connected
-      const accessToken = await getValidYoutubeToken();
-      if (accessToken) {
-        try {
-          const playlistResponse = await fetch(
-            `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet`,
-            {
-              method: "POST",
-              headers: {
-                "Authorization": `Bearer ${accessToken}`,
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                snippet: {
-                  playlistId: YOUTUBE_PLAYLIST_ID,
-                  resourceId: {
-                    kind: "youtube#video",
-                    videoId: videoId,
-                  },
+      // Add to YouTube playlist (using the same token)
+      try {
+        const playlistResponse = await fetch(
+          `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet`,
+          {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${accessToken}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              snippet: {
+                playlistId: YOUTUBE_PLAYLIST_ID,
+                resourceId: {
+                  kind: "youtube#video",
+                  videoId: videoId,
                 },
-              }),
-            }
-          );
-
-          if (!playlistResponse.ok) {
-            const errorData = await playlistResponse.json();
-            console.error("YouTube playlist add error:", errorData);
-            // Continue to save locally even if YouTube add fails
-          } else {
-            console.log(`Video ${videoId} added to YouTube playlist by ${req.user?.username}`);
+              },
+            }),
           }
-        } catch (error) {
-          console.error("Error adding to YouTube playlist:", error);
-          // Continue to save locally
+        );
+
+        if (!playlistResponse.ok) {
+          const errorData = await playlistResponse.json();
+          console.error("YouTube playlist add error:", errorData);
+          // Continue to save locally even if YouTube add fails
+        } else {
+          console.log(`Video ${videoId} added to YouTube playlist by ${req.user?.username}`);
         }
+      } catch (error) {
+        console.error("Error adding to YouTube playlist:", error);
+        // Continue to save locally
       }
 
       // Save to our database
