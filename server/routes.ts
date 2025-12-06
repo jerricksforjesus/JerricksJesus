@@ -1770,56 +1770,66 @@ export async function registerRoutes(
     }
   });
 
-  // YouTube Live Status Route
+  // YouTube Live Status Route - Uses OAuth token to bypass API key referrer restrictions
   app.get("/api/youtube/live-status", async (req, res) => {
     try {
-      const channelHandle = "@JerricksForJesus";
-      let channelId = process.env.YOUTUBE_CHANNEL_ID;
-      const apiKey = process.env.YOUTUBE_API_KEY;
+      // Get OAuth token and stored auth info
+      const accessToken = await getValidYoutubeToken();
+      const youtubeAuth = await storage.getYoutubeAuth();
       
-      if (!apiKey) {
-        console.log("YouTube API key not configured, returning offline status");
+      if (!accessToken) {
+        console.log("YouTube not connected via OAuth, returning offline status. Connect YouTube in admin panel to enable live detection.");
         return res.json({ isLive: false, videoId: null, title: null });
       }
       
-      // If we don't have a valid channel ID (should start with UC), look it up by handle
-      if (!channelId || !channelId.startsWith("UC")) {
-        const handleUrl = `https://www.googleapis.com/youtube/v3/channels?part=id&forHandle=${channelHandle}&key=${apiKey}`;
-        const handleResponse = await fetch(handleUrl);
+      // Try to get channel ID: first from stored auth, then from API
+      let channelId = youtubeAuth?.channelId;
+      
+      if (!channelId) {
+        // Fetch channel ID from authenticated user's channel
+        const channelResponse = await fetch(
+          "https://www.googleapis.com/youtube/v3/channels?part=id,snippet&mine=true",
+          { headers: { "Authorization": `Bearer ${accessToken}` } }
+        );
         
-        if (handleResponse.ok) {
-          const handleData = await handleResponse.json();
-          if (handleData.items && handleData.items.length > 0) {
-            channelId = handleData.items[0].id;
-            console.log(`Resolved channel handle ${channelHandle} to ID: ${channelId}`);
+        if (channelResponse.ok) {
+          const channelData = await channelResponse.json();
+          if (channelData.items && channelData.items.length > 0) {
+            channelId = channelData.items[0].id;
           }
+        } else {
+          console.error("YouTube channels API error:", await channelResponse.text());
         }
       }
       
       if (!channelId) {
-        console.log("Could not resolve channel ID");
+        console.log("Could not determine YouTube channel ID");
         return res.json({ isLive: false, videoId: null, title: null });
       }
       
-      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video&key=${apiKey}`;
+      // Search for live streams on this channel
+      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video`;
+      const searchResponse = await fetch(searchUrl, {
+        headers: { "Authorization": `Bearer ${accessToken}` }
+      });
       
-      const response = await fetch(searchUrl);
-      if (!response.ok) {
-        console.error("YouTube API error:", await response.text());
-        return res.json({ isLive: false, videoId: null, title: null });
+      if (searchResponse.ok) {
+        const searchData = await searchResponse.json();
+        
+        if (searchData.items && searchData.items.length > 0) {
+          const liveVideo = searchData.items[0];
+          console.log("Live stream detected:", liveVideo.snippet.title);
+          return res.json({
+            isLive: true,
+            videoId: liveVideo.id.videoId,
+            title: liveVideo.snippet.title
+          });
+        }
+      } else {
+        console.error("YouTube search API error:", await searchResponse.text());
       }
       
-      const data = await response.json();
-      
-      if (data.items && data.items.length > 0) {
-        const liveVideo = data.items[0];
-        return res.json({
-          isLive: true,
-          videoId: liveVideo.id.videoId,
-          title: liveVideo.snippet.title
-        });
-      }
-      
+      // No live stream found
       return res.json({ isLive: false, videoId: null, title: null });
     } catch (error) {
       console.error("Error checking live status:", error);
