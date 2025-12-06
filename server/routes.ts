@@ -1642,18 +1642,26 @@ export async function registerRoutes(
     try {
       const { ministryId } = req.params;
       
+      // Build base URL for absolute image URLs (for mobile app)
+      const publicUrl = process.env.PUBLIC_APP_URL || `${req.protocol}://${req.get('host')}`;
+      
       // Get ministry image URL from settings
       const imageSettingKey = `ministry_image_${ministryId}`;
-      const imageUrl = await storage.getSetting(imageSettingKey);
+      const storedImageUrl = await storage.getSetting(imageSettingKey);
       
-      if (imageUrl) {
-        res.json({ imageUrl });
+      if (storedImageUrl) {
+        // If stored URL is relative, make it absolute
+        const absoluteUrl = storedImageUrl.startsWith('http') 
+          ? storedImageUrl 
+          : `${publicUrl}${storedImageUrl}`;
+        res.json({ imageUrl: absoluteUrl, altText: "Ministry Image" });
       } else {
         // Default images for known ministries
         if (ministryId === "community") {
-          // Return the charity logo path - mobile app should fetch this
+          // Return absolute URL for the charity logo - works for both web and mobile
+          const imagePath = "/attached_assets/WhatsApp Image 2025-11-23 at 16.30.41_1764630455920.jpeg";
           res.json({ 
-            imageUrl: "/attached_assets/WhatsApp Image 2025-11-23 at 16.30.41_1764630455920.jpeg",
+            imageUrl: `${publicUrl}${imagePath}`,
             altText: "Jerricks for Jesus Charity Logo"
           });
         } else {
