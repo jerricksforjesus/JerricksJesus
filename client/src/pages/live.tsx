@@ -107,6 +107,23 @@ export default function LiveStream() {
             )}
           </div>
 
+          {isLive && zoomLink && (
+            <div className="bg-muted/50 border border-border rounded-xl p-4 text-center">
+              <p className="text-muted-foreground mb-3">
+                Stream may have a slight delay. To join the stream live, please hit the button below.
+              </p>
+              <a href={zoomLink} target="_blank" rel="noopener noreferrer">
+                <Button 
+                  size="lg" 
+                  className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold px-8"
+                  data-testid="button-join-zoom-under-video"
+                >
+                  Join the Zoom
+                </Button>
+              </a>
+            </div>
+          )}
+
           <div className="flex justify-between items-start">
             <div>
               <h1 className="text-2xl md:text-3xl font-serif font-bold" data-testid="text-stream-title">
