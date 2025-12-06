@@ -127,6 +127,23 @@ export function LiveStreamSection() {
                 </div>
               )}
             </div>
+
+          {isLive && zoomLink && (
+            <div className="bg-muted/50 border border-border rounded-xl p-4 text-center mt-6">
+              <p className="text-muted-foreground mb-3">
+                Stream may have a slight delay. To join the stream live, please hit the button below.
+              </p>
+              <a href={zoomLink} target="_blank" rel="noopener noreferrer">
+                <Button 
+                  size="lg" 
+                  className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold px-8"
+                  data-testid="button-join-zoom-under-video-home"
+                >
+                  Join the Zoom
+                </Button>
+              </a>
+            </div>
+          )}
         </motion.div>
       </div>
     </section>
