@@ -1770,63 +1770,76 @@ export async function registerRoutes(
     }
   });
 
-  // YouTube Live Status Route - Uses OAuth token to bypass API key referrer restrictions
+  // YouTube Live Status Route - Uses OAuth token and liveBroadcasts API to detect unlisted streams
   app.get("/api/youtube/live-status", async (req, res) => {
     try {
-      // Get OAuth token and stored auth info
+      // Get OAuth token
       const accessToken = await getValidYoutubeToken();
-      const youtubeAuth = await storage.getYoutubeAuth();
       
       if (!accessToken) {
         console.log("YouTube not connected via OAuth, returning offline status. Connect YouTube in admin panel to enable live detection.");
         return res.json({ isLive: false, videoId: null, title: null });
       }
       
-      // Try to get channel ID: first from stored auth, then from API
-      let channelId = youtubeAuth?.channelId;
-      
-      if (!channelId) {
-        // Fetch channel ID from authenticated user's channel
-        const channelResponse = await fetch(
-          "https://www.googleapis.com/youtube/v3/channels?part=id,snippet&mine=true",
-          { headers: { "Authorization": `Bearer ${accessToken}` } }
-        );
-        
-        if (channelResponse.ok) {
-          const channelData = await channelResponse.json();
-          if (channelData.items && channelData.items.length > 0) {
-            channelId = channelData.items[0].id;
-          }
-        } else {
-          console.error("YouTube channels API error:", await channelResponse.text());
-        }
-      }
-      
-      if (!channelId) {
-        console.log("Could not determine YouTube channel ID");
-        return res.json({ isLive: false, videoId: null, title: null });
-      }
-      
-      // Search for live streams on this channel
-      const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video`;
-      const searchResponse = await fetch(searchUrl, {
+      // Use liveBroadcasts API - this detects unlisted/private streams too (unlike search API)
+      // Note: Can't combine broadcastStatus with mine=true, so we fetch all and filter
+      const broadcastUrl = "https://www.googleapis.com/youtube/v3/liveBroadcasts?part=id,snippet,status&mine=true&maxResults=10";
+      const broadcastResponse = await fetch(broadcastUrl, {
         headers: { "Authorization": `Bearer ${accessToken}` }
       });
       
-      if (searchResponse.ok) {
-        const searchData = await searchResponse.json();
+      if (broadcastResponse.ok) {
+        const broadcastData = await broadcastResponse.json();
+        console.log("Live broadcasts API response:", JSON.stringify(broadcastData));
         
-        if (searchData.items && searchData.items.length > 0) {
-          const liveVideo = searchData.items[0];
-          console.log("Live stream detected:", liveVideo.snippet.title);
-          return res.json({
-            isLive: true,
-            videoId: liveVideo.id.videoId,
-            title: liveVideo.snippet.title
-          });
+        if (broadcastData.items && broadcastData.items.length > 0) {
+          // Find an active/live broadcast (lifeCycleStatus = "live")
+          const liveBroadcast = broadcastData.items.find(
+            (item: any) => item.status?.lifeCycleStatus === "live"
+          );
+          
+          if (liveBroadcast) {
+            // The broadcast ID is the video ID for YouTube embeds
+            const videoId = liveBroadcast.id;
+            const title = liveBroadcast.snippet?.title || "Live Service";
+            console.log("Live stream detected via liveBroadcasts API:", title, "videoId:", videoId, "status:", liveBroadcast.status?.lifeCycleStatus);
+            return res.json({
+              isLive: true,
+              videoId: videoId,
+              title: title
+            });
+          } else {
+            console.log("Broadcasts found but none are live. Statuses:", broadcastData.items.map((i: any) => i.status?.lifeCycleStatus));
+          }
         }
+        console.log("No active broadcasts found");
       } else {
-        console.error("YouTube search API error:", await searchResponse.text());
+        const errorText = await broadcastResponse.text();
+        console.error("YouTube liveBroadcasts API error:", errorText);
+        
+        // Fallback to search API for public streams
+        const youtubeAuth = await storage.getYoutubeAuth();
+        const channelId = youtubeAuth?.channelId;
+        
+        if (channelId) {
+          const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video`;
+          const searchResponse = await fetch(searchUrl, {
+            headers: { "Authorization": `Bearer ${accessToken}` }
+          });
+          
+          if (searchResponse.ok) {
+            const searchData = await searchResponse.json();
+            if (searchData.items && searchData.items.length > 0) {
+              const liveVideo = searchData.items[0];
+              console.log("Live stream detected via search API fallback:", liveVideo.snippet.title);
+              return res.json({
+                isLive: true,
+                videoId: liveVideo.id.videoId,
+                title: liveVideo.snippet.title
+              });
+            }
+          }
+        }
       }
       
       // No live stream found
