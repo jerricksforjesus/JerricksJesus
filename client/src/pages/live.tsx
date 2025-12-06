@@ -58,10 +58,11 @@ export default function LiveStream() {
                   <Radio className="w-4 h-4 animate-pulse" /> LIVE
                 </div>
                 <iframe
-                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0`}
+                  src={`https://www.youtube.com/embed/${videoId}?autoplay=1&rel=0&origin=${encodeURIComponent(window.location.origin)}&enablejsapi=1`}
                   className="w-full h-full"
                   allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                   allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
                   title="Live Stream"
                   data-testid="youtube-live-embed"
                 />
