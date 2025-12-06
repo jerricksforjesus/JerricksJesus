@@ -5,32 +5,50 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import { WorshipMusicSection } from "./WorshipMusicSection";
 import { FamilyPhotoGallery } from "./FamilyPhotoGallery";
 import { CharityComingSoon } from "./CharityComingSoon";
 
-const ministries = [
-  {
-    id: "item-1",
-    title: "Worship & Music",
-    description: "Join our choir or band. We believe in praising through song and spirit, blending traditional hymns with contemporary worship.",
-    hasCustomContent: true,
-  },
-  {
-    id: "item-2",
-    title: "Youth & Family",
-    description: "Programs for all ages, from Sunday school for the little ones to teen youth groups focused on navigating faith in the modern world.",
-    hasCustomContent: false,
-  },
-  {
-    id: "item-3",
-    title: "Community Outreach",
-    description: "We serve our local community through food drives, shelter support, and neighborhood cleanup events. Faith in action.",
-    hasCustomContent: false,
-  },
-];
+interface Ministry {
+  id: string;
+  title: string;
+  description: string;
+  icon: string;
+  imageUrl: string | null;
+  customContent: {
+    type: string;
+    playlistId?: string;
+    message?: string;
+  } | null;
+}
 
 export function MinistryAccordion() {
+  const { data: ministries = [] } = useQuery<Ministry[]>({
+    queryKey: ["ministries"],
+    queryFn: async () => {
+      const response = await fetch("/api/settings/ministries");
+      if (!response.ok) throw new Error("Failed to fetch ministries");
+      return response.json();
+    },
+    staleTime: 5 * 60 * 1000,
+  });
+
+  const renderCustomContent = (ministry: Ministry) => {
+    if (!ministry.customContent) return null;
+    
+    switch (ministry.customContent.type) {
+      case "youtube_playlist":
+        return <WorshipMusicSection />;
+      case "family_photos":
+        return <FamilyPhotoGallery />;
+      case "charity_coming_soon":
+        return <CharityComingSoon message={ministry.customContent.message} />;
+      default:
+        return null;
+    }
+  };
+
   return (
     <section className="py-24 px-6 bg-background">
       <div className="max-w-4xl mx-auto">
@@ -54,9 +72,7 @@ export function MinistryAccordion() {
                 <p className="text-lg text-muted-foreground font-sans leading-relaxed mb-4">
                   {item.description}
                 </p>
-                {item.id === "item-1" && <WorshipMusicSection />}
-                {item.id === "item-2" && <FamilyPhotoGallery />}
-                {item.id === "item-3" && <CharityComingSoon />}
+                {renderCustomContent(item)}
               </AccordionContent>
             </AccordionItem>
           ))}

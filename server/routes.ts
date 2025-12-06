@@ -1576,35 +1576,93 @@ export async function registerRoutes(
   // Ministries - GET
   app.get("/api/settings/ministries", async (req, res) => {
     try {
+      // Default ministries with full structure including image URLs and custom content
+      const defaultMinistries = [
+        {
+          id: "worship",
+          title: "Worship & Music",
+          description: "Join our choir or band. We believe in praising through song and spirit, blending traditional hymns with contemporary worship.",
+          icon: "music",
+          imageUrl: null,
+          customContent: {
+            type: "youtube_playlist",
+            playlistId: "PLkDsdLHKY8laSsy8xYfILnVzFMedR0Rgy"
+          }
+        },
+        {
+          id: "youth",
+          title: "Youth & Family",
+          description: "Programs for all ages, from Sunday school for the little ones to teen youth groups focused on navigating faith in the modern world.",
+          icon: "users",
+          imageUrl: null,
+          customContent: {
+            type: "family_photos"
+          }
+        },
+        {
+          id: "community",
+          title: "Community Outreach",
+          description: "We serve our local community through food drives, shelter support, and neighborhood cleanup events. Faith in action.",
+          icon: "heart",
+          imageUrl: "/api/settings/ministry-image/community",
+          customContent: {
+            type: "charity_coming_soon",
+            message: "Jerricks for Jesus Charity – Coming Soon"
+          }
+        }
+      ];
+
       const ministriesJson = await storage.getSetting("ministries");
       if (ministriesJson) {
-        res.json(JSON.parse(ministriesJson));
-      } else {
-        // Default ministries
-        res.json([
-          {
-            id: "worship",
-            title: "Worship & Music",
-            description: "Join our worship team to praise and glorify God through music and song.",
-            icon: "music"
-          },
-          {
-            id: "community",
-            title: "Community Outreach",
-            description: "Serve our local community through various outreach programs and charitable initiatives.",
-            icon: "heart"
-          },
-          {
-            id: "education",
-            title: "Bible Study",
-            description: "Deepen your understanding of Scripture through our weekly Bible study sessions.",
-            icon: "book"
+        const stored = JSON.parse(ministriesJson);
+        // Merge stored values with defaults to ensure proper structure
+        const merged = defaultMinistries.map(defaultMinistry => {
+          const storedMinistry = stored.find((s: any) => s.id === defaultMinistry.id);
+          if (storedMinistry) {
+            return {
+              ...defaultMinistry,
+              ...storedMinistry,
+              customContent: storedMinistry.customContent || defaultMinistry.customContent
+            };
           }
-        ]);
+          return defaultMinistry;
+        });
+        res.json(merged);
+      } else {
+        res.json(defaultMinistries);
       }
     } catch (error) {
       console.error("Error fetching ministries:", error);
       res.status(500).json({ error: "Failed to fetch ministries" });
+    }
+  });
+
+  // Ministry Image - GET (Returns the charity logo image for community outreach)
+  app.get("/api/settings/ministry-image/:ministryId", async (req, res) => {
+    try {
+      const { ministryId } = req.params;
+      
+      // Get ministry image URL from settings
+      const imageSettingKey = `ministry_image_${ministryId}`;
+      const imageUrl = await storage.getSetting(imageSettingKey);
+      
+      if (imageUrl) {
+        res.json({ imageUrl });
+      } else {
+        // Default images for known ministries
+        if (ministryId === "community") {
+          // Return the charity logo path - mobile app should fetch this
+          res.json({ 
+            imageUrl: "/attached_assets/WhatsApp Image 2025-11-23 at 16.30.41_1764630455920.jpeg",
+            altText: "Jerricks for Jesus Charity Logo"
+          });
+        } else {
+          res.json({ imageUrl: null, altText: null });
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching ministry image:", error);
+      res.status(500).json({ error: "Failed to fetch ministry image" });
     }
   });
 
