@@ -1478,6 +1478,49 @@ export async function registerRoutes(
     }
   });
 
+  // Footer Info - GET (Returns all footer data in one call for mobile app)
+  app.get("/api/settings/footer", async (req, res) => {
+    try {
+      const footerJson = await storage.getSetting("footer_info");
+      if (footerJson) {
+        res.json(JSON.parse(footerJson));
+      } else {
+        // Default footer info matching current hardcoded values
+        res.json({
+          churchName: "JERRICKS FOR JESUS",
+          tagline: "A sanctuary for the digital age. Bringing the word of God to wherever you are.",
+          address: {
+            line1: "99 Hillside Avenue Suite F",
+            line2: "Williston Park NY 11596"
+          },
+          contact: {
+            email: "family@jerricksforjesus.com",
+            phone: "516-240-5503"
+          },
+          copyright: "© 2024 Jerricks for Jesus. All rights reserved."
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching footer info:", error);
+      res.status(500).json({ error: "Failed to fetch footer info" });
+    }
+  });
+
+  // Footer Info - PUT (Admin/Foundational only)
+  app.put("/api/settings/footer", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+    try {
+      const { footer } = req.body;
+      if (!footer || typeof footer !== "object") {
+        return res.status(400).json({ error: "Footer info must be an object" });
+      }
+      await storage.setSetting("footer_info", JSON.stringify(footer));
+      res.json({ success: true, footer });
+    } catch (error) {
+      console.error("Error updating footer info:", error);
+      res.status(500).json({ error: "Failed to update footer info" });
+    }
+  });
+
   // Church Info - GET
   app.get("/api/settings/church-info", async (req, res) => {
     try {
