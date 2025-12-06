@@ -1481,24 +1481,40 @@ export async function registerRoutes(
   // Footer Info - GET (Returns all footer data in one call for mobile app)
   app.get("/api/settings/footer", async (req, res) => {
     try {
+      // Default footer structure
+      const defaultFooter = {
+        churchName: "JERRICKS FOR JESUS",
+        tagline: "A sanctuary for the digital age. Bringing the word of God to wherever you are.",
+        address: {
+          line1: "99 Hillside Avenue Suite F",
+          line2: "Williston Park NY 11596"
+        },
+        contact: {
+          email: "family@jerricksforjesus.com",
+          phone: "516-240-5503"
+        },
+        copyright: "© 2024 Jerricks for Jesus. All rights reserved."
+      };
+
       const footerJson = await storage.getSetting("footer_info");
       if (footerJson) {
-        res.json(JSON.parse(footerJson));
-      } else {
-        // Default footer info matching current hardcoded values
+        const stored = JSON.parse(footerJson);
+        // Merge with defaults to ensure proper structure
         res.json({
-          churchName: "JERRICKS FOR JESUS",
-          tagline: "A sanctuary for the digital age. Bringing the word of God to wherever you are.",
+          churchName: stored.churchName || defaultFooter.churchName,
+          tagline: stored.tagline || defaultFooter.tagline,
           address: {
-            line1: "99 Hillside Avenue Suite F",
-            line2: "Williston Park NY 11596"
+            line1: stored.address?.line1 || defaultFooter.address.line1,
+            line2: stored.address?.line2 || defaultFooter.address.line2
           },
           contact: {
-            email: "family@jerricksforjesus.com",
-            phone: "516-240-5503"
+            email: stored.contact?.email || defaultFooter.contact.email,
+            phone: stored.contact?.phone || defaultFooter.contact.phone
           },
-          copyright: "© 2024 Jerricks for Jesus. All rights reserved."
+          copyright: stored.copyright || defaultFooter.copyright
         });
+      } else {
+        res.json(defaultFooter);
       }
     } catch (error) {
       console.error("Error fetching footer info:", error);
