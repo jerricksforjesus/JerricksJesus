@@ -1658,8 +1658,8 @@ export async function registerRoutes(
       } else {
         // Default images for known ministries
         if (ministryId === "community") {
-          // Return absolute URL for the charity logo - works for both web and mobile
-          const imagePath = "/attached_assets/WhatsApp Image 2025-11-23 at 16.30.41_1764630455920.jpeg";
+          // Return absolute URL for the charity logo - URL-friendly filename
+          const imagePath = "/attached_assets/charity-logo.jpeg";
           res.json({ 
             imageUrl: `${publicUrl}${imagePath}`,
             altText: "Jerricks for Jesus Charity Logo"
