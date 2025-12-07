@@ -1,5 +1,6 @@
 import express, { type Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
+import path from "path";
 import { registerRoutes } from "./routes";
 import { serveStatic } from "./static";
 import { createServer } from "http";
@@ -72,6 +73,10 @@ app.use((req, res, next) => {
     res.status(status).json({ message });
     throw err;
   });
+
+  // Serve attached_assets as static files (for images like charity-logo.jpeg)
+  const attachedAssetsPath = path.resolve(process.cwd(), "attached_assets");
+  app.use("/attached_assets", express.static(attachedAssetsPath));
 
   // importantly only setup vite in development and after
   // setting up all the other routes so the catch-all route
