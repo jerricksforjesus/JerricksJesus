@@ -601,6 +601,10 @@ function EventsManagementTab() {
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactType, setContactType] = useState<"phone" | "email">("phone");
+  // Time picker state (12-hour format display)
+  const [timeHour, setTimeHour] = useState("12");
+  const [timeMinute, setTimeMinute] = useState("00");
+  const [timeAmPm, setTimeAmPm] = useState<"AM" | "PM">("AM");
   const [eventDescription, setEventDescription] = useState("");
   const [eventThumbnailPath, setEventThumbnailPath] = useState("");
   const [heroImagePath, setHeroImagePath] = useState("");
@@ -716,7 +720,9 @@ function EventsManagementTab() {
   const resetForm = () => {
     setEventTitle("");
     setEventDate("");
-    setEventTime("");
+    setTimeHour("12");
+    setTimeMinute("00");
+    setTimeAmPm("AM");
     setStreetAddress("");
     setCity("");
     setState("");
@@ -730,11 +736,32 @@ function EventsManagementTab() {
     setEditingEvent(null);
   };
 
+  // Convert 24-hour time string to 12-hour picker values
+  const parse24HourTime = (time24: string) => {
+    if (!time24) return { hour: "12", minute: "00", ampm: "AM" as const };
+    const [hours, minutes] = time24.split(':').map(s => parseInt(s, 10));
+    const ampm = hours >= 12 ? "PM" as const : "AM" as const;
+    let hour12 = hours % 12;
+    if (hour12 === 0) hour12 = 12;
+    return { hour: hour12.toString(), minute: minutes.toString().padStart(2, '0'), ampm };
+  };
+
+  // Convert 12-hour picker values to 24-hour time string
+  const build24HourTime = (hour: string, minute: string, ampm: "AM" | "PM") => {
+    let hour24 = parseInt(hour, 10);
+    if (ampm === "PM" && hour24 !== 12) hour24 += 12;
+    if (ampm === "AM" && hour24 === 12) hour24 = 0;
+    return `${hour24.toString().padStart(2, '0')}:${minute}`;
+  };
+
   const handleEdit = (event: Event) => {
     setEditingEvent(event);
     setEventTitle(event.title);
     setEventDate(event.eventDate);
-    setEventTime(event.eventTime);
+    const { hour, minute, ampm } = parse24HourTime(event.eventTime);
+    setTimeHour(hour);
+    setTimeMinute(minute);
+    setTimeAmPm(ampm);
     setStreetAddress(event.streetAddress || "");
     setCity(event.city || "");
     setState(event.state || "");
@@ -748,7 +775,7 @@ function EventsManagementTab() {
   };
 
   const handleSubmit = () => {
-    if (!eventTitle || !eventDate || !eventTime || !streetAddress || !city || !state || !contactName || !contactPhone) {
+    if (!eventTitle || !eventDate || !streetAddress || !city || !state || !contactName || !contactPhone) {
       toast({ title: "Missing Fields", description: "Please fill in all required fields.", variant: "destructive" });
       return;
     }
@@ -757,6 +784,8 @@ function EventsManagementTab() {
       toast({ title: "Missing Email", description: "Please provide an email address for email contact type.", variant: "destructive" });
       return;
     }
+
+    const eventTime = build24HourTime(timeHour, timeMinute, timeAmPm);
 
     const eventData = {
       title: eventTitle,
@@ -918,35 +947,19 @@ function EventsManagementTab() {
               <Label htmlFor="event-time">Time *</Label>
               <div className="flex gap-2">
                 <select
-                  value={eventTime ? eventTime.split(':')[0] : "12"}
-                  onChange={(e) => {
-                    const mins = eventTime ? eventTime.split(':')[1] : "00";
-                    setEventTime(`${e.target.value}:${mins}`);
-                  }}
+                  value={timeHour}
+                  onChange={(e) => setTimeHour(e.target.value)}
                   className="flex h-10 w-20 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                   data-testid="select-event-hour"
                 >
-                  {Array.from({ length: 12 }, (_, i) => {
-                    const hour12 = i === 0 ? 12 : i;
-                    return (
-                      <option key={i} value={i.toString().padStart(2, '0')}>{hour12}</option>
-                    );
-                  })}
-                  {Array.from({ length: 12 }, (_, i) => {
-                    const hour24 = i + 12;
-                    const hour12 = i === 0 ? 12 : i;
-                    return (
-                      <option key={hour24} value={hour24.toString().padStart(2, '0')}>{hour12}</option>
-                    );
-                  })}
+                  {[12, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11].map((hour) => (
+                    <option key={hour} value={hour.toString()}>{hour}</option>
+                  ))}
                 </select>
                 <span className="flex items-center">:</span>
                 <select
-                  value={eventTime ? eventTime.split(':')[1] : "00"}
-                  onChange={(e) => {
-                    const hours = eventTime ? eventTime.split(':')[0] : "12";
-                    setEventTime(`${hours}:${e.target.value}`);
-                  }}
+                  value={timeMinute}
+                  onChange={(e) => setTimeMinute(e.target.value)}
                   className="flex h-10 w-20 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                   data-testid="select-event-minute"
                 >
@@ -955,14 +968,8 @@ function EventsManagementTab() {
                   ))}
                 </select>
                 <select
-                  value={eventTime && parseInt(eventTime.split(':')[0]) >= 12 ? "PM" : "AM"}
-                  onChange={(e) => {
-                    let hours = parseInt(eventTime?.split(':')[0] || "12");
-                    const mins = eventTime?.split(':')[1] || "00";
-                    if (e.target.value === "PM" && hours < 12) hours += 12;
-                    if (e.target.value === "AM" && hours >= 12) hours -= 12;
-                    setEventTime(`${hours.toString().padStart(2, '0')}:${mins}`);
-                  }}
+                  value={timeAmPm}
+                  onChange={(e) => setTimeAmPm(e.target.value as "AM" | "PM")}
                   className="flex h-10 w-16 rounded-md border border-input bg-background px-2 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                   data-testid="select-event-ampm"
                 >
