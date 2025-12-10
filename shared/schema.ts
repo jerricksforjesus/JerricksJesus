@@ -145,9 +145,16 @@ export const events = pgTable("events", {
   title: text("title").notNull(),
   eventDate: text("event_date").notNull(),
   eventTime: text("event_time").notNull(),
-  location: text("location").notNull(),
-  contactInfo: text("contact_info").notNull(),
-  contactLabel: text("contact_label").default("Contact"),
+  // Structured address fields
+  streetAddress: text("street_address").notNull().default(""),
+  city: text("city").notNull().default(""),
+  state: text("state").notNull().default(""),
+  zipCode: text("zip_code").notNull().default(""),
+  // Structured contact fields
+  contactName: text("contact_name").notNull().default(""),
+  contactPhone: text("contact_phone").notNull().default(""),
+  contactEmail: text("contact_email"),
+  contactType: text("contact_type").notNull().default("phone"), // "phone" or "email"
   thumbnailPath: text("thumbnail_path"),
   description: text("description"),
   createdBy: varchar("created_by").references(() => users.id),

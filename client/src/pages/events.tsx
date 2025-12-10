@@ -30,6 +30,15 @@ function formatEventTime(timeString: string): string {
   return `${hour12}:${minutes} ${ampm}`;
 }
 
+function formatFullAddress(event: Event): string {
+  const parts = [event.streetAddress, event.city, event.state, event.zipCode].filter(Boolean);
+  if (parts.length === 0) return "Location TBD";
+  if (event.city && event.state) {
+    return `${event.streetAddress}, ${event.city}, ${event.state} ${event.zipCode}`.trim();
+  }
+  return parts.join(", ");
+}
+
 function generateGoogleCalendarUrl(event: Event): string {
   const startDate = event.eventDate.replace(/-/g, '');
   const [startHour, startMin] = event.eventTime.split(':').map(Number);
@@ -45,11 +54,12 @@ function generateGoogleCalendarUrl(event: Event): string {
   }
   const endTime = endHour.toString().padStart(2, '0') + startMin.toString().padStart(2, '0') + '00';
   
+  const fullAddress = formatFullAddress(event);
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: event.title,
     dates: `${startDate}T${startTime}/${endDate}T${endTime}`,
-    location: event.location,
+    location: fullAddress,
     details: event.description || `Join us for ${event.title} at Jerricks for Jesus.`,
   });
   
@@ -71,6 +81,7 @@ function generateICalData(event: Event): string {
   }
   const endTime = endHour.toString().padStart(2, '0') + startMin.toString().padStart(2, '0') + '00';
   
+  const fullAddress = formatFullAddress(event);
   const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Jerricks for Jesus//Events//EN
@@ -78,7 +89,7 @@ BEGIN:VEVENT
 DTSTART:${startDate}T${startTime}
 DTEND:${endDate}T${endTime}
 SUMMARY:${event.title}
-LOCATION:${event.location}
+LOCATION:${fullAddress}
 DESCRIPTION:${event.description || `Join us for ${event.title} at Jerricks for Jesus.`}
 END:VEVENT
 END:VCALENDAR`;
@@ -242,7 +253,7 @@ export default function Events() {
                         <div className="flex items-center gap-3">
                           <MapPin className="w-5 h-5 text-primary flex-shrink-0" />
                           <span data-testid={`event-location-${event.id}`}>
-                            {event.location}
+                            {formatFullAddress(event)}
                           </span>
                         </div>
                       </div>
@@ -256,15 +267,27 @@ export default function Events() {
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-3 mt-6">
-                      <a 
-                        href={`tel:${event.contactInfo.replace(/[^0-9+]/g, '')}`}
-                        data-testid={`event-contact-${event.id}`}
-                      >
-                        <Button variant="default" className="bg-primary hover:bg-primary/90">
-                          <Phone className="w-4 h-4 mr-2" />
-                          {event.contactLabel || "Contact"}
-                        </Button>
-                      </a>
+                      {event.contactType === "email" && event.contactEmail ? (
+                        <a 
+                          href={`mailto:${event.contactEmail}`}
+                          data-testid={`event-contact-${event.id}`}
+                        >
+                          <Button variant="default" className="bg-primary hover:bg-primary/90">
+                            <Phone className="w-4 h-4 mr-2" />
+                            {event.contactName || "Contact"}
+                          </Button>
+                        </a>
+                      ) : (
+                        <a 
+                          href={`tel:${event.contactPhone.replace(/[^0-9+]/g, '')}`}
+                          data-testid={`event-contact-${event.id}`}
+                        >
+                          <Button variant="default" className="bg-primary hover:bg-primary/90">
+                            <Phone className="w-4 h-4 mr-2" />
+                            {event.contactName || "Contact"}
+                          </Button>
+                        </a>
+                      )}
 
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

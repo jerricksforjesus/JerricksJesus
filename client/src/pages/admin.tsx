@@ -591,9 +591,16 @@ function EventsManagementTab() {
   const [eventTitle, setEventTitle] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [eventTime, setEventTime] = useState("");
-  const [eventLocation, setEventLocation] = useState("");
-  const [eventContactInfo, setEventContactInfo] = useState("");
-  const [eventContactLabel, setEventContactLabel] = useState("Contact");
+  // Structured address fields
+  const [streetAddress, setStreetAddress] = useState("");
+  const [city, setCity] = useState("");
+  const [state, setState] = useState("");
+  const [zipCode, setZipCode] = useState("");
+  // Structured contact fields
+  const [contactName, setContactName] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [contactType, setContactType] = useState<"phone" | "email">("phone");
   const [eventDescription, setEventDescription] = useState("");
   const [eventThumbnailPath, setEventThumbnailPath] = useState("");
   const [heroImagePath, setHeroImagePath] = useState("");
@@ -710,9 +717,14 @@ function EventsManagementTab() {
     setEventTitle("");
     setEventDate("");
     setEventTime("");
-    setEventLocation("");
-    setEventContactInfo("");
-    setEventContactLabel("Contact");
+    setStreetAddress("");
+    setCity("");
+    setState("");
+    setZipCode("");
+    setContactName("");
+    setContactPhone("");
+    setContactEmail("");
+    setContactType("phone");
     setEventDescription("");
     setEventThumbnailPath("");
     setEditingEvent(null);
@@ -723,16 +735,26 @@ function EventsManagementTab() {
     setEventTitle(event.title);
     setEventDate(event.eventDate);
     setEventTime(event.eventTime);
-    setEventLocation(event.location);
-    setEventContactInfo(event.contactInfo);
-    setEventContactLabel(event.contactLabel || "Contact");
+    setStreetAddress(event.streetAddress || "");
+    setCity(event.city || "");
+    setState(event.state || "");
+    setZipCode(event.zipCode || "");
+    setContactName(event.contactName || "");
+    setContactPhone(event.contactPhone || "");
+    setContactEmail(event.contactEmail || "");
+    setContactType((event.contactType as "phone" | "email") || "phone");
     setEventDescription(event.description || "");
     setEventThumbnailPath(event.thumbnailPath || "");
   };
 
   const handleSubmit = () => {
-    if (!eventTitle || !eventDate || !eventTime || !eventLocation || !eventContactInfo) {
+    if (!eventTitle || !eventDate || !eventTime || !streetAddress || !city || !state || !contactName || !contactPhone) {
       toast({ title: "Missing Fields", description: "Please fill in all required fields.", variant: "destructive" });
+      return;
+    }
+
+    if (contactType === "email" && !contactEmail) {
+      toast({ title: "Missing Email", description: "Please provide an email address for email contact type.", variant: "destructive" });
       return;
     }
 
@@ -740,9 +762,14 @@ function EventsManagementTab() {
       title: eventTitle,
       eventDate,
       eventTime,
-      location: eventLocation,
-      contactInfo: eventContactInfo,
-      contactLabel: eventContactLabel || "Contact",
+      streetAddress,
+      city,
+      state,
+      zipCode: zipCode || "",
+      contactName,
+      contactPhone,
+      contactEmail: contactEmail || null,
+      contactType,
       description: eventDescription || null,
       thumbnailPath: eventThumbnailPath || null,
     };
@@ -839,18 +866,43 @@ function EventsManagementTab() {
             </div>
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-2">
-              <Label htmlFor="event-title">Title *</Label>
+        <CardContent className="space-y-6">
+          {/* Title row with action button */}
+          <div className="flex items-center justify-between">
+            <div className="flex-1 mr-4">
+              <Label htmlFor="event-title">Event Title *</Label>
               <Input
                 id="event-title"
                 value={eventTitle}
                 onChange={(e) => setEventTitle(e.target.value)}
                 placeholder="e.g. Family Fellowship Picnic"
+                className="mt-1"
                 data-testid="input-event-title"
               />
             </div>
+            <div className="flex gap-2 pt-6">
+              <Button
+                onClick={handleSubmit}
+                disabled={createEventMutation.isPending || updateEventMutation.isPending}
+                data-testid="button-save-event"
+              >
+                {(createEventMutation.isPending || updateEventMutation.isPending) ? (
+                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                ) : (
+                  <Save className="w-4 h-4 mr-2" />
+                )}
+                {editingEvent ? "Update Event" : "Add Event"}
+              </Button>
+              {editingEvent && (
+                <Button variant="outline" onClick={resetForm} data-testid="button-cancel-edit-event">
+                  Cancel
+                </Button>
+              )}
+            </div>
+          </div>
+
+          {/* Date and Time */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="event-date">Date *</Label>
               <Input
@@ -858,50 +910,174 @@ function EventsManagementTab() {
                 type="date"
                 value={eventDate}
                 onChange={(e) => setEventDate(e.target.value)}
+                className="font-sans"
                 data-testid="input-event-date"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="event-time">Time *</Label>
-              <Input
-                id="event-time"
-                type="time"
-                value={eventTime}
-                onChange={(e) => setEventTime(e.target.value)}
-                data-testid="input-event-time"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="event-location">Location *</Label>
-              <Input
-                id="event-location"
-                value={eventLocation}
-                onChange={(e) => setEventLocation(e.target.value)}
-                placeholder="e.g. 99 Hillside Avenue, Williston Park"
-                data-testid="input-event-location"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="event-contact">Contact Info *</Label>
-              <Input
-                id="event-contact"
-                value={eventContactInfo}
-                onChange={(e) => setEventContactInfo(e.target.value)}
-                placeholder="e.g. 516-240-5503"
-                data-testid="input-event-contact"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="event-contact-label">Contact Button Label</Label>
-              <Input
-                id="event-contact-label"
-                value={eventContactLabel}
-                onChange={(e) => setEventContactLabel(e.target.value)}
-                placeholder="e.g. Contact, Call Us, RSVP"
-                data-testid="input-event-contact-label"
-              />
+              <div className="flex gap-2">
+                <select
+                  value={eventTime ? eventTime.split(':')[0] : "12"}
+                  onChange={(e) => {
+                    const mins = eventTime ? eventTime.split(':')[1] : "00";
+                    setEventTime(`${e.target.value}:${mins}`);
+                  }}
+                  className="flex h-10 w-20 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  data-testid="select-event-hour"
+                >
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const hour12 = i === 0 ? 12 : i;
+                    return (
+                      <option key={i} value={i.toString().padStart(2, '0')}>{hour12}</option>
+                    );
+                  })}
+                  {Array.from({ length: 12 }, (_, i) => {
+                    const hour24 = i + 12;
+                    const hour12 = i === 0 ? 12 : i;
+                    return (
+                      <option key={hour24} value={hour24.toString().padStart(2, '0')}>{hour12}</option>
+                    );
+                  })}
+                </select>
+                <span className="flex items-center">:</span>
+                <select
+                  value={eventTime ? eventTime.split(':')[1] : "00"}
+                  onChange={(e) => {
+                    const hours = eventTime ? eventTime.split(':')[0] : "12";
+                    setEventTime(`${hours}:${e.target.value}`);
+                  }}
+                  className="flex h-10 w-20 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  data-testid="select-event-minute"
+                >
+                  {Array.from({ length: 60 }, (_, i) => (
+                    <option key={i} value={i.toString().padStart(2, '0')}>{i.toString().padStart(2, '0')}</option>
+                  ))}
+                </select>
+                <select
+                  value={eventTime && parseInt(eventTime.split(':')[0]) >= 12 ? "PM" : "AM"}
+                  onChange={(e) => {
+                    let hours = parseInt(eventTime?.split(':')[0] || "12");
+                    const mins = eventTime?.split(':')[1] || "00";
+                    if (e.target.value === "PM" && hours < 12) hours += 12;
+                    if (e.target.value === "AM" && hours >= 12) hours -= 12;
+                    setEventTime(`${hours.toString().padStart(2, '0')}:${mins}`);
+                  }}
+                  className="flex h-10 w-16 rounded-md border border-input bg-background px-2 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  data-testid="select-event-ampm"
+                >
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+              </div>
             </div>
           </div>
+
+          {/* Location Fields */}
+          <div className="space-y-3">
+            <Label className="text-base font-medium">Location *</Label>
+            <div className="grid grid-cols-1 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="street-address" className="text-sm text-muted-foreground">Street Address</Label>
+                <Input
+                  id="street-address"
+                  value={streetAddress}
+                  onChange={(e) => setStreetAddress(e.target.value)}
+                  placeholder="e.g. 99 Hillside Avenue, Suite F"
+                  data-testid="input-street-address"
+                />
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                <div className="col-span-2 md:col-span-2 space-y-1">
+                  <Label htmlFor="city" className="text-sm text-muted-foreground">City</Label>
+                  <Input
+                    id="city"
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
+                    placeholder="e.g. Williston Park"
+                    data-testid="input-city"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="state" className="text-sm text-muted-foreground">State</Label>
+                  <Input
+                    id="state"
+                    value={state}
+                    onChange={(e) => setState(e.target.value)}
+                    placeholder="e.g. NY"
+                    data-testid="input-state"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label htmlFor="zip-code" className="text-sm text-muted-foreground">Zip Code</Label>
+                  <Input
+                    id="zip-code"
+                    value={zipCode}
+                    onChange={(e) => setZipCode(e.target.value)}
+                    placeholder="e.g. 11596"
+                    data-testid="input-zip-code"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Contact Fields */}
+          <div className="space-y-3">
+            <Label className="text-base font-medium">Contact Information *</Label>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="contact-name" className="text-sm text-muted-foreground">Contact Name</Label>
+                <Input
+                  id="contact-name"
+                  value={contactName}
+                  onChange={(e) => setContactName(e.target.value)}
+                  placeholder="e.g. John Smith"
+                  data-testid="input-contact-name"
+                />
+              </div>
+              <div className="space-y-1">
+                <Label htmlFor="contact-phone" className="text-sm text-muted-foreground">Phone Number</Label>
+                <Input
+                  id="contact-phone"
+                  value={contactPhone}
+                  onChange={(e) => setContactPhone(e.target.value)}
+                  placeholder="e.g. 516-240-5503"
+                  data-testid="input-contact-phone"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label htmlFor="contact-type" className="text-sm text-muted-foreground">Button Action</Label>
+                <select
+                  id="contact-type"
+                  value={contactType}
+                  onChange={(e) => setContactType(e.target.value as "phone" | "email")}
+                  className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
+                  data-testid="select-contact-type"
+                >
+                  <option value="phone">Call Phone Number</option>
+                  <option value="email">Send Email</option>
+                </select>
+              </div>
+              {contactType === "email" && (
+                <div className="space-y-1">
+                  <Label htmlFor="contact-email" className="text-sm text-muted-foreground">Email Address</Label>
+                  <Input
+                    id="contact-email"
+                    type="email"
+                    value={contactEmail}
+                    onChange={(e) => setContactEmail(e.target.value)}
+                    placeholder="e.g. contact@church.com"
+                    data-testid="input-contact-email"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Description */}
           <div className="space-y-2">
             <Label htmlFor="event-description">Description (optional)</Label>
             <Textarea
@@ -913,54 +1089,40 @@ function EventsManagementTab() {
               data-testid="input-event-description"
             />
           </div>
+
+          {/* Thumbnail */}
           <div className="space-y-2">
             <Label>Event Thumbnail (optional)</Label>
-            <Input
-              value={eventThumbnailPath}
-              onChange={(e) => setEventThumbnailPath(e.target.value)}
-              placeholder="Image path will appear here after upload"
-              data-testid="input-event-thumbnail-path"
-            />
-            <ObjectUploader
-              onGetUploadParameters={async () => {
-                const response = await fetch("/api/objects/upload", { method: "POST" });
-                const data = await response.json();
-                return { method: "PUT" as const, url: data.uploadURL };
-              }}
-              onComplete={(result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
-                if (result.successful && result.successful.length > 0) {
-                  const uploadedFile = result.successful[0];
-                  const path = uploadedFile.uploadURL || "";
-                  if (path) {
-                    setEventThumbnailPath(path);
+            <div className="flex gap-2 items-center">
+              <Input
+                value={eventThumbnailPath}
+                onChange={(e) => setEventThumbnailPath(e.target.value)}
+                placeholder="Image path will appear here after upload"
+                className="flex-1"
+                data-testid="input-event-thumbnail-path"
+              />
+              <ObjectUploader
+                onGetUploadParameters={async () => {
+                  const response = await fetch("/api/objects/upload", { method: "POST" });
+                  const data = await response.json();
+                  return { method: "PUT" as const, url: data.uploadURL };
+                }}
+                onComplete={(result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+                  if (result.successful && result.successful.length > 0) {
+                    const uploadedFile = result.successful[0];
+                    const path = uploadedFile.uploadURL || "";
+                    if (path) {
+                      setEventThumbnailPath(path);
+                    }
                   }
-                }
-              }}
-              allowedFileTypes={["image/*"]}
-              maxFileSize={10 * 1024 * 1024}
-              maxNumberOfFiles={1}
-            >
-              <Image className="w-4 h-4 mr-2" /> Upload Thumbnail
-            </ObjectUploader>
-          </div>
-          <div className="flex gap-2">
-            <Button
-              onClick={handleSubmit}
-              disabled={createEventMutation.isPending || updateEventMutation.isPending}
-              data-testid="button-save-event"
-            >
-              {(createEventMutation.isPending || updateEventMutation.isPending) ? (
-                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4 mr-2" />
-              )}
-              {editingEvent ? "Update Event" : "Add Event"}
-            </Button>
-            {editingEvent && (
-              <Button variant="outline" onClick={resetForm} data-testid="button-cancel-edit-event">
-                Cancel
-              </Button>
-            )}
+                }}
+                allowedFileTypes={["image/*"]}
+                maxFileSize={10 * 1024 * 1024}
+                maxNumberOfFiles={1}
+              >
+                <Image className="w-4 h-4 mr-2" /> Upload
+              </ObjectUploader>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -1008,7 +1170,7 @@ function EventsManagementTab() {
                       </p>
                       <p className="text-sm text-muted-foreground flex items-center gap-2">
                         <MapPin className="w-3 h-3" />
-                        {event.location}
+                        {[event.streetAddress, event.city, event.state, event.zipCode].filter(Boolean).join(", ") || "Location TBD"}
                       </p>
                     </div>
                   </div>
