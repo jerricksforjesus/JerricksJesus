@@ -154,7 +154,7 @@ export function FamilyEventsSection() {
                         >
                           <Button variant="default" className="bg-primary hover:bg-primary/90">
                             <Phone className="w-4 h-4 mr-2" />
-                            {event.contactName || "Contact"}
+                            {event.buttonLabel || "Contact Us"}
                           </Button>
                         </a>
                       ) : event.contactPhone ? (
@@ -164,7 +164,7 @@ export function FamilyEventsSection() {
                         >
                           <Button variant="default" className="bg-primary hover:bg-primary/90">
                             <Phone className="w-4 h-4 mr-2" />
-                            {event.contactName || "Contact"}
+                            {event.buttonLabel || "Contact Us"}
                           </Button>
                         </a>
                       ) : null}

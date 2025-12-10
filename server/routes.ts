@@ -2516,7 +2516,7 @@ export async function registerRoutes(
       const { 
         title, eventDate, eventTime, thumbnailPath, description,
         locationType, streetAddress, city, state, zipCode, meetingLink, meetingPhone,
-        contactName, contactEmail, contactPhone
+        contactName, contactEmail, contactPhone, contactType, buttonLabel
       } = req.body;
       
       const updated = await storage.updateEvent(id, {
@@ -2535,6 +2535,8 @@ export async function registerRoutes(
         contactName: contactName !== undefined ? contactName : existing.contactName,
         contactEmail: contactEmail !== undefined ? contactEmail : existing.contactEmail,
         contactPhone: contactPhone !== undefined ? contactPhone : existing.contactPhone,
+        contactType: contactType !== undefined ? contactType : existing.contactType,
+        buttonLabel: buttonLabel !== undefined ? buttonLabel : existing.buttonLabel,
       });
       
       res.json(updated);

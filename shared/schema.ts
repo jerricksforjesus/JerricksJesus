@@ -161,6 +161,7 @@ export const events = pgTable("events", {
   contactPhone: text("contact_phone").notNull().default(""),
   contactEmail: text("contact_email"),
   contactType: text("contact_type").notNull().default("phone"), // "phone" or "email"
+  buttonLabel: text("button_label").notNull().default("Contact Us"), // Custom button text
   thumbnailPath: text("thumbnail_path"),
   description: text("description"),
   createdBy: varchar("created_by").references(() => users.id),

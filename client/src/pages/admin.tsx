@@ -607,6 +607,7 @@ function EventsManagementTab() {
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
   const [contactType, setContactType] = useState<"phone" | "email">("phone");
+  const [buttonLabel, setButtonLabel] = useState("Contact Us");
   // Time picker state (12-hour format display)
   const [timeHour, setTimeHour] = useState("12");
   const [timeMinute, setTimeMinute] = useState("00");
@@ -740,6 +741,7 @@ function EventsManagementTab() {
     setContactPhone("");
     setContactEmail("");
     setContactType("phone");
+    setButtonLabel("Contact Us");
     setEventDescription("");
     setEventThumbnailPath("");
     setEditingEvent(null);
@@ -782,6 +784,7 @@ function EventsManagementTab() {
     setContactPhone(event.contactPhone || "");
     setContactEmail(event.contactEmail || "");
     setContactType((event.contactType as "phone" | "email") || "phone");
+    setButtonLabel(event.buttonLabel || "Contact Us");
     setEventDescription(event.description || "");
     setEventThumbnailPath(event.thumbnailPath || "");
   };
@@ -829,6 +832,7 @@ function EventsManagementTab() {
       contactPhone,
       contactEmail: contactEmail || null,
       contactType,
+      buttonLabel,
       description: eventDescription || null,
       thumbnailPath: eventThumbnailPath || null,
     };
@@ -1185,6 +1189,17 @@ function EventsManagementTab() {
                   />
                 </div>
               )}
+            </div>
+            <div className="space-y-1">
+              <Label htmlFor="button-label" className="text-sm text-muted-foreground">Button Label</Label>
+              <Input
+                id="button-label"
+                value={buttonLabel}
+                onChange={(e) => setButtonLabel(e.target.value)}
+                placeholder="e.g. Call to Register, Email Us"
+                data-testid="input-button-label"
+              />
+              <p className="text-xs text-muted-foreground">Text shown on the contact button (e.g. "Call to Register", "Email Us")</p>
             </div>
           </div>
 
