@@ -139,6 +139,21 @@ export const youtubeAuth = pgTable("youtube_auth", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Family Events
+export const events = pgTable("events", {
+  id: serial("id").primaryKey(),
+  title: text("title").notNull(),
+  eventDate: text("event_date").notNull(),
+  eventTime: text("event_time").notNull(),
+  location: text("location").notNull(),
+  contactInfo: text("contact_info").notNull(),
+  contactLabel: text("contact_label").default("Contact"),
+  thumbnailPath: text("thumbnail_path"),
+  description: text("description"),
+  createdBy: varchar("created_by").references(() => users.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Worship playlist videos (stored locally for reliable display)
 export const worshipVideos = pgTable("worship_videos", {
   id: serial("id").primaryKey(),
@@ -214,6 +229,11 @@ export const insertWorshipVideoSchema = createInsertSchema(worshipVideos).omit({
   createdAt: true,
 });
 
+export const insertEventSchema = createInsertSchema(events).omit({
+  id: true,
+  createdAt: true,
+});
+
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
@@ -246,3 +266,6 @@ export type YoutubeAuth = typeof youtubeAuth.$inferSelect;
 
 export type InsertWorshipVideo = z.infer<typeof insertWorshipVideoSchema>;
 export type WorshipVideo = typeof worshipVideos.$inferSelect;
+
+export type InsertEvent = z.infer<typeof insertEventSchema>;
+export type Event = typeof events.$inferSelect;

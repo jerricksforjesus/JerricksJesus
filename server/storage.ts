@@ -1,6 +1,6 @@
-import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, type QuizQuestion, type InsertQuizQuestion, type QuizAttempt, type InsertQuizAttempt, type Session, type InsertSession, type MemberPhoto, type InsertMemberPhoto, type SiteSetting, type YoutubeAuth, type InsertYoutubeAuth, type WorshipVideo, type InsertWorshipVideo, videos, verses, users, photos, quizQuestions, quizAttempts, sessions, memberPhotos, siteSettings, youtubeAuth, worshipVideos } from "@shared/schema";
+import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, type QuizQuestion, type InsertQuizQuestion, type QuizAttempt, type InsertQuizAttempt, type Session, type InsertSession, type MemberPhoto, type InsertMemberPhoto, type SiteSetting, type YoutubeAuth, type InsertYoutubeAuth, type WorshipVideo, type InsertWorshipVideo, type Event, type InsertEvent, videos, verses, users, photos, quizQuestions, quizAttempts, sessions, memberPhotos, siteSettings, youtubeAuth, worshipVideos, events } from "@shared/schema";
 import { db } from "./db";
-import { eq, asc, and, sql, gt } from "drizzle-orm";
+import { eq, asc, desc, and, sql, gt, gte } from "drizzle-orm";
 import * as schema from "@shared/schema";
 
 export interface IStorage {
@@ -90,6 +90,14 @@ export interface IStorage {
   deleteWorshipVideo(id: number): Promise<void>;
   updateWorshipVideoPosition(id: number, position: number): Promise<WorshipVideo | undefined>;
   syncWorshipVideosFromPlaylist(videos: InsertWorshipVideo[]): Promise<{ created: number; updated: number; deleted: number }>;
+  
+  // Events methods
+  getAllEvents(): Promise<Event[]>;
+  getUpcomingEvents(): Promise<Event[]>;
+  getEvent(id: number): Promise<Event | undefined>;
+  createEvent(event: InsertEvent): Promise<Event>;
+  updateEvent(id: number, data: Partial<InsertEvent>): Promise<Event | undefined>;
+  deleteEvent(id: number): Promise<void>;
 }
 
 export class DbStorage implements IStorage {
@@ -619,6 +627,44 @@ export class DbStorage implements IStorage {
     }
 
     return { created, updated, deleted };
+  }
+
+  // Events methods
+  async getAllEvents(): Promise<Event[]> {
+    return await db.query.events.findMany({
+      orderBy: (e, { asc }) => [asc(e.eventDate), asc(e.eventTime)],
+    });
+  }
+
+  async getUpcomingEvents(): Promise<Event[]> {
+    const today = new Date().toISOString().split('T')[0];
+    return await db.query.events.findMany({
+      where: (e, { gte }) => gte(e.eventDate, today),
+      orderBy: (e, { asc }) => [asc(e.eventDate), asc(e.eventTime)],
+    });
+  }
+
+  async getEvent(id: number): Promise<Event | undefined> {
+    return await db.query.events.findFirst({
+      where: (e, { eq }) => eq(e.id, id),
+    });
+  }
+
+  async createEvent(event: InsertEvent): Promise<Event> {
+    const [created] = await db.insert(events).values(event).returning();
+    return created;
+  }
+
+  async updateEvent(id: number, data: Partial<InsertEvent>): Promise<Event | undefined> {
+    const [updated] = await db.update(events)
+      .set(data)
+      .where(eq(events.id, id))
+      .returning();
+    return updated;
+  }
+
+  async deleteEvent(id: number): Promise<void> {
+    await db.delete(events).where(eq(events.id, id));
   }
 }
 
