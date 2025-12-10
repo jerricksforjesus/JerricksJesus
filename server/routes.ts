@@ -3,7 +3,7 @@ import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError, getSignedDownloadURL } from "./objectStorage";
-import { insertVideoSchema, insertVerseSchema, insertPhotoSchema, insertQuizQuestionSchema, insertQuizAttemptSchema, ALL_BIBLE_BOOKS, USER_ROLES, type User } from "@shared/schema";
+import { insertVideoSchema, insertVerseSchema, insertPhotoSchema, insertQuizQuestionSchema, insertQuizAttemptSchema, insertEventSchema, ALL_BIBLE_BOOKS, USER_ROLES, type User } from "@shared/schema";
 import { transcribeVideo, uploadCaptions } from "./transcription";
 import { generateQuestionsForBook } from "./quizGenerator";
 import bcrypt from "bcrypt";
@@ -2480,23 +2480,19 @@ export async function registerRoutes(
   // Create event (admin/foundational only)
   app.post("/api/events", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
     try {
-      const { title, eventDate, eventTime, location, contactInfo, contactLabel, thumbnailPath, description } = req.body;
-      
-      if (!title || !eventDate || !eventTime || !location || !contactInfo) {
-        return res.status(400).json({ error: "Missing required fields: title, eventDate, eventTime, location, contactInfo" });
-      }
-
-      const event = await storage.createEvent({
-        title,
-        eventDate,
-        eventTime,
-        location,
-        contactInfo,
-        contactLabel: contactLabel || "Contact",
-        thumbnailPath: thumbnailPath || null,
-        description: description || null,
+      const parseResult = insertEventSchema.safeParse({
+        ...req.body,
         createdBy: req.user!.id,
       });
+      
+      if (!parseResult.success) {
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: parseResult.error.errors.map(e => `${e.path.join('.')}: ${e.message}`).join(', ')
+        });
+      }
+
+      const event = await storage.createEvent(parseResult.data);
       res.status(201).json(event);
     } catch (error) {
       console.error("Error creating event:", error);

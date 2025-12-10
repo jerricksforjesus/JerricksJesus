@@ -30,13 +30,23 @@ function formatEventTime(timeString: string): string {
 
 function generateGoogleCalendarUrl(event: Event): string {
   const startDate = event.eventDate.replace(/-/g, '');
-  const startTime = event.eventTime.replace(/:/g, '') + '00';
-  const endTime = (parseInt(event.eventTime.split(':')[0]) + 2).toString().padStart(2, '0') + event.eventTime.split(':')[1] + '00';
+  const [startHour, startMin] = event.eventTime.split(':').map(Number);
+  const startTime = startHour.toString().padStart(2, '0') + startMin.toString().padStart(2, '0') + '00';
+  
+  let endHour = startHour + 2;
+  let endDate = startDate;
+  if (endHour >= 24) {
+    endHour = endHour - 24;
+    const date = new Date(event.eventDate + 'T00:00:00');
+    date.setDate(date.getDate() + 1);
+    endDate = date.toISOString().split('T')[0].replace(/-/g, '');
+  }
+  const endTime = endHour.toString().padStart(2, '0') + startMin.toString().padStart(2, '0') + '00';
   
   const params = new URLSearchParams({
     action: 'TEMPLATE',
     text: event.title,
-    dates: `${startDate}T${startTime}/${startDate}T${endTime}`,
+    dates: `${startDate}T${startTime}/${endDate}T${endTime}`,
     location: event.location,
     details: event.description || `Join us for ${event.title} at Jerricks for Jesus.`,
   });
@@ -46,16 +56,25 @@ function generateGoogleCalendarUrl(event: Event): string {
 
 function generateICalData(event: Event): string {
   const startDate = event.eventDate.replace(/-/g, '');
-  const startTime = event.eventTime.replace(/:/g, '') + '00';
-  const endHour = (parseInt(event.eventTime.split(':')[0]) + 2).toString().padStart(2, '0');
-  const endTime = endHour + event.eventTime.split(':')[1] + '00';
+  const [startHour, startMin] = event.eventTime.split(':').map(Number);
+  const startTime = startHour.toString().padStart(2, '0') + startMin.toString().padStart(2, '0') + '00';
+  
+  let endHour = startHour + 2;
+  let endDate = startDate;
+  if (endHour >= 24) {
+    endHour = endHour - 24;
+    const date = new Date(event.eventDate + 'T00:00:00');
+    date.setDate(date.getDate() + 1);
+    endDate = date.toISOString().split('T')[0].replace(/-/g, '');
+  }
+  const endTime = endHour.toString().padStart(2, '0') + startMin.toString().padStart(2, '0') + '00';
   
   const icsContent = `BEGIN:VCALENDAR
 VERSION:2.0
 PRODID:-//Jerricks for Jesus//Events//EN
 BEGIN:VEVENT
 DTSTART:${startDate}T${startTime}
-DTEND:${startDate}T${endTime}
+DTEND:${endDate}T${endTime}
 SUMMARY:${event.title}
 LOCATION:${event.location}
 DESCRIPTION:${event.description || `Join us for ${event.title} at Jerricks for Jesus.`}

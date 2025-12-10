@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus, Users, Shield, UserCheck, Camera, CheckCircle, XCircle, Clock, Settings, Key, User as UserIcon, Eye, EyeOff, Music, Youtube, Link2, ExternalLink, Menu, X, ChevronRight } from "lucide-react";
+import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus, Users, Shield, UserCheck, Camera, CheckCircle, XCircle, Clock, Settings, Key, User as UserIcon, Eye, EyeOff, Music, Youtube, Link2, ExternalLink, Menu, X, ChevronRight, Calendar, MapPin, Phone } from "lucide-react";
 import { useState, useEffect, useLayoutEffect } from "react";
 import { useLocation } from "wouter";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -15,7 +15,7 @@ import { VideoPlayerModal } from "@/components/VideoPlayerModal";
 import { VideoEditModal } from "@/components/VideoEditModal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
-import type { Video, Verse, InsertVideo, Photo, InsertPhoto, QuizQuestion, MemberPhoto } from "@shared/schema";
+import type { Video, Verse, InsertVideo, Photo, InsertPhoto, QuizQuestion, MemberPhoto, Event, InsertEvent } from "@shared/schema";
 import { ALL_BIBLE_BOOKS, BIBLE_BOOKS, USER_ROLES } from "@shared/schema";
 import type { UploadResult } from "@uppy/core";
 import thumb1 from "@assets/generated_images/preacher_at_podium.png";
@@ -581,6 +581,463 @@ function WorshipPlaylistManager() {
           </div>
         )}
       </div>
+    </div>
+  );
+}
+
+function EventsManagementTab() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+  const [eventTitle, setEventTitle] = useState("");
+  const [eventDate, setEventDate] = useState("");
+  const [eventTime, setEventTime] = useState("");
+  const [eventLocation, setEventLocation] = useState("");
+  const [eventContactInfo, setEventContactInfo] = useState("");
+  const [eventContactLabel, setEventContactLabel] = useState("Contact");
+  const [eventDescription, setEventDescription] = useState("");
+  const [eventThumbnailPath, setEventThumbnailPath] = useState("");
+  const [heroImagePath, setHeroImagePath] = useState("");
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+
+  const { data: events = [], isLoading } = useQuery<Event[]>({
+    queryKey: ["admin-events"],
+    queryFn: async () => {
+      const response = await fetch("/api/events/all", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch events");
+      return response.json();
+    },
+  });
+
+  const { data: heroData } = useQuery<{ heroImage: string | null }>({
+    queryKey: ["events-hero"],
+    queryFn: async () => {
+      const response = await fetch("/api/settings/events-hero");
+      if (!response.ok) throw new Error("Failed to fetch hero image");
+      return response.json();
+    },
+  });
+
+  useEffect(() => {
+    if (heroData?.heroImage) {
+      setHeroImagePath(heroData.heroImage);
+    }
+  }, [heroData]);
+
+  const createEventMutation = useMutation({
+    mutationFn: async (event: Omit<InsertEvent, "createdBy">) => {
+      const response = await fetch("/api/events", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(event),
+      });
+      if (!response.ok) throw new Error("Failed to create event");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Event Created", description: "The event has been added successfully." });
+      queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      resetForm();
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to create event.", variant: "destructive" });
+    },
+  });
+
+  const updateEventMutation = useMutation({
+    mutationFn: async ({ id, data }: { id: number; data: Partial<InsertEvent> }) => {
+      const response = await fetch(`/api/events/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to update event");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Event Updated", description: "The event has been updated successfully." });
+      queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+      resetForm();
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update event.", variant: "destructive" });
+    },
+  });
+
+  const deleteEventMutation = useMutation({
+    mutationFn: async (id: number) => {
+      const response = await fetch(`/api/events/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to delete event");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Event Deleted", description: "The event has been removed." });
+      queryClient.invalidateQueries({ queryKey: ["admin-events"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to delete event.", variant: "destructive" });
+    },
+  });
+
+  const updateHeroMutation = useMutation({
+    mutationFn: async (heroImage: string) => {
+      const response = await fetch("/api/settings/events-hero", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ heroImage }),
+      });
+      if (!response.ok) throw new Error("Failed to update hero image");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Hero Image Updated", description: "The events page hero image has been updated." });
+      queryClient.invalidateQueries({ queryKey: ["events-hero"] });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update hero image.", variant: "destructive" });
+    },
+  });
+
+  const resetForm = () => {
+    setEventTitle("");
+    setEventDate("");
+    setEventTime("");
+    setEventLocation("");
+    setEventContactInfo("");
+    setEventContactLabel("Contact");
+    setEventDescription("");
+    setEventThumbnailPath("");
+    setEditingEvent(null);
+  };
+
+  const handleEdit = (event: Event) => {
+    setEditingEvent(event);
+    setEventTitle(event.title);
+    setEventDate(event.eventDate);
+    setEventTime(event.eventTime);
+    setEventLocation(event.location);
+    setEventContactInfo(event.contactInfo);
+    setEventContactLabel(event.contactLabel || "Contact");
+    setEventDescription(event.description || "");
+    setEventThumbnailPath(event.thumbnailPath || "");
+  };
+
+  const handleSubmit = () => {
+    if (!eventTitle || !eventDate || !eventTime || !eventLocation || !eventContactInfo) {
+      toast({ title: "Missing Fields", description: "Please fill in all required fields.", variant: "destructive" });
+      return;
+    }
+
+    const eventData = {
+      title: eventTitle,
+      eventDate,
+      eventTime,
+      location: eventLocation,
+      contactInfo: eventContactInfo,
+      contactLabel: eventContactLabel || "Contact",
+      description: eventDescription || null,
+      thumbnailPath: eventThumbnailPath || null,
+    };
+
+    if (editingEvent) {
+      updateEventMutation.mutate({ id: editingEvent.id, data: eventData });
+    } else {
+      createEventMutation.mutate(eventData);
+    }
+  };
+
+  const formatDate = (dateStr: string) => {
+    const date = new Date(dateStr + 'T00:00:00');
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
+
+  const formatTime = (timeStr: string) => {
+    const [hours, minutes] = timeStr.split(':');
+    const hour = parseInt(hours);
+    const ampm = hour >= 12 ? 'PM' : 'AM';
+    const hour12 = hour % 12 || 12;
+    return `${hour12}:${minutes} ${ampm}`;
+  };
+
+  return (
+    <div className="space-y-6">
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Calendar className="w-6 h-6" style={{ color: "#b47a5f" }} />
+            <div>
+              <CardTitle>Events Page Hero Image</CardTitle>
+              <CardDescription>Set the hero banner image for the Events page. If not set, a family photo will be used.</CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label>Hero Image Path</Label>
+            <div className="flex gap-2">
+              <Input
+                value={heroImagePath}
+                onChange={(e) => setHeroImagePath(e.target.value)}
+                placeholder="Enter image path or upload below"
+                data-testid="input-events-hero-path"
+              />
+              <Button
+                onClick={() => updateHeroMutation.mutate(heroImagePath)}
+                disabled={updateHeroMutation.isPending || !heroImagePath}
+                data-testid="button-save-events-hero"
+              >
+                <Save className="w-4 h-4 mr-2" />
+                Save
+              </Button>
+            </div>
+          </div>
+          <div>
+            <Label className="mb-2 block">Upload New Hero Image</Label>
+            <ObjectUploader
+              onGetUploadParameters={async () => {
+                const response = await fetch("/api/objects/upload", { method: "POST" });
+                const data = await response.json();
+                return { method: "PUT" as const, url: data.uploadURL };
+              }}
+              onComplete={(result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+                if (result.successful && result.successful.length > 0) {
+                  const uploadedFile = result.successful[0];
+                  const path = uploadedFile.uploadURL || "";
+                  if (path) {
+                    setHeroImagePath(path);
+                    updateHeroMutation.mutate(path);
+                  }
+                }
+              }}
+              allowedFileTypes={["image/*"]}
+              maxFileSize={10 * 1024 * 1024}
+              maxNumberOfFiles={1}
+            >
+              <Upload className="w-4 h-4 mr-2" /> Upload Hero Image
+            </ObjectUploader>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-3">
+            <Calendar className="w-6 h-6" style={{ color: "#b47a5f" }} />
+            <div>
+              <CardTitle>{editingEvent ? "Edit Event" : "Add New Event"}</CardTitle>
+              <CardDescription>
+                {editingEvent ? "Update the event details below." : "Fill in the details to create a new event."}
+              </CardDescription>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="event-title">Title *</Label>
+              <Input
+                id="event-title"
+                value={eventTitle}
+                onChange={(e) => setEventTitle(e.target.value)}
+                placeholder="e.g. Family Fellowship Picnic"
+                data-testid="input-event-title"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="event-date">Date *</Label>
+              <Input
+                id="event-date"
+                type="date"
+                value={eventDate}
+                onChange={(e) => setEventDate(e.target.value)}
+                data-testid="input-event-date"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="event-time">Time *</Label>
+              <Input
+                id="event-time"
+                type="time"
+                value={eventTime}
+                onChange={(e) => setEventTime(e.target.value)}
+                data-testid="input-event-time"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="event-location">Location *</Label>
+              <Input
+                id="event-location"
+                value={eventLocation}
+                onChange={(e) => setEventLocation(e.target.value)}
+                placeholder="e.g. 99 Hillside Avenue, Williston Park"
+                data-testid="input-event-location"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="event-contact">Contact Info *</Label>
+              <Input
+                id="event-contact"
+                value={eventContactInfo}
+                onChange={(e) => setEventContactInfo(e.target.value)}
+                placeholder="e.g. 516-240-5503"
+                data-testid="input-event-contact"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="event-contact-label">Contact Button Label</Label>
+              <Input
+                id="event-contact-label"
+                value={eventContactLabel}
+                onChange={(e) => setEventContactLabel(e.target.value)}
+                placeholder="e.g. Contact, Call Us, RSVP"
+                data-testid="input-event-contact-label"
+              />
+            </div>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="event-description">Description (optional)</Label>
+            <Textarea
+              id="event-description"
+              value={eventDescription}
+              onChange={(e) => setEventDescription(e.target.value)}
+              placeholder="Add any additional details about the event..."
+              className="min-h-[80px]"
+              data-testid="input-event-description"
+            />
+          </div>
+          <div className="space-y-2">
+            <Label>Event Thumbnail (optional)</Label>
+            <Input
+              value={eventThumbnailPath}
+              onChange={(e) => setEventThumbnailPath(e.target.value)}
+              placeholder="Image path will appear here after upload"
+              data-testid="input-event-thumbnail-path"
+            />
+            <ObjectUploader
+              onGetUploadParameters={async () => {
+                const response = await fetch("/api/objects/upload", { method: "POST" });
+                const data = await response.json();
+                return { method: "PUT" as const, url: data.uploadURL };
+              }}
+              onComplete={(result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
+                if (result.successful && result.successful.length > 0) {
+                  const uploadedFile = result.successful[0];
+                  const path = uploadedFile.uploadURL || "";
+                  if (path) {
+                    setEventThumbnailPath(path);
+                  }
+                }
+              }}
+              allowedFileTypes={["image/*"]}
+              maxFileSize={10 * 1024 * 1024}
+              maxNumberOfFiles={1}
+            >
+              <Image className="w-4 h-4 mr-2" /> Upload Thumbnail
+            </ObjectUploader>
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleSubmit}
+              disabled={createEventMutation.isPending || updateEventMutation.isPending}
+              data-testid="button-save-event"
+            >
+              {(createEventMutation.isPending || updateEventMutation.isPending) ? (
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+              ) : (
+                <Save className="w-4 h-4 mr-2" />
+              )}
+              {editingEvent ? "Update Event" : "Add Event"}
+            </Button>
+            {editingEvent && (
+              <Button variant="outline" onClick={resetForm} data-testid="button-cancel-edit-event">
+                Cancel
+              </Button>
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Existing Events</CardTitle>
+          <CardDescription>Manage your scheduled events. Past events are also shown.</CardDescription>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex justify-center py-8">
+              <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#b47a5f" }} />
+            </div>
+          ) : events.length === 0 ? (
+            <div className="text-center py-8 text-muted-foreground">
+              <Calendar className="w-12 h-12 mx-auto mb-4 opacity-50" />
+              <p>No events yet. Add your first event above!</p>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {events.map((event) => (
+                <div
+                  key={event.id}
+                  className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                  data-testid={`event-row-${event.id}`}
+                >
+                  <div className="flex items-center gap-4">
+                    {event.thumbnailPath ? (
+                      <img
+                        src={event.thumbnailPath.startsWith('/') ? event.thumbnailPath : `/objects/${event.thumbnailPath}`}
+                        alt={event.title}
+                        className="w-16 h-16 rounded-lg object-cover"
+                      />
+                    ) : (
+                      <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center">
+                        <Calendar className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="font-medium">{event.title}</p>
+                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                        <Calendar className="w-3 h-3" />
+                        {formatDate(event.eventDate)} at {formatTime(event.eventTime)}
+                      </p>
+                      <p className="text-sm text-muted-foreground flex items-center gap-2">
+                        <MapPin className="w-3 h-3" />
+                        {event.location}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleEdit(event)}
+                      data-testid={`button-edit-event-${event.id}`}
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => deleteEventMutation.mutate(event.id)}
+                      disabled={deleteEventMutation.isPending}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      data-testid={`button-delete-event-${event.id}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
@@ -1343,6 +1800,7 @@ export default function AdminDashboard() {
     { id: "replays", label: "Sermon Replays", icon: Play },
     { id: "photos", label: "Family Photos", icon: Image },
     { id: "approve-photos", label: "Approve Photos", icon: CheckCircle },
+    { id: "events", label: "Family Events", icon: Calendar },
     ...(isAdmin ? [{ id: "quiz", label: "Manage Quiz", icon: BookOpen }] : []),
     ...(isFoundational && !isAdmin ? [{ id: "take-quiz", label: "Take Quiz", icon: BookOpen }] : []),
     { id: "worship", label: "Worship Playlist", icon: Music },
@@ -2077,6 +2535,8 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           )}
+
+          {activeSection === "events" && <EventsManagementTab />}
 
           {activeSection === "settings" && (
             <Card>

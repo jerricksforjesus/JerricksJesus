@@ -39,9 +39,10 @@ Preferred communication style: Simple, everyday language.
 - Custom scrolling behaviors and viewport-based animations throughout
 
 **Key Pages**
-1. Home (`/`) - Hero section, verse display, sermon gallery, family photo carousel, ministry accordion with YouTube playlist integration
+1. Home (`/`) - Hero section, verse display, sermon gallery, family photo carousel, family events section, ministry accordion with YouTube playlist integration
 2. Live Stream (`/live`) - Zoom integration placeholder for live services
-3. Admin Dashboard (`/admin`) - Content management for videos, verses, and family photos
+3. Events (`/events`) - Family events calendar with hero banner, event cards, Add to Calendar (Google/Apple iCal) functionality
+4. Admin Dashboard (`/admin`) - Content management for videos, verses, family photos, events, and quiz questions
 
 **YouTube Integration**
 - Worship & Music section displays videos from YouTube playlist (PLkDsdLHKY8laSsy8xYfILnVzFMedR0Rgy)
@@ -70,6 +71,13 @@ Preferred communication style: Simple, everyday language.
   - `GET /api/photos` - List all family photos
   - `POST /api/photos` - Create photo entry
   - `DELETE /api/photos/:id` - Remove photo
+  - `GET /api/events` - List upcoming events (public)
+  - `GET /api/events/all` - List all events including past (admin/foundational)
+  - `POST /api/events` - Create event (admin/foundational)
+  - `PUT /api/events/:id` - Update event (admin/foundational)
+  - `DELETE /api/events/:id` - Delete event (admin/foundational)
+  - `GET /api/settings/events-hero` - Get events page hero image
+  - `PUT /api/settings/events-hero` - Update events page hero image
 
 **Database Layer**
 - PostgreSQL database accessed via Neon serverless driver
@@ -80,6 +88,7 @@ Preferred communication style: Simple, everyday language.
   - `videos` - Sermon video metadata with view tracking
   - `verses` - Scripture verses with active flag for daily display
   - `photos` - Family photo gallery with caption and display order
+  - `events` - Family events with title, date, time, location, contact info, thumbnail
 - Migrations stored in `migrations/` directory
 - Database abstraction through `IStorage` interface implemented by `DbStorage` class
 
