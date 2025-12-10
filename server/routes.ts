@@ -2435,6 +2435,154 @@ export async function registerRoutes(
     }
   });
 
+  // ==================== EVENTS ROUTES ====================
+
+  // Get all upcoming events (public)
+  app.get("/api/events", async (req, res) => {
+    try {
+      const events = await storage.getUpcomingEvents();
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching events:", error);
+      res.status(500).json({ error: "Failed to fetch events" });
+    }
+  });
+
+  // Get all events including past (admin)
+  app.get("/api/events/all", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+    try {
+      const events = await storage.getAllEvents();
+      res.json(events);
+    } catch (error) {
+      console.error("Error fetching all events:", error);
+      res.status(500).json({ error: "Failed to fetch events" });
+    }
+  });
+
+  // Get single event
+  app.get("/api/events/:id", async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid event ID" });
+      }
+      const event = await storage.getEvent(id);
+      if (!event) {
+        return res.status(404).json({ error: "Event not found" });
+      }
+      res.json(event);
+    } catch (error) {
+      console.error("Error fetching event:", error);
+      res.status(500).json({ error: "Failed to fetch event" });
+    }
+  });
+
+  // Create event (admin/foundational only)
+  app.post("/api/events", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+    try {
+      const { title, eventDate, eventTime, location, contactInfo, contactLabel, thumbnailPath, description } = req.body;
+      
+      if (!title || !eventDate || !eventTime || !location || !contactInfo) {
+        return res.status(400).json({ error: "Missing required fields: title, eventDate, eventTime, location, contactInfo" });
+      }
+
+      const event = await storage.createEvent({
+        title,
+        eventDate,
+        eventTime,
+        location,
+        contactInfo,
+        contactLabel: contactLabel || "Contact",
+        thumbnailPath: thumbnailPath || null,
+        description: description || null,
+        createdBy: req.user!.id,
+      });
+      res.status(201).json(event);
+    } catch (error) {
+      console.error("Error creating event:", error);
+      res.status(500).json({ error: "Failed to create event" });
+    }
+  });
+
+  // Update event (admin/foundational only)
+  app.put("/api/events/:id", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid event ID" });
+      }
+
+      const existing = await storage.getEvent(id);
+      if (!existing) {
+        return res.status(404).json({ error: "Event not found" });
+      }
+
+      const { title, eventDate, eventTime, location, contactInfo, contactLabel, thumbnailPath, description } = req.body;
+      
+      const updated = await storage.updateEvent(id, {
+        title: title ?? existing.title,
+        eventDate: eventDate ?? existing.eventDate,
+        eventTime: eventTime ?? existing.eventTime,
+        location: location ?? existing.location,
+        contactInfo: contactInfo ?? existing.contactInfo,
+        contactLabel: contactLabel ?? existing.contactLabel,
+        thumbnailPath: thumbnailPath !== undefined ? thumbnailPath : existing.thumbnailPath,
+        description: description !== undefined ? description : existing.description,
+      });
+      
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating event:", error);
+      res.status(500).json({ error: "Failed to update event" });
+    }
+  });
+
+  // Delete event (admin/foundational only)
+  app.delete("/api/events/:id", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ error: "Invalid event ID" });
+      }
+
+      const existing = await storage.getEvent(id);
+      if (!existing) {
+        return res.status(404).json({ error: "Event not found" });
+      }
+
+      await storage.deleteEvent(id);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error deleting event:", error);
+      res.status(500).json({ error: "Failed to delete event" });
+    }
+  });
+
+  // Get events hero image setting
+  app.get("/api/settings/events-hero", async (req, res) => {
+    try {
+      const heroImage = await storage.getSetting("events_hero_image");
+      res.json({ heroImage: heroImage || null });
+    } catch (error) {
+      console.error("Error fetching events hero:", error);
+      res.status(500).json({ error: "Failed to fetch events hero image" });
+    }
+  });
+
+  // Update events hero image setting (admin/foundational only)
+  app.put("/api/settings/events-hero", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+    try {
+      const { heroImage } = req.body;
+      if (heroImage) {
+        await storage.setSetting("events_hero_image", heroImage);
+      }
+      res.json({ success: true, heroImage });
+    } catch (error) {
+      console.error("Error updating events hero:", error);
+      res.status(500).json({ error: "Failed to update events hero image" });
+    }
+  });
+
   // CORS preflight handler for object storage
   app.options("/objects/:objectPath(*)", (req, res) => {
     res.set({
