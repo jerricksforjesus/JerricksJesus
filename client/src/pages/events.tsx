@@ -9,7 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { useNavTheme, analyzeImageBrightness } from "@/lib/navThemeContext";
+import { useNavTheme } from "@/lib/navThemeContext";
 import type { Event, Photo } from "@shared/schema";
 
 function formatEventDate(dateString: string): string {
@@ -132,24 +132,14 @@ export default function Events() {
   const heroImage = heroData?.heroImage || (photos && photos.length > 0 ? photos[0].imagePath : null);
 
   useEffect(() => {
-    let cancelled = false;
-    
-    if (heroImage) {
-      const imageSrc = heroImage.startsWith('/') ? heroImage : `/objects/${heroImage}`;
-      analyzeImageBrightness(imageSrc).then((brightness) => {
-        if (!cancelled) {
-          setTheme(brightness === "dark" ? "light" : "dark");
-        }
-      });
-    } else {
-      setTheme("light");
-    }
+    // Events page always has a dark overlay (bg-black/50) on the hero,
+    // so navigation should always use light (white) text for legibility
+    setTheme("light");
     
     return () => {
-      cancelled = true;
       setTheme("auto");
     };
-  }, [heroImage, setTheme]);
+  }, [setTheme]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
