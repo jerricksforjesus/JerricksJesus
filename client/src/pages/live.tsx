@@ -23,11 +23,11 @@ export default function LiveStream() {
     refetchInterval: 30000,
   });
 
-  const { data: zoomData } = useQuery<{ zoomLink: string }>({
-    queryKey: ["zoom-link"],
+  const { data: activeZoomData } = useQuery<{ activeLink: string; isAlternative: boolean; currentDay: string }>({
+    queryKey: ["active-zoom-link"],
     queryFn: async () => {
-      const response = await fetch("/api/settings/zoom-link", { credentials: "include" });
-      if (!response.ok) throw new Error("Failed to fetch zoom link");
+      const response = await fetch("/api/settings/active-zoom-link", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch active zoom link");
       return response.json();
     },
   });
@@ -35,7 +35,7 @@ export default function LiveStream() {
   const isLive = liveStatus?.isLive ?? false;
   const videoId = liveStatus?.videoId;
   const streamTitle = liveStatus?.title || "Live Service";
-  const zoomLink = zoomData?.zoomLink || "";
+  const zoomLink = activeZoomData?.activeLink || "";
 
   const embedDomain = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
 

@@ -1385,6 +1385,8 @@ export default function AdminDashboard() {
   const [newPassword, setNewPassword] = useState("");
   const [newUserRole, setNewUserRole] = useState<string>(USER_ROLES.MEMBER);
   const [zoomLinkInput, setZoomLinkInput] = useState("");
+  const [alternativeZoomLink, setAlternativeZoomLink] = useState("");
+  const [alternativeZoomDays, setAlternativeZoomDays] = useState<string[]>([]);
   const [activeSection, setActiveSection] = useState("verse");
   const [isNavOpen, setIsNavOpen] = useState(false);
 
@@ -1398,11 +1400,32 @@ export default function AdminDashboard() {
     enabled: canEdit,
   });
 
+  const { data: alternativeZoomData } = useQuery<{ alternativeLink: string; alternativeDays: string[] }>({
+    queryKey: ["alternative-zoom"],
+    queryFn: async () => {
+      const response = await fetch("/api/settings/alternative-zoom");
+      if (!response.ok) throw new Error("Failed to fetch alternative zoom settings");
+      return response.json();
+    },
+    enabled: canEdit,
+  });
+
   useEffect(() => {
     if (zoomData?.zoomLink && !zoomLinkInput) {
       setZoomLinkInput(zoomData.zoomLink);
     }
   }, [zoomData]);
+
+  useEffect(() => {
+    if (alternativeZoomData) {
+      if (alternativeZoomData.alternativeLink && !alternativeZoomLink) {
+        setAlternativeZoomLink(alternativeZoomData.alternativeLink);
+      }
+      if (alternativeZoomData.alternativeDays?.length > 0 && alternativeZoomDays.length === 0) {
+        setAlternativeZoomDays(alternativeZoomData.alternativeDays);
+      }
+    }
+  }, [alternativeZoomData]);
 
   const updateZoomLinkMutation = useMutation({
     mutationFn: async (zoomLink: string) => {
@@ -1416,13 +1439,39 @@ export default function AdminDashboard() {
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "Zoom Link Updated", description: "The Zoom meeting link has been saved." });
+      toast({ title: "Zoom Link Updated", description: "The main Zoom meeting link has been saved." });
       queryClient.invalidateQueries({ queryKey: ["zoom-link"] });
     },
     onError: () => {
       toast({ title: "Error", description: "Failed to update Zoom link.", variant: "destructive" });
     },
   });
+
+  const updateAlternativeZoomMutation = useMutation({
+    mutationFn: async (data: { alternativeLink: string; alternativeDays: string[] }) => {
+      const response = await fetch("/api/settings/alternative-zoom", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(data),
+      });
+      if (!response.ok) throw new Error("Failed to update alternative zoom settings");
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Alternative Zoom Updated", description: "Alternative link and days have been saved." });
+      queryClient.invalidateQueries({ queryKey: ["alternative-zoom"] });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update alternative zoom settings.", variant: "destructive" });
+    },
+  });
+
+  const toggleAlternativeDay = (day: string) => {
+    setAlternativeZoomDays(prev => 
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+    );
+  };
 
   const handleLogout = async () => {
     try {
@@ -2910,6 +2959,74 @@ export default function AdminDashboard() {
                             Current link: <a href={zoomData.zoomLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{zoomData.zoomLink}</a>
                           </p>
                         )}
+                      </div>
+                    )}
+
+                    {isAdmin && (
+                      <div className="border-t pt-6">
+                        <h3 className="font-medium mb-2">Alternative Zoom Meeting Link</h3>
+                        <p className="text-sm text-muted-foreground mb-4">
+                          Set an alternative meeting link for specific days. On selected days, visitors will see this link instead of the main one.
+                        </p>
+                        <div className="space-y-4">
+                          <div className="flex gap-3">
+                            <Input
+                              id="alternative-zoom-link"
+                              data-testid="input-alternative-zoom-link"
+                              value={alternativeZoomLink}
+                              onChange={(e) => setAlternativeZoomLink(e.target.value)}
+                              placeholder="https://zoom.us/j/... (alternative link)"
+                              className="flex-1"
+                            />
+                          </div>
+                          <div>
+                            <p className="text-sm font-medium mb-2">Use alternative link on these days:</p>
+                            <div className="flex flex-wrap gap-2">
+                              {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day) => (
+                                <button
+                                  key={day}
+                                  type="button"
+                                  onClick={() => toggleAlternativeDay(day)}
+                                  data-testid={`button-toggle-day-${day.toLowerCase()}`}
+                                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                                    alternativeZoomDays.includes(day)
+                                      ? "text-white"
+                                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                  }`}
+                                  style={alternativeZoomDays.includes(day) ? { backgroundColor: "#b47a5f" } : {}}
+                                >
+                                  {day.slice(0, 3)}
+                                </button>
+                              ))}
+                            </div>
+                            {alternativeZoomDays.length > 0 && (
+                              <p className="text-sm text-muted-foreground mt-2">
+                                Alternative link active on: {alternativeZoomDays.join(", ")}
+                              </p>
+                            )}
+                          </div>
+                          <Button
+                            onClick={() => updateAlternativeZoomMutation.mutate({ 
+                              alternativeLink: alternativeZoomLink, 
+                              alternativeDays: alternativeZoomDays 
+                            })}
+                            disabled={updateAlternativeZoomMutation.isPending}
+                            style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+                            data-testid="button-save-alternative-zoom"
+                          >
+                            {updateAlternativeZoomMutation.isPending ? (
+                              <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                            ) : (
+                              <Save className="w-4 h-4 mr-2" />
+                            )}
+                            Save Alternative Settings
+                          </Button>
+                          {alternativeZoomData?.alternativeLink && (
+                            <p className="text-sm text-muted-foreground">
+                              Current alternative: <a href={alternativeZoomData.alternativeLink} target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">{alternativeZoomData.alternativeLink}</a>
+                            </p>
+                          )}
+                        </div>
                       </div>
                     )}
 
