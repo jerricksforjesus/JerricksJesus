@@ -25,14 +25,17 @@ function formatEventTime(timeString: string): string {
 function formatLocation(event: Event): string {
   const locationType = (event.locationType as "physical" | "online" | "phone") || "physical";
   
-  if (locationType === "online" && event.meetingLink) {
+  // Online meeting - only show "Online Meeting", ignore any address data
+  if (locationType === "online") {
     return "Online Meeting";
   }
-  if (locationType === "phone" && event.meetingPhone) {
-    return `Phone: ${event.meetingPhone}`;
+  
+  // Phone call - only show "Phone Call", ignore any address data
+  if (locationType === "phone") {
+    return "Phone Call";
   }
   
-  // Physical address
+  // Physical address - only for physical location type
   const parts = [];
   if (event.streetAddress) parts.push(event.streetAddress);
   if (event.city) parts.push(event.city);

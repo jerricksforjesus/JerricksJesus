@@ -30,17 +30,20 @@ function formatEventTime(timeString: string): string {
   return `${hour12}:${minutes} ${ampm}`;
 }
 
-function formatLocation(event: Event): { text: string; type: "physical" | "online" | "phone" } {
+function formatLocation(event: Event): { text: string; type: "physical" | "online" | "phone"; link?: string } {
   const locationType = (event.locationType as "physical" | "online" | "phone") || "physical";
   
-  if (locationType === "online" && event.meetingLink) {
-    return { text: "Online Meeting", type: "online" };
-  }
-  if (locationType === "phone" && event.meetingPhone) {
-    return { text: `Phone: ${event.meetingPhone}`, type: "phone" };
+  // Online meeting - only show "Online Meeting", ignore any address data
+  if (locationType === "online") {
+    return { text: "Online Meeting", type: "online", link: event.meetingLink || undefined };
   }
   
-  // Physical address
+  // Phone call - only show "Phone Call", ignore any address data
+  if (locationType === "phone") {
+    return { text: "Phone Call", type: "phone" };
+  }
+  
+  // Physical address - only for physical location type
   const parts = [];
   if (event.streetAddress) parts.push(event.streetAddress);
   if (event.city) parts.push(event.city);

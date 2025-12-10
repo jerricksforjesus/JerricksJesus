@@ -1284,7 +1284,7 @@ function EventsManagementTab() {
                         {event.locationType === "online" 
                           ? "Online Meeting" 
                           : event.locationType === "phone" 
-                            ? `Phone: ${event.meetingPhone || "TBD"}` 
+                            ? "Phone Call" 
                             : [event.streetAddress, event.city, event.state, event.zipCode].filter(Boolean).join(", ") || "Location TBD"}
                       </p>
                     </div>
