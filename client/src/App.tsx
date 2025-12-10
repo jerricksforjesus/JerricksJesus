@@ -10,6 +10,7 @@ import LiveStream from "@/pages/live";
 import Replays from "@/pages/replays";
 import AdminDashboard from "@/pages/admin";
 import LoginPage from "@/pages/login";
+import Events from "@/pages/events";
 
 function Router() {
   return (
@@ -17,6 +18,7 @@ function Router() {
       <Route path="/" component={Home}/>
       <Route path="/live" component={LiveStream}/>
       <Route path="/replays" component={Replays}/>
+      <Route path="/events" component={Events}/>
       <Route path="/admin" component={AdminDashboard}/>
       <Route path="/login" component={LoginPage}/>
       <Route component={NotFound} />

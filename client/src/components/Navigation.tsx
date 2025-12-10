@@ -32,6 +32,7 @@ export function Navigation() {
     { href: "/", label: "Sanctuary" },
     { href: "/live", label: "Live Stream" },
     { href: "/replays", label: "Replays" },
+    { href: "/events", label: "Events" },
     { href: user ? "/admin" : "/login", label: getAccountLabel() },
   ];
 
