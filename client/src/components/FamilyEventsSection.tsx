@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Calendar, Clock, MapPin, ArrowRight } from "lucide-react";
+import { Calendar, Clock, MapPin, ArrowRight, Phone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Link } from "wouter";
 import type { Event } from "@shared/schema";
@@ -7,8 +7,10 @@ import type { Event } from "@shared/schema";
 function formatEventDate(dateString: string): string {
   const date = new Date(dateString + 'T00:00:00');
   return date.toLocaleDateString('en-US', { 
-    month: 'short', 
+    weekday: 'long',
+    month: 'long', 
     day: 'numeric',
+    year: 'numeric'
   });
 }
 
@@ -18,6 +20,22 @@ function formatEventTime(timeString: string): string {
   const ampm = hour >= 12 ? 'PM' : 'AM';
   const hour12 = hour % 12 || 12;
   return `${hour12}:${minutes} ${ampm}`;
+}
+
+function formatFullAddress(event: Event): string {
+  const parts = [];
+  if (event.streetAddress) parts.push(event.streetAddress);
+  if (event.city) parts.push(event.city);
+  if (event.state) {
+    if (event.zipCode) {
+      parts.push(`${event.state} ${event.zipCode}`);
+    } else {
+      parts.push(event.state);
+    }
+  } else if (event.zipCode) {
+    parts.push(event.zipCode);
+  }
+  return parts.join(", ") || "Location TBD";
 }
 
 export function FamilyEventsSection() {
@@ -58,47 +76,85 @@ export function FamilyEventsSection() {
         </div>
 
         {upcomingEvents.length > 0 ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+          <div className="grid gap-6 md:gap-8 mb-8">
             {upcomingEvents.map((event) => (
               <div 
                 key={event.id}
-                className="bg-card border border-border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all hover:-translate-y-1"
+                className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
                 data-testid={`home-event-card-${event.id}`}
               >
-                {event.thumbnailPath ? (
-                  <div className="h-40 overflow-hidden">
-                    <img 
-                      src={event.thumbnailPath.startsWith('/') ? event.thumbnailPath : `/objects/${event.thumbnailPath}`}
-                      alt={event.title}
-                      className="w-full h-full object-cover"
-                      data-testid={`home-event-thumbnail-${event.id}`}
-                    />
+                <div className="flex flex-col md:flex-row">
+                  {/* Event Thumbnail */}
+                  <div className="md:w-72 lg:w-80 h-48 md:h-auto relative overflow-hidden flex-shrink-0">
+                    {event.thumbnailPath ? (
+                      <img 
+                        src={event.thumbnailPath.startsWith('/') ? event.thumbnailPath : `/objects/${event.thumbnailPath}`}
+                        alt={event.title}
+                        className="w-full h-full object-cover"
+                        data-testid={`home-event-thumbnail-${event.id}`}
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center min-h-[12rem]">
+                        <Calendar className="w-12 h-12 text-primary/40" />
+                      </div>
+                    )}
                   </div>
-                ) : (
-                  <div className="h-40 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                    <Calendar className="w-10 h-10 text-primary/40" />
-                  </div>
-                )}
-                
-                <div className="p-5">
-                  <h3 
-                    className="font-serif text-xl mb-3 line-clamp-1"
-                    data-testid={`home-event-title-${event.id}`}
-                  >
-                    {event.title}
-                  </h3>
-                  
-                  <div className="space-y-2 text-sm text-muted-foreground">
-                    <div className="flex items-center gap-2">
-                      <Calendar className="w-4 h-4 text-primary flex-shrink-0" />
-                      <span>{formatEventDate(event.eventDate)}</span>
-                      <span className="text-muted-foreground/50">|</span>
-                      <Clock className="w-4 h-4 text-primary flex-shrink-0" />
-                      <span>{formatEventTime(event.eventTime)}</span>
+
+                  {/* Event Details */}
+                  <div className="flex-1 p-6 md:p-8 flex flex-col justify-between">
+                    <div>
+                      <h3 
+                        className="font-serif text-2xl md:text-3xl mb-4"
+                        data-testid={`home-event-title-${event.id}`}
+                      >
+                        {event.title}
+                      </h3>
+                      
+                      <div className="space-y-3 text-muted-foreground">
+                        <div className="flex items-center gap-3">
+                          <Calendar className="w-5 h-5 text-primary flex-shrink-0" />
+                          <span>{formatEventDate(event.eventDate)}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <Clock className="w-5 h-5 text-primary flex-shrink-0" />
+                          <span>{formatEventTime(event.eventTime)}</span>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <MapPin className="w-5 h-5 text-primary flex-shrink-0" />
+                          <span>{formatFullAddress(event)}</span>
+                        </div>
+                      </div>
+
+                      {event.description && (
+                        <p className="mt-4 text-muted-foreground line-clamp-2">
+                          {event.description}
+                        </p>
+                      )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
-                      <span className="line-clamp-1">{event.location}</span>
+
+                    {/* Action Button */}
+                    <div className="flex flex-wrap gap-3 mt-6">
+                      {event.contactType === "email" && event.contactEmail ? (
+                        <a 
+                          href={`mailto:${event.contactEmail}`}
+                          data-testid={`home-event-contact-${event.id}`}
+                        >
+                          <Button variant="default" className="bg-primary hover:bg-primary/90">
+                            <Phone className="w-4 h-4 mr-2" />
+                            {event.contactName || "Contact"}
+                          </Button>
+                        </a>
+                      ) : event.contactPhone ? (
+                        <a 
+                          href={`tel:${event.contactPhone.replace(/[^0-9+]/g, '')}`}
+                          data-testid={`home-event-contact-${event.id}`}
+                        >
+                          <Button variant="default" className="bg-primary hover:bg-primary/90">
+                            <Phone className="w-4 h-4 mr-2" />
+                            {event.contactName || "Contact"}
+                          </Button>
+                        </a>
+                      ) : null}
                     </div>
                   </div>
                 </div>
