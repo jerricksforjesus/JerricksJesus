@@ -160,7 +160,8 @@ export const events = pgTable("events", {
   contactName: text("contact_name").notNull().default(""),
   contactPhone: text("contact_phone").notNull().default(""),
   contactEmail: text("contact_email"),
-  contactType: text("contact_type").notNull().default("phone"), // "phone" or "email"
+  contactType: text("contact_type").notNull().default("phone"), // "phone", "email", or "link"
+  contactUrl: text("contact_url"), // URL for online link contact type (e.g., Zoom link)
   buttonLabel: text("button_label").notNull().default("Contact Us"), // Custom button text
   thumbnailPath: text("thumbnail_path"),
   description: text("description"),
