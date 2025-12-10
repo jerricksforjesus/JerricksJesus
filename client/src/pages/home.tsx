@@ -6,6 +6,7 @@ import { LiveStreamSection } from "@/components/LiveStreamSection";
 import { ReplaysList } from "@/components/ReplaysList";
 import { FamilyPhotoCarousel } from "@/components/FamilyPhotoCarousel";
 import { BibleQuizSection } from "@/components/BibleQuizSection";
+import { FamilyEventsSection } from "@/components/FamilyEventsSection";
 import { MinistryAccordion } from "@/components/MinistryAccordion";
 import { useQuery } from "@tanstack/react-query";
 
@@ -43,6 +44,7 @@ export default function Home() {
       <LiveStreamSection />
       <ReplaysList />
       <FamilyPhotoCarousel />
+      <FamilyEventsSection />
       <BibleQuizSection />
       <MinistryAccordion />
       <footer className="bg-foreground text-background py-16 px-6" data-testid="footer">
