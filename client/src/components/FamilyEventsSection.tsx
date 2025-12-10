@@ -44,10 +44,6 @@ export function FamilyEventsSection() {
     );
   }
 
-  if (!upcomingEvents.length) {
-    return null;
-  }
-
   return (
     <section className="py-24 px-6 bg-muted/30" data-testid="family-events-section">
       <div className="max-w-7xl mx-auto">
@@ -61,53 +57,67 @@ export function FamilyEventsSection() {
           </p>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
-          {upcomingEvents.map((event) => (
-            <div 
-              key={event.id}
-              className="bg-card border border-border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all hover:-translate-y-1"
-              data-testid={`home-event-card-${event.id}`}
-            >
-              {event.thumbnailPath ? (
-                <div className="h-40 overflow-hidden">
-                  <img 
-                    src={event.thumbnailPath.startsWith('/') ? event.thumbnailPath : `/objects/${event.thumbnailPath}`}
-                    alt={event.title}
-                    className="w-full h-full object-cover"
-                    data-testid={`home-event-thumbnail-${event.id}`}
-                  />
-                </div>
-              ) : (
-                <div className="h-40 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                  <Calendar className="w-10 h-10 text-primary/40" />
-                </div>
-              )}
-              
-              <div className="p-5">
-                <h3 
-                  className="font-serif text-xl mb-3 line-clamp-1"
-                  data-testid={`home-event-title-${event.id}`}
-                >
-                  {event.title}
-                </h3>
-                
-                <div className="space-y-2 text-sm text-muted-foreground">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-primary flex-shrink-0" />
-                    <span>{formatEventDate(event.eventDate)}</span>
-                    <span className="text-muted-foreground/50">|</span>
-                    <Clock className="w-4 h-4 text-primary flex-shrink-0" />
-                    <span>{formatEventTime(event.eventTime)}</span>
+        {upcomingEvents.length > 0 ? (
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 mb-8">
+            {upcomingEvents.map((event) => (
+              <div 
+                key={event.id}
+                className="bg-card border border-border rounded-xl overflow-hidden shadow-sm hover:shadow-md transition-all hover:-translate-y-1"
+                data-testid={`home-event-card-${event.id}`}
+              >
+                {event.thumbnailPath ? (
+                  <div className="h-40 overflow-hidden">
+                    <img 
+                      src={event.thumbnailPath.startsWith('/') ? event.thumbnailPath : `/objects/${event.thumbnailPath}`}
+                      alt={event.title}
+                      className="w-full h-full object-cover"
+                      data-testid={`home-event-thumbnail-${event.id}`}
+                    />
                   </div>
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
-                    <span className="line-clamp-1">{event.location}</span>
+                ) : (
+                  <div className="h-40 bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                    <Calendar className="w-10 h-10 text-primary/40" />
+                  </div>
+                )}
+                
+                <div className="p-5">
+                  <h3 
+                    className="font-serif text-xl mb-3 line-clamp-1"
+                    data-testid={`home-event-title-${event.id}`}
+                  >
+                    {event.title}
+                  </h3>
+                  
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span>{formatEventDate(event.eventDate)}</span>
+                      <span className="text-muted-foreground/50">|</span>
+                      <Clock className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span>{formatEventTime(event.eventTime)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <MapPin className="w-4 h-4 text-primary flex-shrink-0" />
+                      <span className="line-clamp-1">{event.location}</span>
+                    </div>
                   </div>
                 </div>
               </div>
+            ))}
+          </div>
+        ) : (
+          <div className="text-center py-12 mb-8">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-primary/10 mb-4">
+              <Calendar className="w-8 h-8 text-primary" />
             </div>
-          ))}
-        </div>
+            <p className="text-muted-foreground text-lg">
+              No upcoming events scheduled yet.
+            </p>
+            <p className="text-muted-foreground/70 text-sm mt-1">
+              Check back soon for new gatherings and fellowship opportunities!
+            </p>
+          </div>
+        )}
 
         <div className="text-center">
           <Link href="/events">

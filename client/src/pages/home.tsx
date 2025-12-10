@@ -41,10 +41,10 @@ export default function Home() {
       <Hero />
       <VerseDisplay />
       <FeaturedVideo />
-      <LiveStreamSection />
       <ReplaysList />
-      <FamilyPhotoCarousel />
       <FamilyEventsSection />
+      <LiveStreamSection />
+      <FamilyPhotoCarousel />
       <BibleQuizSection />
       <MinistryAccordion />
       <footer className="bg-foreground text-background py-16 px-6" data-testid="footer">
