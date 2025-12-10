@@ -2513,17 +2513,28 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Event not found" });
       }
 
-      const { title, eventDate, eventTime, location, contactInfo, contactLabel, thumbnailPath, description } = req.body;
+      const { 
+        title, eventDate, eventTime, thumbnailPath, description,
+        locationType, streetAddress, city, state, zipCode, meetingLink, meetingPhone,
+        contactName, contactEmail, contactPhone
+      } = req.body;
       
       const updated = await storage.updateEvent(id, {
         title: title ?? existing.title,
         eventDate: eventDate ?? existing.eventDate,
         eventTime: eventTime ?? existing.eventTime,
-        location: location ?? existing.location,
-        contactInfo: contactInfo ?? existing.contactInfo,
-        contactLabel: contactLabel ?? existing.contactLabel,
         thumbnailPath: thumbnailPath !== undefined ? thumbnailPath : existing.thumbnailPath,
         description: description !== undefined ? description : existing.description,
+        locationType: locationType ?? existing.locationType,
+        streetAddress: streetAddress !== undefined ? streetAddress : existing.streetAddress,
+        city: city !== undefined ? city : existing.city,
+        state: state !== undefined ? state : existing.state,
+        zipCode: zipCode !== undefined ? zipCode : existing.zipCode,
+        meetingLink: meetingLink !== undefined ? meetingLink : existing.meetingLink,
+        meetingPhone: meetingPhone !== undefined ? meetingPhone : existing.meetingPhone,
+        contactName: contactName !== undefined ? contactName : existing.contactName,
+        contactEmail: contactEmail !== undefined ? contactEmail : existing.contactEmail,
+        contactPhone: contactPhone !== undefined ? contactPhone : existing.contactPhone,
       });
       
       res.json(updated);
