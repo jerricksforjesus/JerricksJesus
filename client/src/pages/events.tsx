@@ -1,5 +1,6 @@
 import { Navigation } from "@/components/Navigation";
 import { useQuery } from "@tanstack/react-query";
+import { useEffect } from "react";
 import { Calendar, Clock, MapPin, Phone, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -8,6 +9,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { useNavTheme, analyzeImageBrightness } from "@/lib/navThemeContext";
 import type { Event, Photo } from "@shared/schema";
 
 function formatEventDate(dateString: string): string {
@@ -98,6 +100,8 @@ function downloadICalFile(event: Event) {
 }
 
 export default function Events() {
+  const { setTheme } = useNavTheme();
+
   const { data: events, isLoading: eventsLoading } = useQuery<Event[]>({
     queryKey: ["events"],
     queryFn: async () => {
@@ -126,6 +130,26 @@ export default function Events() {
   });
 
   const heroImage = heroData?.heroImage || (photos && photos.length > 0 ? photos[0].imagePath : null);
+
+  useEffect(() => {
+    let cancelled = false;
+    
+    if (heroImage) {
+      const imageSrc = heroImage.startsWith('/') ? heroImage : `/objects/${heroImage}`;
+      analyzeImageBrightness(imageSrc).then((brightness) => {
+        if (!cancelled) {
+          setTheme(brightness === "dark" ? "light" : "dark");
+        }
+      });
+    } else {
+      setTheme("light");
+    }
+    
+    return () => {
+      cancelled = true;
+      setTheme("auto");
+    };
+  }, [heroImage, setTheme]);
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

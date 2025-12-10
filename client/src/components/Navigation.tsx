@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { motion } from "framer-motion";
+import { useNavTheme } from "@/lib/navThemeContext";
 
 export function Navigation() {
   const [location] = useLocation();
@@ -11,8 +12,10 @@ export function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(0);
   const { user } = useAuth();
+  const { theme } = useNavTheme();
   
   const isHomePage = location === "/";
+  const useLightText = theme === "light" || (theme === "auto" && isHomePage);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -48,7 +51,7 @@ export function Navigation() {
           <span 
             className={cn(
               "cursor-pointer font-serif text-2xl md:text-3xl font-bold tracking-tighter hover:opacity-80 transition-colors duration-300",
-              isHomePage && !isScrolled ? "text-white" : "text-foreground"
+              useLightText && !isScrolled ? "text-white" : "text-foreground"
             )}
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           >JERRICKS FOR JESUS</span>
@@ -80,7 +83,7 @@ export function Navigation() {
                     "relative z-10 text-xs font-bold tracking-widest uppercase transition-colors duration-300",
                     hoveredIndex === index 
                       ? "text-primary" 
-                      : isHomePage && !isScrolled ? "text-white/90" : "text-foreground/80"
+                      : useLightText && !isScrolled ? "text-white/90" : "text-foreground/80"
                   )}
                 >
                   {link.label}
@@ -99,7 +102,7 @@ export function Navigation() {
         <button
           className={cn(
             "md:hidden transition-colors duration-300",
-            isHomePage && !isScrolled ? "text-white" : "text-foreground"
+            useLightText && !isScrolled ? "text-white" : "text-foreground"
           )}
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
