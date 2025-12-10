@@ -22,7 +22,17 @@ function formatEventTime(timeString: string): string {
   return `${hour12}:${minutes} ${ampm}`;
 }
 
-function formatFullAddress(event: Event): string {
+function formatLocation(event: Event): string {
+  const locationType = (event.locationType as "physical" | "online" | "phone") || "physical";
+  
+  if (locationType === "online" && event.meetingLink) {
+    return "Online Meeting";
+  }
+  if (locationType === "phone" && event.meetingPhone) {
+    return `Phone: ${event.meetingPhone}`;
+  }
+  
+  // Physical address
   const parts = [];
   if (event.streetAddress) parts.push(event.streetAddress);
   if (event.city) parts.push(event.city);
@@ -121,7 +131,7 @@ export function FamilyEventsSection() {
                         </div>
                         <div className="flex items-center gap-3">
                           <MapPin className="w-5 h-5 text-primary flex-shrink-0" />
-                          <span>{formatFullAddress(event)}</span>
+                          <span>{formatLocation(event)}</span>
                         </div>
                       </div>
 

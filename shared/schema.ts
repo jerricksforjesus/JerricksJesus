@@ -145,11 +145,17 @@ export const events = pgTable("events", {
   title: text("title").notNull(),
   eventDate: text("event_date").notNull(),
   eventTime: text("event_time").notNull(),
-  // Structured address fields
+  // Location type: "physical", "online", or "phone"
+  locationType: text("location_type").notNull().default("physical"),
+  // Structured address fields (for physical locations)
   streetAddress: text("street_address").notNull().default(""),
   city: text("city").notNull().default(""),
   state: text("state").notNull().default(""),
   zipCode: text("zip_code").notNull().default(""),
+  // Online meeting fields
+  meetingLink: text("meeting_link"),
+  // Phone meeting fields
+  meetingPhone: text("meeting_phone"),
   // Structured contact fields
   contactName: text("contact_name").notNull().default(""),
   contactPhone: text("contact_phone").notNull().default(""),

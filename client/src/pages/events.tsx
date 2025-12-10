@@ -30,13 +30,34 @@ function formatEventTime(timeString: string): string {
   return `${hour12}:${minutes} ${ampm}`;
 }
 
-function formatFullAddress(event: Event): string {
-  const parts = [event.streetAddress, event.city, event.state, event.zipCode].filter(Boolean);
-  if (parts.length === 0) return "Location TBD";
-  if (event.city && event.state) {
-    return `${event.streetAddress}, ${event.city}, ${event.state} ${event.zipCode}`.trim();
+function formatLocation(event: Event): { text: string; type: "physical" | "online" | "phone" } {
+  const locationType = (event.locationType as "physical" | "online" | "phone") || "physical";
+  
+  if (locationType === "online" && event.meetingLink) {
+    return { text: "Online Meeting", type: "online" };
   }
-  return parts.join(", ");
+  if (locationType === "phone" && event.meetingPhone) {
+    return { text: `Phone: ${event.meetingPhone}`, type: "phone" };
+  }
+  
+  // Physical address
+  const parts = [];
+  if (event.streetAddress) parts.push(event.streetAddress);
+  if (event.city) parts.push(event.city);
+  if (event.state) {
+    if (event.zipCode) {
+      parts.push(`${event.state} ${event.zipCode}`);
+    } else {
+      parts.push(event.state);
+    }
+  } else if (event.zipCode) {
+    parts.push(event.zipCode);
+  }
+  return { text: parts.join(", ") || "Location TBD", type: "physical" };
+}
+
+function formatFullAddress(event: Event): string {
+  return formatLocation(event).text;
 }
 
 function generateGoogleCalendarUrl(event: Event): string {

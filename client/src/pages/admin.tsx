@@ -591,11 +591,17 @@ function EventsManagementTab() {
   const [eventTitle, setEventTitle] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [eventTime, setEventTime] = useState("");
-  // Structured address fields
+  // Location type: "physical", "online", or "phone"
+  const [locationType, setLocationType] = useState<"physical" | "online" | "phone">("physical");
+  // Structured address fields (for physical locations)
   const [streetAddress, setStreetAddress] = useState("");
   const [city, setCity] = useState("");
   const [state, setState] = useState("");
   const [zipCode, setZipCode] = useState("");
+  // Online meeting fields
+  const [meetingLink, setMeetingLink] = useState("");
+  // Phone meeting fields
+  const [meetingPhone, setMeetingPhone] = useState("");
   // Structured contact fields
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
@@ -723,10 +729,13 @@ function EventsManagementTab() {
     setTimeHour("12");
     setTimeMinute("00");
     setTimeAmPm("AM");
+    setLocationType("physical");
     setStreetAddress("");
     setCity("");
     setState("");
     setZipCode("");
+    setMeetingLink("");
+    setMeetingPhone("");
     setContactName("");
     setContactPhone("");
     setContactEmail("");
@@ -762,10 +771,13 @@ function EventsManagementTab() {
     setTimeHour(hour);
     setTimeMinute(minute);
     setTimeAmPm(ampm);
+    setLocationType((event.locationType as "physical" | "online" | "phone") || "physical");
     setStreetAddress(event.streetAddress || "");
     setCity(event.city || "");
     setState(event.state || "");
     setZipCode(event.zipCode || "");
+    setMeetingLink(event.meetingLink || "");
+    setMeetingPhone(event.meetingPhone || "");
     setContactName(event.contactName || "");
     setContactPhone(event.contactPhone || "");
     setContactEmail(event.contactEmail || "");
@@ -775,8 +787,23 @@ function EventsManagementTab() {
   };
 
   const handleSubmit = () => {
-    if (!eventTitle || !eventDate || !streetAddress || !city || !state || !contactName || !contactPhone) {
-      toast({ title: "Missing Fields", description: "Please fill in all required fields.", variant: "destructive" });
+    // Basic required fields
+    if (!eventTitle || !eventDate || !contactName || !contactPhone) {
+      toast({ title: "Missing Fields", description: "Please fill in title, date, and contact information.", variant: "destructive" });
+      return;
+    }
+
+    // Validate location based on type
+    if (locationType === "physical" && (!streetAddress || !city || !state)) {
+      toast({ title: "Missing Address", description: "Please fill in street address, city, and state.", variant: "destructive" });
+      return;
+    }
+    if (locationType === "online" && !meetingLink) {
+      toast({ title: "Missing Meeting Link", description: "Please provide a Zoom or meeting link.", variant: "destructive" });
+      return;
+    }
+    if (locationType === "phone" && !meetingPhone) {
+      toast({ title: "Missing Phone Number", description: "Please provide a phone number for the call.", variant: "destructive" });
       return;
     }
 
@@ -791,10 +818,13 @@ function EventsManagementTab() {
       title: eventTitle,
       eventDate,
       eventTime,
-      streetAddress,
-      city,
-      state,
-      zipCode: zipCode || "",
+      locationType,
+      streetAddress: locationType === "physical" ? streetAddress : "",
+      city: locationType === "physical" ? city : "",
+      state: locationType === "physical" ? state : "",
+      zipCode: locationType === "physical" ? (zipCode || "") : "",
+      meetingLink: locationType === "online" ? meetingLink : null,
+      meetingPhone: locationType === "phone" ? meetingPhone : null,
       contactName,
       contactPhone,
       contactEmail: contactEmail || null,
@@ -980,53 +1010,127 @@ function EventsManagementTab() {
             </div>
           </div>
 
-          {/* Location Fields */}
-          <div className="space-y-3">
-            <Label className="text-base font-medium">Location *</Label>
-            <div className="grid grid-cols-1 gap-3">
-              <div className="space-y-1">
-                <Label htmlFor="street-address" className="text-sm text-muted-foreground">Street Address</Label>
-                <Input
-                  id="street-address"
-                  value={streetAddress}
-                  onChange={(e) => setStreetAddress(e.target.value)}
-                  placeholder="e.g. 99 Hillside Avenue, Suite F"
-                  data-testid="input-street-address"
+          {/* Location Type Selector */}
+          <div className="space-y-4">
+            <Label className="text-base font-medium">Location Type *</Label>
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="locationType"
+                  value="physical"
+                  checked={locationType === "physical"}
+                  onChange={() => setLocationType("physical")}
+                  className="w-4 h-4 text-primary"
+                  data-testid="radio-location-physical"
                 />
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                <div className="col-span-2 md:col-span-2 space-y-1">
-                  <Label htmlFor="city" className="text-sm text-muted-foreground">City</Label>
-                  <Input
-                    id="city"
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
-                    placeholder="e.g. Williston Park"
-                    data-testid="input-city"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="state" className="text-sm text-muted-foreground">State</Label>
-                  <Input
-                    id="state"
-                    value={state}
-                    onChange={(e) => setState(e.target.value)}
-                    placeholder="e.g. NY"
-                    data-testid="input-state"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <Label htmlFor="zip-code" className="text-sm text-muted-foreground">Zip Code</Label>
-                  <Input
-                    id="zip-code"
-                    value={zipCode}
-                    onChange={(e) => setZipCode(e.target.value)}
-                    placeholder="e.g. 11596"
-                    data-testid="input-zip-code"
-                  />
-                </div>
-              </div>
+                <span className="text-sm">Physical Address</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="locationType"
+                  value="online"
+                  checked={locationType === "online"}
+                  onChange={() => setLocationType("online")}
+                  className="w-4 h-4 text-primary"
+                  data-testid="radio-location-online"
+                />
+                <span className="text-sm">Online Meeting (Zoom)</span>
+              </label>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="locationType"
+                  value="phone"
+                  checked={locationType === "phone"}
+                  onChange={() => setLocationType("phone")}
+                  className="w-4 h-4 text-primary"
+                  data-testid="radio-location-phone"
+                />
+                <span className="text-sm">Phone Call</span>
+              </label>
             </div>
+
+            {/* Physical Address Fields */}
+            {locationType === "physical" && (
+              <div className="grid grid-cols-1 gap-3 pl-6 border-l-2 border-primary/20">
+                <div className="space-y-1">
+                  <Label htmlFor="street-address" className="text-sm text-muted-foreground">Street Address *</Label>
+                  <Input
+                    id="street-address"
+                    value={streetAddress}
+                    onChange={(e) => setStreetAddress(e.target.value)}
+                    placeholder="e.g. 99 Hillside Avenue, Suite F"
+                    data-testid="input-street-address"
+                  />
+                </div>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                  <div className="col-span-2 md:col-span-2 space-y-1">
+                    <Label htmlFor="city" className="text-sm text-muted-foreground">City *</Label>
+                    <Input
+                      id="city"
+                      value={city}
+                      onChange={(e) => setCity(e.target.value)}
+                      placeholder="e.g. Williston Park"
+                      data-testid="input-city"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="state" className="text-sm text-muted-foreground">State *</Label>
+                    <Input
+                      id="state"
+                      value={state}
+                      onChange={(e) => setState(e.target.value)}
+                      placeholder="e.g. NY"
+                      data-testid="input-state"
+                    />
+                  </div>
+                  <div className="space-y-1">
+                    <Label htmlFor="zip-code" className="text-sm text-muted-foreground">Zip Code</Label>
+                    <Input
+                      id="zip-code"
+                      value={zipCode}
+                      onChange={(e) => setZipCode(e.target.value)}
+                      placeholder="e.g. 11596"
+                      data-testid="input-zip-code"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Online Meeting Fields */}
+            {locationType === "online" && (
+              <div className="pl-6 border-l-2 border-primary/20">
+                <div className="space-y-1">
+                  <Label htmlFor="meeting-link" className="text-sm text-muted-foreground">Meeting Link (Zoom, Google Meet, etc.) *</Label>
+                  <Input
+                    id="meeting-link"
+                    value={meetingLink}
+                    onChange={(e) => setMeetingLink(e.target.value)}
+                    placeholder="e.g. https://zoom.us/j/123456789"
+                    data-testid="input-meeting-link"
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* Phone Call Fields */}
+            {locationType === "phone" && (
+              <div className="pl-6 border-l-2 border-primary/20">
+                <div className="space-y-1">
+                  <Label htmlFor="meeting-phone" className="text-sm text-muted-foreground">Phone Number for Call *</Label>
+                  <Input
+                    id="meeting-phone"
+                    value={meetingPhone}
+                    onChange={(e) => setMeetingPhone(e.target.value)}
+                    placeholder="e.g. 516-240-5503"
+                    data-testid="input-meeting-phone"
+                  />
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Contact Fields */}
@@ -1177,7 +1281,11 @@ function EventsManagementTab() {
                       </p>
                       <p className="text-sm text-muted-foreground flex items-center gap-2">
                         <MapPin className="w-3 h-3" />
-                        {[event.streetAddress, event.city, event.state, event.zipCode].filter(Boolean).join(", ") || "Location TBD"}
+                        {event.locationType === "online" 
+                          ? "Online Meeting" 
+                          : event.locationType === "phone" 
+                            ? `Phone: ${event.meetingPhone || "TBD"}` 
+                            : [event.streetAddress, event.city, event.state, event.zipCode].filter(Boolean).join(", ") || "Location TBD"}
                       </p>
                     </div>
                   </div>
