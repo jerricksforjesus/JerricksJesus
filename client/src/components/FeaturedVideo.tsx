@@ -44,7 +44,7 @@ export function FeaturedVideo() {
     <section className="py-24 bg-card">
       <div className="max-w-7xl mx-auto px-6">
         <div className="mb-12">
-          <h2 className="text-3xl md:text-4xl font-serif font-bold mb-2">Latest Sermon</h2>
+          <h2 className="text-3xl md:text-4xl font-serif font-bold mb-2">Latest Bible Studies</h2>
           <p className="text-muted-foreground">Watch the most recent service recording.</p>
         </div>
 
@@ -85,7 +85,6 @@ export function FeaturedVideo() {
           </div>
         </motion.div>
       </div>
-
       <VideoPlayerModal 
         video={selectedVideo} 
         open={isPlayerOpen} 
