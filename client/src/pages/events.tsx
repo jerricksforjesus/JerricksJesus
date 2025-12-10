@@ -1,7 +1,7 @@
 import { Navigation } from "@/components/Navigation";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect } from "react";
-import { Calendar, Clock, MapPin, Phone, ChevronDown } from "lucide-react";
+import { Calendar, Clock, MapPin, Phone, ChevronDown, ExternalLink, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -291,14 +291,26 @@ export default function Events() {
 
                     {/* Action Buttons */}
                     <div className="flex flex-wrap gap-3 mt-6">
-                      {event.contactType === "email" && event.contactEmail ? (
+                      {event.contactType === "link" && event.contactUrl ? (
+                        <a 
+                          href={event.contactUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          data-testid={`event-contact-${event.id}`}
+                        >
+                          <Button variant="default" className="bg-primary hover:bg-primary/90">
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            {event.buttonLabel || "Join Online"}
+                          </Button>
+                        </a>
+                      ) : event.contactType === "email" && event.contactEmail ? (
                         <a 
                           href={`mailto:${event.contactEmail}`}
                           data-testid={`event-contact-${event.id}`}
                         >
                           <Button variant="default" className="bg-primary hover:bg-primary/90">
-                            <Phone className="w-4 h-4 mr-2" />
-                            {event.buttonLabel || "Contact Us"}
+                            <Mail className="w-4 h-4 mr-2" />
+                            {event.buttonLabel || "Email Us"}
                           </Button>
                         </a>
                       ) : (

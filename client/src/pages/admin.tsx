@@ -606,7 +606,8 @@ function EventsManagementTab() {
   const [contactName, setContactName] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [contactEmail, setContactEmail] = useState("");
-  const [contactType, setContactType] = useState<"phone" | "email">("phone");
+  const [contactType, setContactType] = useState<"phone" | "email" | "link">("phone");
+  const [contactUrl, setContactUrl] = useState("");
   const [buttonLabel, setButtonLabel] = useState("Contact Us");
   // Time picker state (12-hour format display)
   const [timeHour, setTimeHour] = useState("12");
@@ -741,6 +742,7 @@ function EventsManagementTab() {
     setContactPhone("");
     setContactEmail("");
     setContactType("phone");
+    setContactUrl("");
     setButtonLabel("Contact Us");
     setEventDescription("");
     setEventThumbnailPath("");
@@ -783,16 +785,17 @@ function EventsManagementTab() {
     setContactName(event.contactName || "");
     setContactPhone(event.contactPhone || "");
     setContactEmail(event.contactEmail || "");
-    setContactType((event.contactType as "phone" | "email") || "phone");
+    setContactType((event.contactType as "phone" | "email" | "link") || "phone");
+    setContactUrl(event.contactUrl || "");
     setButtonLabel(event.buttonLabel || "Contact Us");
     setEventDescription(event.description || "");
     setEventThumbnailPath(event.thumbnailPath || "");
   };
 
   const handleSubmit = () => {
-    // Basic required fields
-    if (!eventTitle || !eventDate || !contactName || !contactPhone) {
-      toast({ title: "Missing Fields", description: "Please fill in title, date, and contact information.", variant: "destructive" });
+    // Basic required fields (title, date, and contact name always required)
+    if (!eventTitle || !eventDate || !contactName) {
+      toast({ title: "Missing Fields", description: "Please fill in title, date, and contact name.", variant: "destructive" });
       return;
     }
 
@@ -810,8 +813,17 @@ function EventsManagementTab() {
       return;
     }
 
+    // Validate contact info based on contact type
+    if (contactType === "phone" && !contactPhone) {
+      toast({ title: "Missing Phone", description: "Please provide a phone number for phone contact type.", variant: "destructive" });
+      return;
+    }
     if (contactType === "email" && !contactEmail) {
       toast({ title: "Missing Email", description: "Please provide an email address for email contact type.", variant: "destructive" });
+      return;
+    }
+    if (contactType === "link" && !contactUrl) {
+      toast({ title: "Missing URL", description: "Please provide a URL for the online link contact type.", variant: "destructive" });
       return;
     }
 
@@ -829,9 +841,10 @@ function EventsManagementTab() {
       meetingLink: locationType === "online" ? meetingLink : null,
       meetingPhone: locationType === "phone" ? meetingPhone : null,
       contactName,
-      contactPhone,
-      contactEmail: contactEmail || null,
+      contactPhone: contactType === "phone" ? contactPhone : "",
+      contactEmail: contactType === "email" ? (contactEmail || null) : null,
       contactType,
+      contactUrl: contactType === "link" ? (contactUrl || null) : null,
       buttonLabel,
       description: eventDescription || null,
       thumbnailPath: eventThumbnailPath || null,
@@ -1168,12 +1181,13 @@ function EventsManagementTab() {
                 <select
                   id="contact-type"
                   value={contactType}
-                  onChange={(e) => setContactType(e.target.value as "phone" | "email")}
+                  onChange={(e) => setContactType(e.target.value as "phone" | "email" | "link")}
                   className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2"
                   data-testid="select-contact-type"
                 >
                   <option value="phone">Call Phone Number</option>
                   <option value="email">Send Email</option>
+                  <option value="link">Open Online Link</option>
                 </select>
               </div>
               {contactType === "email" && (
@@ -1186,6 +1200,19 @@ function EventsManagementTab() {
                     onChange={(e) => setContactEmail(e.target.value)}
                     placeholder="e.g. contact@church.com"
                     data-testid="input-contact-email"
+                  />
+                </div>
+              )}
+              {contactType === "link" && (
+                <div className="space-y-1">
+                  <Label htmlFor="contact-url" className="text-sm text-muted-foreground">Online Link URL</Label>
+                  <Input
+                    id="contact-url"
+                    type="url"
+                    value={contactUrl}
+                    onChange={(e) => setContactUrl(e.target.value)}
+                    placeholder="e.g. https://zoom.us/j/123456"
+                    data-testid="input-contact-url"
                   />
                 </div>
               )}
