@@ -10,6 +10,15 @@ import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { OAuth2Client } from "google-auth-library";
 
+// Helper to get cookie domain for production (allows www and apex domain to share session)
+function getCookieDomain(): string | undefined {
+  if (process.env.NODE_ENV === "production") {
+    // Set domain to .jerricksforjesus.com so cookie works on both www and apex
+    return ".jerricksforjesus.com";
+  }
+  return undefined; // Don't set domain in development
+}
+
 declare global {
   namespace Express {
     interface Request {
@@ -109,6 +118,7 @@ export async function registerRoutes(
         secure: process.env.NODE_ENV === "production",
         sameSite: "lax",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        domain: getCookieDomain(),
       });
       
       res.json({ 
@@ -131,7 +141,7 @@ export async function registerRoutes(
       if (token) {
         await storage.deleteSession(token);
       }
-      res.clearCookie("sessionToken");
+      res.clearCookie("sessionToken", { domain: getCookieDomain() });
       res.json({ success: true });
     } catch (error) {
       console.error("Logout error:", error);
@@ -281,6 +291,7 @@ export async function registerRoutes(
       secure: isSecure,
       sameSite: "lax",
       maxAge: 10 * 60 * 1000, // 10 minutes
+      domain: getCookieDomain(),
     });
     
     const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
@@ -302,7 +313,7 @@ export async function registerRoutes(
       
       // Validate state parameter to prevent CSRF
       const savedState = req.cookies?.oauth_state;
-      res.clearCookie("oauth_state");
+      res.clearCookie("oauth_state", { domain: getCookieDomain() });
       
       if (!state || state !== savedState) {
         return res.redirect("/login?error=invalid_state");
@@ -402,6 +413,7 @@ export async function registerRoutes(
         secure: isSecure,
         sameSite: "lax",
         maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+        domain: getCookieDomain(),
       });
       
       // Redirect to home page
@@ -451,6 +463,7 @@ export async function registerRoutes(
         secure: req.secure || req.headers["x-forwarded-proto"] === "https",
         sameSite: "lax",
         maxAge: 10 * 60 * 1000,
+        domain: getCookieDomain(),
       });
 
       const authUrl = new URL("https://accounts.google.com/o/oauth2/v2/auth");
@@ -474,7 +487,7 @@ export async function registerRoutes(
     try {
       const { code, state } = req.query;
       const savedState = req.cookies?.youtube_oauth_state;
-      res.clearCookie("youtube_oauth_state");
+      res.clearCookie("youtube_oauth_state", { domain: getCookieDomain() });
 
       if (!code || !state || state !== savedState) {
         return res.redirect("/admin?youtube_error=invalid_state");
