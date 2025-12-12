@@ -1448,7 +1448,7 @@ export default function AdminDashboard() {
   });
 
   const updateAlternativeZoomMutation = useMutation({
-    mutationFn: async (data: { alternativeLink: string; alternativeDays: string[]; alternativeTimeSlots: string[] }) => {
+    mutationFn: async (data: { alternativeLink: string; schedule: { day: string; slots: string[] }[] }) => {
       const response = await fetch("/api/settings/alternative-zoom", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -1459,7 +1459,7 @@ export default function AdminDashboard() {
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "Alternative Zoom Updated", description: "Alternative link, days, and time slots have been saved." });
+      toast({ title: "Alternative Zoom Updated", description: "Alternative link and schedule have been saved." });
       queryClient.invalidateQueries({ queryKey: ["alternative-zoom"] });
     },
     onError: () => {
@@ -1467,16 +1467,32 @@ export default function AdminDashboard() {
     },
   });
 
-  const toggleAlternativeDay = (day: string) => {
-    setAlternativeZoomDays(prev => 
-      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
-    );
+  const toggleDayInSchedule = (day: string) => {
+    setAlternativeZoomSchedule(prev => {
+      const exists = prev.find(s => s.day === day);
+      if (exists) {
+        return prev.filter(s => s.day !== day);
+      } else {
+        return [...prev, { day, slots: [] }];
+      }
+    });
   };
 
-  const toggleAlternativeTimeSlot = (slot: string) => {
-    setAlternativeZoomTimeSlots(prev => 
-      prev.includes(slot) ? prev.filter(s => s !== slot) : [...prev, slot]
-    );
+  const toggleSlotForDay = (day: string, slot: string) => {
+    setAlternativeZoomSchedule(prev => {
+      const entry = prev.find(s => s.day === day);
+      if (!entry) return prev;
+      const newSlots = entry.slots.includes(slot)
+        ? entry.slots.filter(s => s !== slot)
+        : [...entry.slots, slot];
+      return prev.map(s => s.day === day ? { ...s, slots: newSlots } : s);
+    });
+  };
+
+  const isDaySelected = (day: string) => alternativeZoomSchedule.some(s => s.day === day);
+  const isSlotSelectedForDay = (day: string, slot: string) => {
+    const entry = alternativeZoomSchedule.find(s => s.day === day);
+    return entry ? entry.slots.includes(slot) : false;
   };
 
   const handleLogout = async () => {
@@ -2986,73 +3002,77 @@ export default function AdminDashboard() {
                             />
                           </div>
                           <div>
-                            <p className="text-sm font-medium mb-2">Use alternative link on these days:</p>
-                            <div className="flex flex-wrap gap-2">
-                              {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day) => (
-                                <button
-                                  key={day}
-                                  type="button"
-                                  onClick={() => toggleAlternativeDay(day)}
-                                  data-testid={`button-toggle-day-${day.toLowerCase()}`}
-                                  className={`px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
-                                    alternativeZoomDays.includes(day)
-                                      ? "text-white"
-                                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                  }`}
-                                  style={alternativeZoomDays.includes(day) ? { backgroundColor: "#b47a5f" } : {}}
-                                >
-                                  {day.slice(0, 3)}
-                                </button>
-                              ))}
-                            </div>
-                            {alternativeZoomDays.length > 0 && (
-                              <p className="text-sm text-muted-foreground mt-2">
-                                Alternative link active on: {alternativeZoomDays.join(", ")}
-                              </p>
-                            )}
-                          </div>
-                          <div>
-                            <p className="text-sm font-medium mb-2">Use alternative link during these times:</p>
-                            <p className="text-xs text-muted-foreground mb-2">
-                              Day = 6 AM - 6 PM (morning service) | Night = 6 PM - 6 AM (evening service)
+                            <p className="text-sm font-medium mb-2">Configure alternative link schedule:</p>
+                            <p className="text-xs text-muted-foreground mb-3">
+                              Click a day to enable it, then select Day (6 AM - 6 PM) or Night (6 PM - 6 AM) for that day.
                             </p>
-                            <div className="flex flex-wrap gap-2">
-                              {[
-                                { id: "day", label: "Day (6 AM - 6 PM)" },
-                                { id: "night", label: "Night (6 PM - 6 AM)" }
-                              ].map((slot) => (
-                                <button
-                                  key={slot.id}
-                                  type="button"
-                                  onClick={() => toggleAlternativeTimeSlot(slot.id)}
-                                  data-testid={`button-toggle-time-${slot.id}`}
-                                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
-                                    alternativeZoomTimeSlots.includes(slot.id)
-                                      ? "text-white"
-                                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-                                  }`}
-                                  style={alternativeZoomTimeSlots.includes(slot.id) ? { backgroundColor: "#b47a5f" } : {}}
-                                >
-                                  {slot.label}
-                                </button>
+                            <div className="space-y-3">
+                              {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day) => (
+                                <div key={day} className="flex items-center gap-3 flex-wrap">
+                                  <button
+                                    type="button"
+                                    onClick={() => toggleDayInSchedule(day)}
+                                    data-testid={`button-toggle-day-${day.toLowerCase()}`}
+                                    className={`w-20 px-3 py-1.5 rounded-md text-sm font-medium transition-colors ${
+                                      isDaySelected(day)
+                                        ? "text-white"
+                                        : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                    }`}
+                                    style={isDaySelected(day) ? { backgroundColor: "#b47a5f" } : {}}
+                                  >
+                                    {day.slice(0, 3)}
+                                  </button>
+                                  {isDaySelected(day) && (
+                                    <div className="flex gap-2">
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleSlotForDay(day, "day")}
+                                        data-testid={`button-toggle-${day.toLowerCase()}-day`}
+                                        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                                          isSlotSelectedForDay(day, "day")
+                                            ? "bg-blue-600 text-white"
+                                            : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                                        }`}
+                                      >
+                                        Day
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => toggleSlotForDay(day, "night")}
+                                        data-testid={`button-toggle-${day.toLowerCase()}-night`}
+                                        className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
+                                          isSlotSelectedForDay(day, "night")
+                                            ? "bg-indigo-800 text-white"
+                                            : "bg-gray-200 text-gray-600 hover:bg-gray-300"
+                                        }`}
+                                      >
+                                        Night
+                                      </button>
+                                      {!isSlotSelectedForDay(day, "day") && !isSlotSelectedForDay(day, "night") && (
+                                        <span className="text-xs text-muted-foreground ml-2">(all day)</span>
+                                      )}
+                                    </div>
+                                  )}
+                                </div>
                               ))}
                             </div>
-                            {alternativeZoomTimeSlots.length === 0 && (
-                              <p className="text-sm text-muted-foreground mt-2">
-                                No time selected = alternative applies all day on selected days
-                              </p>
-                            )}
-                            {alternativeZoomTimeSlots.length > 0 && (
-                              <p className="text-sm text-muted-foreground mt-2">
-                                Alternative link active during: {alternativeZoomTimeSlots.map(s => s === "day" ? "Day (6 AM - 6 PM)" : "Night (6 PM - 6 AM)").join(", ")}
-                              </p>
+                            {alternativeZoomSchedule.length > 0 && (
+                              <div className="mt-3 text-sm text-muted-foreground">
+                                <p className="font-medium">Summary:</p>
+                                <ul className="list-disc list-inside mt-1">
+                                  {alternativeZoomSchedule.map(s => (
+                                    <li key={s.day}>
+                                      {s.day}: {s.slots.length === 0 ? "All day" : s.slots.map(slot => slot === "day" ? "Day (6 AM - 6 PM)" : "Night (6 PM - 6 AM)").join(", ")}
+                                    </li>
+                                  ))}
+                                </ul>
+                              </div>
                             )}
                           </div>
                           <Button
                             onClick={() => updateAlternativeZoomMutation.mutate({ 
                               alternativeLink: alternativeZoomLink, 
-                              alternativeDays: alternativeZoomDays,
-                              alternativeTimeSlots: alternativeZoomTimeSlots
+                              schedule: alternativeZoomSchedule
                             })}
                             disabled={updateAlternativeZoomMutation.isPending}
                             style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
