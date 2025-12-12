@@ -1386,8 +1386,7 @@ export default function AdminDashboard() {
   const [newUserRole, setNewUserRole] = useState<string>(USER_ROLES.MEMBER);
   const [zoomLinkInput, setZoomLinkInput] = useState("");
   const [alternativeZoomLink, setAlternativeZoomLink] = useState("");
-  const [alternativeZoomDays, setAlternativeZoomDays] = useState<string[]>([]);
-  const [alternativeZoomTimeSlots, setAlternativeZoomTimeSlots] = useState<string[]>([]);
+  const [alternativeZoomSchedule, setAlternativeZoomSchedule] = useState<{ day: string; slots: string[] }[]>([]);
   const [activeSection, setActiveSection] = useState("verse");
   const [isNavOpen, setIsNavOpen] = useState(false);
 
@@ -1401,7 +1400,7 @@ export default function AdminDashboard() {
     enabled: canEdit,
   });
 
-  const { data: alternativeZoomData } = useQuery<{ alternativeLink: string; alternativeDays: string[]; alternativeTimeSlots: string[] }>({
+  const { data: alternativeZoomData } = useQuery<{ alternativeLink: string; schedule: { day: string; slots: string[] }[] }>({
     queryKey: ["alternative-zoom"],
     queryFn: async () => {
       const response = await fetch("/api/settings/alternative-zoom");
@@ -1422,11 +1421,8 @@ export default function AdminDashboard() {
       if (alternativeZoomData.alternativeLink && !alternativeZoomLink) {
         setAlternativeZoomLink(alternativeZoomData.alternativeLink);
       }
-      if (alternativeZoomData.alternativeDays?.length > 0 && alternativeZoomDays.length === 0) {
-        setAlternativeZoomDays(alternativeZoomData.alternativeDays);
-      }
-      if (alternativeZoomData.alternativeTimeSlots?.length > 0 && alternativeZoomTimeSlots.length === 0) {
-        setAlternativeZoomTimeSlots(alternativeZoomData.alternativeTimeSlots);
+      if (alternativeZoomData.schedule?.length > 0 && alternativeZoomSchedule.length === 0) {
+        setAlternativeZoomSchedule(alternativeZoomData.schedule);
       }
     }
   }, [alternativeZoomData]);

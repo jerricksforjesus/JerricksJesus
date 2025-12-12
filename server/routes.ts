@@ -1457,18 +1457,17 @@ export async function registerRoutes(
     }
   });
 
-  // Alternative Zoom Link Settings
+  // Alternative Zoom Link Settings - Per-day schedule
+  // Schedule format: { day: string; slots: string[] }[]
+  // Each day has its own time slots (day/night). Empty slots = all times on that day.
   app.get("/api/settings/alternative-zoom", async (req, res) => {
     try {
       const alternativeLink = await storage.getSetting("alternative_zoom_link");
-      const alternativeDaysJson = await storage.getSetting("alternative_zoom_days");
-      const alternativeTimeSlotsJson = await storage.getSetting("alternative_zoom_time_slots");
-      const alternativeDays = alternativeDaysJson ? JSON.parse(alternativeDaysJson) : [];
-      const alternativeTimeSlots = alternativeTimeSlotsJson ? JSON.parse(alternativeTimeSlotsJson) : [];
+      const scheduleJson = await storage.getSetting("alternative_zoom_schedule");
+      const schedule = scheduleJson ? JSON.parse(scheduleJson) : [];
       res.json({ 
         alternativeLink: alternativeLink || "", 
-        alternativeDays,
-        alternativeTimeSlots
+        schedule
       });
     } catch (error) {
       console.error("Error fetching alternative zoom settings:", error);
@@ -1478,20 +1477,22 @@ export async function registerRoutes(
 
   app.put("/api/settings/alternative-zoom", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
     try {
-      const { alternativeLink, alternativeDays, alternativeTimeSlots } = req.body;
+      const { alternativeLink, schedule } = req.body;
       if (typeof alternativeLink !== "string") {
         return res.status(400).json({ error: "Invalid alternative link" });
       }
-      if (!Array.isArray(alternativeDays)) {
-        return res.status(400).json({ error: "Alternative days must be an array" });
+      if (!Array.isArray(schedule)) {
+        return res.status(400).json({ error: "Schedule must be an array" });
       }
-      if (alternativeTimeSlots !== undefined && !Array.isArray(alternativeTimeSlots)) {
-        return res.status(400).json({ error: "Alternative time slots must be an array" });
+      // Validate schedule structure
+      for (const entry of schedule) {
+        if (typeof entry.day !== "string" || !Array.isArray(entry.slots)) {
+          return res.status(400).json({ error: "Invalid schedule entry format" });
+        }
       }
       await storage.setSetting("alternative_zoom_link", alternativeLink);
-      await storage.setSetting("alternative_zoom_days", JSON.stringify(alternativeDays));
-      await storage.setSetting("alternative_zoom_time_slots", JSON.stringify(alternativeTimeSlots || []));
-      res.json({ success: true, alternativeLink, alternativeDays, alternativeTimeSlots: alternativeTimeSlots || [] });
+      await storage.setSetting("alternative_zoom_schedule", JSON.stringify(schedule));
+      res.json({ success: true, alternativeLink, schedule });
     } catch (error) {
       console.error("Error updating alternative zoom settings:", error);
       res.status(500).json({ error: "Failed to update alternative zoom settings" });
@@ -1503,10 +1504,8 @@ export async function registerRoutes(
     try {
       const mainLink = await storage.getSetting("zoom_link");
       const alternativeLink = await storage.getSetting("alternative_zoom_link");
-      const alternativeDaysJson = await storage.getSetting("alternative_zoom_days");
-      const alternativeTimeSlotsJson = await storage.getSetting("alternative_zoom_time_slots");
-      const alternativeDays: string[] = alternativeDaysJson ? JSON.parse(alternativeDaysJson) : [];
-      const alternativeTimeSlots: string[] = alternativeTimeSlotsJson ? JSON.parse(alternativeTimeSlotsJson) : [];
+      const scheduleJson = await storage.getSetting("alternative_zoom_schedule");
+      const schedule: { day: string; slots: string[] }[] = scheduleJson ? JSON.parse(scheduleJson) : [];
       
       // Get current day of week and hour
       const now = new Date();
@@ -1514,16 +1513,19 @@ export async function registerRoutes(
       const today = days[now.getDay()];
       const currentHour = now.getHours();
       
-      // Determine current time slot: "day" is before 6 PM (hours 6-17), "night" is 6 PM onwards or before 6 AM (hours 0-5, 18-23)
-      // Day service = 6 AM (morning), Night service = 6 PM (evening)
+      // Determine current time slot
       // Day = hours 6:00 AM to 5:59 PM (6-17)
       // Night = hours 6:00 PM to 5:59 AM (18-23, 0-5)
       const currentTimeSlot = (currentHour >= 6 && currentHour < 18) ? "day" : "night";
       
-      // Check if today uses the alternative link AND the time slot matches
-      const dayMatches = alternativeDays.includes(today);
-      const timeMatches = alternativeTimeSlots.length === 0 || alternativeTimeSlots.includes(currentTimeSlot);
-      const useAlternative = dayMatches && timeMatches && alternativeLink;
+      // Find today's schedule entry
+      const todaySchedule = schedule.find(s => s.day === today);
+      
+      // Check if alternative link should be used
+      // Alternative is used if: today is in schedule AND (no specific slots = all times, OR current slot is selected)
+      const useAlternative = todaySchedule && alternativeLink && (
+        todaySchedule.slots.length === 0 || todaySchedule.slots.includes(currentTimeSlot)
+      );
       
       res.json({
         activeLink: useAlternative ? alternativeLink : (mainLink || ""),
