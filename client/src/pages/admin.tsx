@@ -1387,6 +1387,7 @@ export default function AdminDashboard() {
   const [zoomLinkInput, setZoomLinkInput] = useState("");
   const [alternativeZoomLink, setAlternativeZoomLink] = useState("");
   const [alternativeZoomDays, setAlternativeZoomDays] = useState<string[]>([]);
+  const [alternativeZoomTimeSlots, setAlternativeZoomTimeSlots] = useState<string[]>([]);
   const [activeSection, setActiveSection] = useState("verse");
   const [isNavOpen, setIsNavOpen] = useState(false);
 
@@ -1400,7 +1401,7 @@ export default function AdminDashboard() {
     enabled: canEdit,
   });
 
-  const { data: alternativeZoomData } = useQuery<{ alternativeLink: string; alternativeDays: string[] }>({
+  const { data: alternativeZoomData } = useQuery<{ alternativeLink: string; alternativeDays: string[]; alternativeTimeSlots: string[] }>({
     queryKey: ["alternative-zoom"],
     queryFn: async () => {
       const response = await fetch("/api/settings/alternative-zoom");
@@ -1423,6 +1424,9 @@ export default function AdminDashboard() {
       }
       if (alternativeZoomData.alternativeDays?.length > 0 && alternativeZoomDays.length === 0) {
         setAlternativeZoomDays(alternativeZoomData.alternativeDays);
+      }
+      if (alternativeZoomData.alternativeTimeSlots?.length > 0 && alternativeZoomTimeSlots.length === 0) {
+        setAlternativeZoomTimeSlots(alternativeZoomData.alternativeTimeSlots);
       }
     }
   }, [alternativeZoomData]);
@@ -1448,7 +1452,7 @@ export default function AdminDashboard() {
   });
 
   const updateAlternativeZoomMutation = useMutation({
-    mutationFn: async (data: { alternativeLink: string; alternativeDays: string[] }) => {
+    mutationFn: async (data: { alternativeLink: string; alternativeDays: string[]; alternativeTimeSlots: string[] }) => {
       const response = await fetch("/api/settings/alternative-zoom", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
@@ -1459,7 +1463,7 @@ export default function AdminDashboard() {
       return response.json();
     },
     onSuccess: () => {
-      toast({ title: "Alternative Zoom Updated", description: "Alternative link and days have been saved." });
+      toast({ title: "Alternative Zoom Updated", description: "Alternative link, days, and time slots have been saved." });
       queryClient.invalidateQueries({ queryKey: ["alternative-zoom"] });
     },
     onError: () => {
@@ -1470,6 +1474,12 @@ export default function AdminDashboard() {
   const toggleAlternativeDay = (day: string) => {
     setAlternativeZoomDays(prev => 
       prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+    );
+  };
+
+  const toggleAlternativeTimeSlot = (slot: string) => {
+    setAlternativeZoomTimeSlots(prev => 
+      prev.includes(slot) ? prev.filter(s => s !== slot) : [...prev, slot]
     );
   };
 
@@ -3005,10 +3015,48 @@ export default function AdminDashboard() {
                               </p>
                             )}
                           </div>
+                          <div>
+                            <p className="text-sm font-medium mb-2">Use alternative link during these times:</p>
+                            <p className="text-xs text-muted-foreground mb-2">
+                              Day = 6 AM - 6 PM (morning service) | Night = 6 PM - 6 AM (evening service)
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {[
+                                { id: "day", label: "Day (6 AM - 6 PM)" },
+                                { id: "night", label: "Night (6 PM - 6 AM)" }
+                              ].map((slot) => (
+                                <button
+                                  key={slot.id}
+                                  type="button"
+                                  onClick={() => toggleAlternativeTimeSlot(slot.id)}
+                                  data-testid={`button-toggle-time-${slot.id}`}
+                                  className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                                    alternativeZoomTimeSlots.includes(slot.id)
+                                      ? "text-white"
+                                      : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+                                  }`}
+                                  style={alternativeZoomTimeSlots.includes(slot.id) ? { backgroundColor: "#b47a5f" } : {}}
+                                >
+                                  {slot.label}
+                                </button>
+                              ))}
+                            </div>
+                            {alternativeZoomTimeSlots.length === 0 && (
+                              <p className="text-sm text-muted-foreground mt-2">
+                                No time selected = alternative applies all day on selected days
+                              </p>
+                            )}
+                            {alternativeZoomTimeSlots.length > 0 && (
+                              <p className="text-sm text-muted-foreground mt-2">
+                                Alternative link active during: {alternativeZoomTimeSlots.map(s => s === "day" ? "Day (6 AM - 6 PM)" : "Night (6 PM - 6 AM)").join(", ")}
+                              </p>
+                            )}
+                          </div>
                           <Button
                             onClick={() => updateAlternativeZoomMutation.mutate({ 
                               alternativeLink: alternativeZoomLink, 
-                              alternativeDays: alternativeZoomDays 
+                              alternativeDays: alternativeZoomDays,
+                              alternativeTimeSlots: alternativeZoomTimeSlots
                             })}
                             disabled={updateAlternativeZoomMutation.isPending}
                             style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}

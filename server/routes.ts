@@ -1462,10 +1462,13 @@ export async function registerRoutes(
     try {
       const alternativeLink = await storage.getSetting("alternative_zoom_link");
       const alternativeDaysJson = await storage.getSetting("alternative_zoom_days");
+      const alternativeTimeSlotsJson = await storage.getSetting("alternative_zoom_time_slots");
       const alternativeDays = alternativeDaysJson ? JSON.parse(alternativeDaysJson) : [];
+      const alternativeTimeSlots = alternativeTimeSlotsJson ? JSON.parse(alternativeTimeSlotsJson) : [];
       res.json({ 
         alternativeLink: alternativeLink || "", 
-        alternativeDays 
+        alternativeDays,
+        alternativeTimeSlots
       });
     } catch (error) {
       console.error("Error fetching alternative zoom settings:", error);
@@ -1475,41 +1478,58 @@ export async function registerRoutes(
 
   app.put("/api/settings/alternative-zoom", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
     try {
-      const { alternativeLink, alternativeDays } = req.body;
+      const { alternativeLink, alternativeDays, alternativeTimeSlots } = req.body;
       if (typeof alternativeLink !== "string") {
         return res.status(400).json({ error: "Invalid alternative link" });
       }
       if (!Array.isArray(alternativeDays)) {
         return res.status(400).json({ error: "Alternative days must be an array" });
       }
+      if (alternativeTimeSlots !== undefined && !Array.isArray(alternativeTimeSlots)) {
+        return res.status(400).json({ error: "Alternative time slots must be an array" });
+      }
       await storage.setSetting("alternative_zoom_link", alternativeLink);
       await storage.setSetting("alternative_zoom_days", JSON.stringify(alternativeDays));
-      res.json({ success: true, alternativeLink, alternativeDays });
+      await storage.setSetting("alternative_zoom_time_slots", JSON.stringify(alternativeTimeSlots || []));
+      res.json({ success: true, alternativeLink, alternativeDays, alternativeTimeSlots: alternativeTimeSlots || [] });
     } catch (error) {
       console.error("Error updating alternative zoom settings:", error);
       res.status(500).json({ error: "Failed to update alternative zoom settings" });
     }
   });
 
-  // Active Zoom Link - returns the correct link based on current day
+  // Active Zoom Link - returns the correct link based on current day and time
   app.get("/api/settings/active-zoom-link", async (req, res) => {
     try {
       const mainLink = await storage.getSetting("zoom_link");
       const alternativeLink = await storage.getSetting("alternative_zoom_link");
       const alternativeDaysJson = await storage.getSetting("alternative_zoom_days");
+      const alternativeTimeSlotsJson = await storage.getSetting("alternative_zoom_time_slots");
       const alternativeDays: string[] = alternativeDaysJson ? JSON.parse(alternativeDaysJson) : [];
+      const alternativeTimeSlots: string[] = alternativeTimeSlotsJson ? JSON.parse(alternativeTimeSlotsJson) : [];
       
-      // Get current day of week
+      // Get current day of week and hour
+      const now = new Date();
       const days = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-      const today = days[new Date().getDay()];
+      const today = days[now.getDay()];
+      const currentHour = now.getHours();
       
-      // Check if today uses the alternative link
-      const useAlternative = alternativeDays.includes(today) && alternativeLink;
+      // Determine current time slot: "day" is before 6 PM (hours 6-17), "night" is 6 PM onwards or before 6 AM (hours 0-5, 18-23)
+      // Day service = 6 AM (morning), Night service = 6 PM (evening)
+      // Day = hours 6:00 AM to 5:59 PM (6-17)
+      // Night = hours 6:00 PM to 5:59 AM (18-23, 0-5)
+      const currentTimeSlot = (currentHour >= 6 && currentHour < 18) ? "day" : "night";
+      
+      // Check if today uses the alternative link AND the time slot matches
+      const dayMatches = alternativeDays.includes(today);
+      const timeMatches = alternativeTimeSlots.length === 0 || alternativeTimeSlots.includes(currentTimeSlot);
+      const useAlternative = dayMatches && timeMatches && alternativeLink;
       
       res.json({
         activeLink: useAlternative ? alternativeLink : (mainLink || ""),
-        isAlternative: useAlternative,
-        currentDay: today
+        isAlternative: !!useAlternative,
+        currentDay: today,
+        currentTimeSlot
       });
     } catch (error) {
       console.error("Error fetching active zoom link:", error);
