@@ -3004,7 +3004,7 @@ export default function AdminDashboard() {
                           <div>
                             <p className="text-sm font-medium mb-2">Configure alternative link schedule:</p>
                             <p className="text-xs text-muted-foreground mb-3">
-                              Click a day to enable it, then select Day (6 AM - 6 PM) or Night (6 PM - 6 AM) for that day.
+                              Click a day to enable it, then select Day (6 AM - 5:59 PM) or Night (6 PM - 5:59 AM) for that day.
                             </p>
                             <div className="space-y-3">
                               {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day) => (
@@ -3062,7 +3062,7 @@ export default function AdminDashboard() {
                                 <ul className="list-disc list-inside mt-1">
                                   {alternativeZoomSchedule.map(s => (
                                     <li key={s.day}>
-                                      {s.day}: {s.slots.length === 0 ? "All day" : s.slots.map(slot => slot === "day" ? "Day (6 AM - 6 PM)" : "Night (6 PM - 6 AM)").join(", ")}
+                                      {s.day}: {s.slots.length === 0 ? "All day" : s.slots.map(slot => slot === "day" ? "Day (6 AM - 5:59 PM)" : "Night (6 PM - 5:59 AM)").join(", ")}
                                     </li>
                                   ))}
                                 </ul>
