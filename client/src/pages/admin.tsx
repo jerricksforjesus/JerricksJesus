@@ -1882,6 +1882,32 @@ export default function AdminDashboard() {
     },
   });
 
+  const resetResultsMutation = useMutation({
+    mutationFn: async (book: string) => {
+      const response = await fetch(`/api/admin/quiz/results/${encodeURIComponent(book)}`, { 
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) throw new Error("Failed to reset results");
+      return response.json();
+    },
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
+      queryClient.invalidateQueries({ queryKey: ["user-quiz-stats"] });
+      toast({
+        title: "Quiz Results Reset",
+        description: `${data.deletedCount} quiz attempt(s) have been cleared for this book.`,
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to reset quiz results.",
+        variant: "destructive",
+      });
+    },
+  });
+
   const deleteQuestionMutation = useMutation({
     mutationFn: async (id: number) => {
       const response = await fetch(`/api/admin/quiz/questions/${id}`, { method: "DELETE" });
@@ -2673,6 +2699,27 @@ export default function AdminDashboard() {
                               >
                                 <Check className="w-4 h-4 mr-1" />
                                 Approve All
+                              </Button>
+                            )}
+                            {bookQuestions.length > 0 && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => {
+                                  if (confirm(`Reset all quiz results for ${selectedQuizBook}? This will clear all scores for this book.`)) {
+                                    resetResultsMutation.mutate(selectedQuizBook);
+                                  }
+                                }}
+                                disabled={resetResultsMutation.isPending}
+                                data-testid="button-reset-results"
+                                className="text-destructive hover:text-destructive"
+                              >
+                                {resetResultsMutation.isPending ? (
+                                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
+                                ) : (
+                                  <RefreshCw className="w-4 h-4 mr-1" />
+                                )}
+                                Reset Results
                               </Button>
                             )}
                           </div>
