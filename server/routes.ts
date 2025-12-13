@@ -2365,7 +2365,17 @@ export async function registerRoutes(
     try {
       const limit = parseInt(req.query.limit as string) || 10;
       const leaderboard = await storage.getLeaderboard(Math.min(limit, 50));
-      res.json(leaderboard);
+      
+      // Hide admin accounts from non-admin users
+      const isAdmin = req.user?.role === USER_ROLES.ADMIN;
+      const filteredLeaderboard = isAdmin 
+        ? leaderboard 
+        : leaderboard.filter(entry => entry.role !== USER_ROLES.ADMIN);
+      
+      // Remove role from response (internal use only)
+      const response = filteredLeaderboard.map(({ role, ...rest }) => rest);
+      
+      res.json(response);
     } catch (error) {
       console.error("Error fetching leaderboard:", error);
       res.status(500).json({ error: "Failed to fetch leaderboard" });

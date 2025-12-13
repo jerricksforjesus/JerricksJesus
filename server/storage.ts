@@ -64,7 +64,7 @@ export interface IStorage {
   getAllQuizAttempts(): Promise<QuizAttempt[]>;
   resetAllQuizAttempts(): Promise<number>;
   resetQuizAttemptsByBook(book: string): Promise<number>;
-  getLeaderboard(limit?: number): Promise<{ userId: string; username: string; totalPoints: number; quizzesTaken: number }[]>;
+  getLeaderboard(limit?: number): Promise<{ userId: string; username: string; role: string; totalPoints: number; quizzesTaken: number }[]>;
   getUserQuizStats(userId: string): Promise<{ totalPoints: number; quizzesTaken: number; averageScore: number } | null>;
   
   // Member photo methods
@@ -455,24 +455,26 @@ export class DbStorage implements IStorage {
     return result.length;
   }
 
-  async getLeaderboard(limit: number = 10): Promise<{ userId: string; username: string; totalPoints: number; quizzesTaken: number }[]> {
+  async getLeaderboard(limit: number = 10): Promise<{ userId: string; username: string; role: string; totalPoints: number; quizzesTaken: number }[]> {
     const result = await db
       .select({
         userId: quizAttempts.userId,
         username: users.username,
+        role: users.role,
         totalPoints: sql<number>`SUM(${quizAttempts.score} * 10)`.as("total_points"),
         quizzesTaken: sql<number>`COUNT(*)`.as("quizzes_taken"),
       })
       .from(quizAttempts)
       .innerJoin(users, eq(quizAttempts.userId, users.id))
       .where(gt(quizAttempts.totalQuestions, 0))
-      .groupBy(quizAttempts.userId, users.username)
+      .groupBy(quizAttempts.userId, users.username, users.role)
       .orderBy(desc(sql`SUM(${quizAttempts.score} * 10)`))
       .limit(limit);
     
     return result.map(r => ({
       userId: r.userId || "",
       username: r.username,
+      role: r.role,
       totalPoints: Number(r.totalPoints) || 0,
       quizzesTaken: Number(r.quizzesTaken) || 0,
     }));
