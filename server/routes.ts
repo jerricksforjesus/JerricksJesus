@@ -2350,6 +2350,32 @@ export async function registerRoutes(
     }
   });
 
+  // Get quiz leaderboard - public endpoint
+  app.get("/api/quiz/leaderboard", async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 10;
+      const leaderboard = await storage.getLeaderboard(Math.min(limit, 50));
+      res.json(leaderboard);
+    } catch (error) {
+      console.error("Error fetching leaderboard:", error);
+      res.status(500).json({ error: "Failed to fetch leaderboard" });
+    }
+  });
+
+  // Get user's personal quiz stats - requires login
+  app.get("/api/quiz/my-stats", requireAuth, async (req, res) => {
+    try {
+      const stats = await storage.getUserQuizStats(req.user!.id);
+      if (!stats) {
+        return res.json({ totalPoints: 0, quizzesTaken: 0, averageScore: 0 });
+      }
+      res.json(stats);
+    } catch (error) {
+      console.error("Error fetching user quiz stats:", error);
+      res.status(500).json({ error: "Failed to fetch stats" });
+    }
+  });
+
   // Admin: Get all questions for a book (including unapproved)
   app.get("/api/admin/quiz/questions/:book", async (req, res) => {
     try {

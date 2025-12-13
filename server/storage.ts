@@ -62,6 +62,8 @@ export interface IStorage {
   getQuizAttemptsByBook(book: string): Promise<QuizAttempt[]>;
   getQuizAttemptsByUser(userId: string): Promise<QuizAttempt[]>;
   getAllQuizAttempts(): Promise<QuizAttempt[]>;
+  getLeaderboard(limit?: number): Promise<{ userId: string; username: string; totalPoints: number; quizzesTaken: number }[]>;
+  getUserQuizStats(userId: string): Promise<{ totalPoints: number; quizzesTaken: number; averageScore: number } | null>;
   
   // Member photo methods
   createMemberPhoto(photo: InsertMemberPhoto): Promise<MemberPhoto>;
@@ -439,6 +441,49 @@ export class DbStorage implements IStorage {
     return await db.query.quizAttempts.findMany({
       orderBy: (a, { desc }) => [desc(a.completedAt)],
     });
+  }
+
+  async getLeaderboard(limit: number = 10): Promise<{ userId: string; username: string; totalPoints: number; quizzesTaken: number }[]> {
+    const result = await db
+      .select({
+        userId: quizAttempts.userId,
+        username: users.username,
+        totalPoints: sql<number>`SUM(${quizAttempts.score} * 10)`.as("total_points"),
+        quizzesTaken: sql<number>`COUNT(*)`.as("quizzes_taken"),
+      })
+      .from(quizAttempts)
+      .innerJoin(users, eq(quizAttempts.userId, users.id))
+      .groupBy(quizAttempts.userId, users.username)
+      .orderBy(desc(sql`SUM(${quizAttempts.score} * 10)`))
+      .limit(limit);
+    
+    return result.map(r => ({
+      userId: r.userId || "",
+      username: r.username,
+      totalPoints: Number(r.totalPoints) || 0,
+      quizzesTaken: Number(r.quizzesTaken) || 0,
+    }));
+  }
+
+  async getUserQuizStats(userId: string): Promise<{ totalPoints: number; quizzesTaken: number; averageScore: number } | null> {
+    const result = await db
+      .select({
+        totalPoints: sql<number>`SUM(${quizAttempts.score} * 10)`.as("total_points"),
+        quizzesTaken: sql<number>`COUNT(*)`.as("quizzes_taken"),
+        averageScore: sql<number>`AVG(CAST(${quizAttempts.score} AS FLOAT) / CAST(${quizAttempts.totalQuestions} AS FLOAT) * 100)`.as("average_score"),
+      })
+      .from(quizAttempts)
+      .where(eq(quizAttempts.userId, userId));
+    
+    if (!result[0] || result[0].quizzesTaken === 0) {
+      return null;
+    }
+    
+    return {
+      totalPoints: Number(result[0].totalPoints) || 0,
+      quizzesTaken: Number(result[0].quizzesTaken) || 0,
+      averageScore: Math.round(Number(result[0].averageScore) || 0),
+    };
   }
 
   // Member photo methods
