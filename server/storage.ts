@@ -453,6 +453,7 @@ export class DbStorage implements IStorage {
       })
       .from(quizAttempts)
       .innerJoin(users, eq(quizAttempts.userId, users.id))
+      .where(gt(quizAttempts.totalQuestions, 0))
       .groupBy(quizAttempts.userId, users.username)
       .orderBy(desc(sql`SUM(${quizAttempts.score} * 10)`))
       .limit(limit);
@@ -473,9 +474,9 @@ export class DbStorage implements IStorage {
         averageScore: sql<number>`AVG(CAST(${quizAttempts.score} AS FLOAT) / CAST(${quizAttempts.totalQuestions} AS FLOAT) * 100)`.as("average_score"),
       })
       .from(quizAttempts)
-      .where(eq(quizAttempts.userId, userId));
+      .where(and(eq(quizAttempts.userId, userId), gt(quizAttempts.totalQuestions, 0)));
     
-    if (!result[0] || result[0].quizzesTaken === 0) {
+    if (!result[0] || Number(result[0].quizzesTaken) === 0) {
       return null;
     }
     

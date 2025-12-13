@@ -1,13 +1,26 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
-import { BookOpen, Book, CheckCircle, Trophy, ArrowLeft, Loader2, History, User, UserPlus } from "lucide-react";
+import { BookOpen, Book, CheckCircle, Trophy, ArrowLeft, Loader2, History, User, UserPlus, Crown, Medal, Award } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { BIBLE_BOOKS } from "@shared/schema";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
 import { useQuizProgress } from "@/hooks/useQuizProgress";
+
+interface LeaderboardEntry {
+  userId: string;
+  username: string;
+  totalPoints: number;
+  quizzesTaken: number;
+}
+
+interface UserQuizStats {
+  totalPoints: number;
+  quizzesTaken: number;
+  averageScore: number;
+}
 
 interface BookStatus {
   name: string;
@@ -65,6 +78,25 @@ export function BibleQuizSection() {
       if (!response.ok) throw new Error("Failed to fetch books");
       return response.json();
     },
+  });
+
+  const { data: leaderboard = [] } = useQuery<LeaderboardEntry[]>({
+    queryKey: ["quiz-leaderboard"],
+    queryFn: async () => {
+      const response = await fetch("/api/quiz/leaderboard?limit=10");
+      if (!response.ok) throw new Error("Failed to fetch leaderboard");
+      return response.json();
+    },
+  });
+
+  const { data: myStats } = useQuery<UserQuizStats>({
+    queryKey: ["quiz-my-stats"],
+    queryFn: async () => {
+      const response = await fetch("/api/quiz/my-stats", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch stats");
+      return response.json();
+    },
+    enabled: !!user,
   });
 
   const { data: questions = [], isLoading: loadingQuestions } = useQuery<QuizQuestion[]>({
@@ -221,6 +253,86 @@ export function BibleQuizSection() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
             >
+              {/* Personal Stats & Leaderboard */}
+              <div className="grid md:grid-cols-2 gap-6 mb-10">
+                {/* Personal Stats Card */}
+                <div className="bg-white rounded-xl shadow-sm border p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-lg bg-primary/10">
+                      <Trophy className="w-5 h-5 text-primary" />
+                    </div>
+                    <h3 className="font-serif font-bold text-lg">Your Stats</h3>
+                  </div>
+                  {user ? (
+                    myStats && myStats.quizzesTaken > 0 ? (
+                      <div className="grid grid-cols-3 gap-4 text-center">
+                        <div>
+                          <div className="text-2xl font-bold text-primary" data-testid="text-user-points">{myStats.totalPoints}</div>
+                          <div className="text-xs text-muted-foreground">Total Points</div>
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold" data-testid="text-user-quizzes">{myStats.quizzesTaken}</div>
+                          <div className="text-xs text-muted-foreground">Quizzes Taken</div>
+                        </div>
+                        <div>
+                          <div className="text-2xl font-bold" data-testid="text-user-average">{myStats.averageScore}%</div>
+                          <div className="text-xs text-muted-foreground">Avg Score</div>
+                        </div>
+                      </div>
+                    ) : (
+                      <p className="text-muted-foreground text-sm">Take your first quiz to start earning points!</p>
+                    )
+                  ) : (
+                    <div className="text-center">
+                      <p className="text-muted-foreground text-sm mb-3">Sign in to track your progress and compete on the leaderboard!</p>
+                      <Button size="sm" onClick={() => setLocation("/login")} data-testid="button-login-quiz">
+                        <User className="w-4 h-4 mr-2" />
+                        Sign In
+                      </Button>
+                    </div>
+                  )}
+                </div>
+
+                {/* Leaderboard Card */}
+                <div className="bg-white rounded-xl shadow-sm border p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <div className="p-2 rounded-lg bg-yellow-100">
+                      <Crown className="w-5 h-5 text-yellow-600" />
+                    </div>
+                    <h3 className="font-serif font-bold text-lg">Leaderboard</h3>
+                  </div>
+                  {leaderboard.length > 0 ? (
+                    <div className="space-y-2">
+                      {leaderboard.slice(0, 5).map((entry, index) => (
+                        <div 
+                          key={entry.userId} 
+                          className={`flex items-center justify-between p-2 rounded-lg ${
+                            index === 0 ? "bg-yellow-50" : index === 1 ? "bg-gray-100" : index === 2 ? "bg-orange-50" : "bg-muted/30"
+                          }`}
+                          data-testid={`leaderboard-row-${index}`}
+                        >
+                          <div className="flex items-center gap-3">
+                            <div className="w-6 text-center font-bold text-sm">
+                              {index === 0 ? <Crown className="w-4 h-4 text-yellow-500 mx-auto" /> : 
+                               index === 1 ? <Medal className="w-4 h-4 text-gray-400 mx-auto" /> :
+                               index === 2 ? <Award className="w-4 h-4 text-orange-400 mx-auto" /> :
+                               `${index + 1}`}
+                            </div>
+                            <span className="font-medium text-sm">{entry.username}</span>
+                          </div>
+                          <div className="text-right">
+                            <span className="font-bold text-primary">{entry.totalPoints}</span>
+                            <span className="text-xs text-muted-foreground ml-1">pts</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-muted-foreground text-sm text-center">No scores yet. Be the first to take a quiz!</p>
+                  )}
+                </div>
+              </div>
+
               {/* Mobile/Tablet Accordion View */}
               <div className="lg:hidden">
                 <Accordion type="single" collapsible className="w-full">
