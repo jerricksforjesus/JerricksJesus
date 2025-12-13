@@ -2175,11 +2175,21 @@ export async function registerRoutes(
       const questionCounts = await storage.getQuestionCountByBook();
       const countsMap = new Map(questionCounts.map(q => [q.book, q]));
       
+      // For admin users, include attempt counts
+      let attemptCountsMap = new Map<string, number>();
+      if (req.user?.role === "admin") {
+        const allAttempts = await storage.getAllQuizAttempts();
+        for (const attempt of allAttempts) {
+          attemptCountsMap.set(attempt.book, (attemptCountsMap.get(attempt.book) || 0) + 1);
+        }
+      }
+      
       const books = ALL_BIBLE_BOOKS.map(book => ({
         name: book,
         questionCount: countsMap.get(book)?.count || 0,
         approvedCount: countsMap.get(book)?.approvedCount || 0,
         hasQuiz: (countsMap.get(book)?.approvedCount || 0) >= 1,
+        attemptCount: attemptCountsMap.get(book) || 0,
       }));
       
       res.json(books);

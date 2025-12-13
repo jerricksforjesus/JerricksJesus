@@ -1775,6 +1775,7 @@ export default function AdminDashboard() {
     questionCount: number;
     approvedCount: number;
     hasQuiz: boolean;
+    attemptCount?: number;
   }
 
   const { data: quizBooks = [] } = useQuery<BookStatus[]>({
@@ -1894,6 +1895,7 @@ export default function AdminDashboard() {
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["leaderboard"] });
       queryClient.invalidateQueries({ queryKey: ["user-quiz-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["quiz-books"] });
       toast({
         title: "Quiz Results Reset",
         description: `${data.deletedCount} quiz attempt(s) have been cleared for this book.`,
@@ -2583,6 +2585,8 @@ export default function AdminDashboard() {
                               className={`text-xs p-2 rounded border transition-all ${
                                 selectedQuizBook === book.name
                                   ? "border-primary bg-primary/10 text-primary"
+                                  : (book.attemptCount || 0) > 0
+                                  ? "border-blue-500/50 bg-blue-50"
                                   : book.questionCount > 0
                                   ? "border-green-500/50 bg-green-50"
                                   : "border-border hover:border-primary/50"
@@ -2609,6 +2613,8 @@ export default function AdminDashboard() {
                               className={`text-xs p-2 rounded border transition-all ${
                                 selectedQuizBook === book.name
                                   ? "border-primary bg-primary/10 text-primary"
+                                  : (book.attemptCount || 0) > 0
+                                  ? "border-blue-500/50 bg-blue-50"
                                   : book.questionCount > 0
                                   ? "border-green-500/50 bg-green-50"
                                   : "border-border hover:border-primary/50"
