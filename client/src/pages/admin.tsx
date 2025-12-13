@@ -2632,16 +2632,16 @@ export default function AdminDashboard() {
                   <div>
                     {selectedQuizBook ? (
                       <div>
-                        <div className="flex items-center justify-between mb-4">
-                          <div>
+                        <div className="flex items-center justify-between mb-4 gap-3">
+                          <div className="flex-shrink-0">
                             <h3 className="font-semibold">{selectedQuizBook}</h3>
                             {bookQuestions.length > 0 && (
                               <p className="text-xs text-muted-foreground">
-                                {bookQuestions.length} questions total
+                                {bookQuestions.length} questions
                               </p>
                             )}
                           </div>
-                          <div className="flex flex-wrap gap-2 items-center">
+                          <div className="flex gap-2 items-center">
                             {bookQuestions.length === 0 ? (
                               <Button
                                 size="sm"
@@ -2655,12 +2655,12 @@ export default function AdminDashboard() {
                                 ) : (
                                   <Plus className="w-4 h-4 mr-1" />
                                 )}
-                                Generate 10 Questions
+                                Generate
                               </Button>
                             ) : (
-                              <div className="flex items-center gap-2">
+                              <>
                                 <Select value={addMoreCount} onValueChange={setAddMoreCount}>
-                                  <SelectTrigger className="w-[70px] h-8" data-testid="select-add-more-count">
+                                  <SelectTrigger className="w-[60px] h-8" data-testid="select-add-more-count">
                                     <SelectValue />
                                   </SelectTrigger>
                                   <SelectContent>
@@ -2686,41 +2686,38 @@ export default function AdminDashboard() {
                                   ) : (
                                     <Plus className="w-4 h-4 mr-1" />
                                   )}
-                                  Add More Questions
+                                  Add
                                 </Button>
-                              </div>
-                            )}
-                            {bookQuestions.some(q => q.isApproved === 0) && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => approveAllMutation.mutate(selectedQuizBook)}
-                                data-testid="button-approve-all"
-                              >
-                                <Check className="w-4 h-4 mr-1" />
-                                Approve All
-                              </Button>
-                            )}
-                            {bookQuestions.length > 0 && (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => {
-                                  if (confirm(`Reset all quiz results for ${selectedQuizBook}? This will clear all scores for this book.`)) {
-                                    resetResultsMutation.mutate(selectedQuizBook);
-                                  }
-                                }}
-                                disabled={resetResultsMutation.isPending}
-                                data-testid="button-reset-results"
-                                className="text-destructive hover:text-destructive"
-                              >
-                                {resetResultsMutation.isPending ? (
-                                  <Loader2 className="w-4 h-4 mr-1 animate-spin" />
-                                ) : (
-                                  <RefreshCw className="w-4 h-4 mr-1" />
+                                {bookQuestions.some(q => q.isApproved === 0) && (
+                                  <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => approveAllMutation.mutate(selectedQuizBook)}
+                                    data-testid="button-approve-all"
+                                  >
+                                    <Check className="w-4 h-4 mr-1" />
+                                    Approve
+                                  </Button>
                                 )}
-                                Reset Results
-                              </Button>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => {
+                                    if (confirm(`Reset all quiz results for ${selectedQuizBook}? This will clear all scores for this book.`)) {
+                                      resetResultsMutation.mutate(selectedQuizBook);
+                                    }
+                                  }}
+                                  disabled={resetResultsMutation.isPending}
+                                  data-testid="button-reset-results"
+                                  className="text-destructive hover:text-destructive"
+                                >
+                                  {resetResultsMutation.isPending ? (
+                                    <Loader2 className="w-4 h-4 animate-spin" />
+                                  ) : (
+                                    <RefreshCw className="w-4 h-4" />
+                                  )}
+                                </Button>
+                              </>
                             )}
                           </div>
                         </div>
