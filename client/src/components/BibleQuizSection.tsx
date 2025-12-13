@@ -301,7 +301,9 @@ export function BibleQuizSection() {
                     <div className="p-2 rounded-lg bg-yellow-100">
                       <Crown className="w-5 h-5 text-yellow-600" />
                     </div>
-                    <h3 className="font-serif font-bold text-lg">Leaderboard</h3>
+                    <h3 className="font-serif font-bold text-lg">
+                      {new Date().toLocaleString('default', { month: 'long' })} Leaderboard
+                    </h3>
                   </div>
                   {leaderboard.length > 0 ? (
                     <div className="space-y-2">
