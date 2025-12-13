@@ -63,6 +63,7 @@ export interface IStorage {
   getQuizAttemptsByUser(userId: string): Promise<QuizAttempt[]>;
   getAllQuizAttempts(): Promise<QuizAttempt[]>;
   resetAllQuizAttempts(): Promise<number>;
+  resetQuizAttemptsByBook(book: string): Promise<number>;
   getLeaderboard(limit?: number): Promise<{ userId: string; username: string; totalPoints: number; quizzesTaken: number }[]>;
   getUserQuizStats(userId: string): Promise<{ totalPoints: number; quizzesTaken: number; averageScore: number } | null>;
   
@@ -446,6 +447,11 @@ export class DbStorage implements IStorage {
 
   async resetAllQuizAttempts(): Promise<number> {
     const result = await db.delete(quizAttempts).returning();
+    return result.length;
+  }
+
+  async resetQuizAttemptsByBook(book: string): Promise<number> {
+    const result = await db.delete(quizAttempts).where(eq(quizAttempts.book, book)).returning();
     return result.length;
   }
 

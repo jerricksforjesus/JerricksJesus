@@ -2543,6 +2543,18 @@ export async function registerRoutes(
     }
   });
 
+  // Admin: Reset quiz results for a specific book
+  app.delete("/api/admin/quiz/results/:book", requireAuth, requireRole("admin"), async (req, res) => {
+    try {
+      const { book } = req.params;
+      const deletedCount = await storage.resetQuizAttemptsByBook(book);
+      res.json({ success: true, deletedCount });
+    } catch (error) {
+      console.error("Error resetting quiz results:", error);
+      res.status(500).json({ error: "Failed to reset quiz results" });
+    }
+  });
+
   // ==================== EVENTS ROUTES ====================
 
   // Get all upcoming events (public)
