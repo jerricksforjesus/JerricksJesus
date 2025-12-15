@@ -1834,7 +1834,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/photos/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  app.delete("/api/photos/:id", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deletePhoto(id);

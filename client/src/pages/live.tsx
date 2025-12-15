@@ -1,8 +1,10 @@
 import { Navigation } from "@/components/Navigation";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
-import { Video, Heart, Calendar, Clock, Radio } from "lucide-react";
+import { Video, Heart, Calendar, Clock, Radio, User } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth";
+import { Link } from "wouter";
 
 interface LiveStatus {
   isLive: boolean;
@@ -12,6 +14,7 @@ interface LiveStatus {
 
 export default function LiveStream() {
   const [chatKey, setChatKey] = useState(0);
+  const { user } = useAuth();
 
   const { data: liveStatus, isLoading } = useQuery<LiveStatus>({
     queryKey: ["live-status"],
@@ -92,17 +95,31 @@ export default function LiveStream() {
                   </div>
                 </div>
                 
-                {zoomLink && (
-                  <a href={zoomLink} target="_blank" rel="noopener noreferrer" className="mt-6 md:mt-8">
-                    <Button 
-                      size="lg" 
-                      className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold px-6 md:px-8"
-                      data-testid="button-join-zoom-live"
-                    >
-                      Join the Zoom Link
-                    </Button>
-                  </a>
-                )}
+                <div className="flex flex-col items-center gap-3 mt-6 md:mt-8">
+                  {zoomLink && (
+                    <a href={zoomLink} target="_blank" rel="noopener noreferrer">
+                      <Button 
+                        size="lg" 
+                        className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold px-6 md:px-8 w-full min-w-[200px]"
+                        data-testid="button-join-zoom-live"
+                      >
+                        Join the Zoom Link
+                      </Button>
+                    </a>
+                  )}
+                  {!user && (
+                    <Link href="/login" className="md:hidden">
+                      <Button 
+                        size="lg" 
+                        className="bg-[#b47a5f] hover:bg-[#a06b52] text-white font-bold px-6 w-full min-w-[200px]"
+                        data-testid="button-login-live"
+                      >
+                        <User className="w-4 h-4 mr-2" />
+                        Login to my account
+                      </Button>
+                    </Link>
+                  )}
+                </div>
               </div>
             )}
           </div>
