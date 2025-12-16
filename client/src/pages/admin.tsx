@@ -7,9 +7,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus, Users, Shield, UserCheck, Camera, CheckCircle, XCircle, Clock, Settings, Key, User as UserIcon, Eye, EyeOff, Music, Youtube, Link2, ExternalLink, Menu, X, ChevronRight, Calendar, MapPin, Phone } from "lucide-react";
+import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus, Users, Shield, UserCheck, Camera, CheckCircle, XCircle, Clock, Settings, Key, User as UserIcon, Eye, EyeOff, Music, Youtube, Link2, ExternalLink, Menu, X, ChevronRight, Calendar, MapPin, Phone, Home } from "lucide-react";
 import { useState, useEffect, useLayoutEffect } from "react";
-import { useLocation } from "wouter";
+import { useLocation, Link } from "wouter";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { VideoPlayerModal } from "@/components/VideoPlayerModal";
 import { VideoEditModal } from "@/components/VideoEditModal";
@@ -2291,38 +2291,51 @@ export default function AdminDashboard() {
 
         {/* Mobile Navigation */}
         <div className="lg:hidden fixed top-20 left-0 right-0 z-30 bg-card border-b shadow-sm">
-          <div className="p-3 flex items-center justify-between gap-3">
-            <Select value={activeSection} onValueChange={setActiveSection}>
-              <SelectTrigger className="flex-1" data-testid="mobile-section-select">
-                <SelectValue placeholder="Select section" />
-              </SelectTrigger>
-              <SelectContent>
-                {navItems.map((item) => (
-                  <SelectItem key={item.id} value={item.id}>
-                    {item.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <div className="flex gap-2">
-              {isAdmin && (
-                <Button 
-                  size="sm"
-                  onClick={() => setIsCreateUserOpen(true)}
-                  data-testid="button-create-user-mobile"
-                  style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
-                >
-                  <UserPlus className="h-4 w-4" />
-                </Button>
-              )}
+          <div className="p-3 space-y-2">
+            <Link href="/">
               <Button 
                 variant="outline" 
                 size="sm"
-                onClick={handleLogout}
-                data-testid="button-logout-mobile"
+                className="w-full"
+                data-testid="button-return-to-site-mobile"
               >
-                <LogOut className="h-4 w-4" />
+                <Home className="h-4 w-4 mr-2" />
+                Return to Site
               </Button>
+            </Link>
+            <div className="flex items-center justify-between gap-3">
+              <Select value={activeSection} onValueChange={setActiveSection}>
+                <SelectTrigger className="flex-1" data-testid="mobile-section-select">
+                  <SelectValue placeholder="Select section" />
+                </SelectTrigger>
+                <SelectContent>
+                  {navItems.map((item) => (
+                    <SelectItem key={item.id} value={item.id}>
+                      {item.label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <div className="flex gap-2">
+                {isAdmin && (
+                  <Button 
+                    size="sm"
+                    onClick={() => setIsCreateUserOpen(true)}
+                    data-testid="button-create-user-mobile"
+                    style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+                  >
+                    <UserPlus className="h-4 w-4" />
+                  </Button>
+                )}
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleLogout}
+                  data-testid="button-logout-mobile"
+                >
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
         </div>
