@@ -1287,30 +1287,32 @@ export async function registerRoutes(
     const birthdayThisYear = `${currentYear}-${birthMonth}-${birthDay}`;
     
     // Check if birthday event already exists for this user this year
+    // Use a structured identifier in the title to reliably detect duplicates
+    const birthdayTitle = `${user.username}'s Birthday`;
     const existingEvents = await storage.getAllEvents();
     const existingBirthdayEvent = existingEvents.find(event => 
       event.locationType === "birthday" && 
       event.eventDate === birthdayThisYear &&
-      event.description?.includes(user.id)
+      event.createdBy === user.id
     );
     
     if (existingBirthdayEvent) return; // Already exists
     
-    // Create birthday event
+    // Create birthday event with valid time format (00:00 = all day)
     await storage.createEvent({
-      title: `${user.username}'s Birthday`,
+      title: birthdayTitle,
       eventDate: birthdayThisYear,
-      eventTime: "All Day",
+      eventTime: "00:00",
       locationType: "birthday",
       streetAddress: "",
       city: "",
       state: "",
       zipCode: "",
-      contactName: "",
+      contactName: user.username,
       contactPhone: "",
       contactType: "phone",
       buttonLabel: "Send Wishes",
-      description: `Birthday celebration for ${user.username} (user:${user.id})`,
+      description: `Birthday celebration for ${user.username}`,
       createdBy: user.id,
     });
   }

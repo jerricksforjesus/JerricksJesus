@@ -1664,13 +1664,31 @@ export default function AdminDashboard() {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmNewPassword, setShowConfirmNewPassword] = useState(false);
+  const [profileDateOfBirth, setProfileDateOfBirth] = useState("");
 
-  // Initialize profile username when user loads
+  // Fetch date of birth
+  const { data: dobData } = useQuery<{ dateOfBirth: string | null }>({
+    queryKey: ["profile-dob"],
+    queryFn: async () => {
+      const response = await fetch("/api/profile/date-of-birth", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch date of birth");
+      return response.json();
+    },
+    enabled: !!user,
+  });
+
+  // Initialize profile data when user loads
   useEffect(() => {
     if (user && !profileUsername) {
       setProfileUsername(user.username);
     }
   }, [user]);
+
+  useEffect(() => {
+    if (dobData?.dateOfBirth) {
+      setProfileDateOfBirth(dobData.dateOfBirth);
+    }
+  }, [dobData]);
 
   const updateUsernameMutation = useMutation({
     mutationFn: async (username: string) => {
@@ -1689,6 +1707,30 @@ export default function AdminDashboard() {
     onSuccess: (data) => {
       toast({ title: "Username Updated", description: "Your username has been changed." });
       queryClient.invalidateQueries({ queryKey: ["user"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  const updateDateOfBirthMutation = useMutation({
+    mutationFn: async (dateOfBirth: string) => {
+      const response = await fetch("/api/profile/date-of-birth", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ dateOfBirth }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update date of birth");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Birthday Saved", description: "Your date of birth has been saved and a birthday event will be created." });
+      queryClient.invalidateQueries({ queryKey: ["profile-dob"] });
+      queryClient.invalidateQueries({ queryKey: ["events"] });
     },
     onError: (error: Error) => {
       toast({ title: "Error", description: error.message, variant: "destructive" });
@@ -3356,6 +3398,36 @@ export default function AdminDashboard() {
                             <Save className="w-4 h-4 mr-2" />
                           )}
                           Update
+                        </Button>
+                      </div>
+                    </div>
+
+                    <div className="border-t pt-6 space-y-4">
+                      <h4 className="font-medium">Date of Birth</h4>
+                      <p className="text-sm text-muted-foreground">
+                        Add your birthday and we'll create an event in the Family Events section to celebrate with you!
+                      </p>
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <Input
+                          id="profile-dob"
+                          data-testid="input-profile-dob"
+                          type="date"
+                          value={profileDateOfBirth}
+                          onChange={(e) => setProfileDateOfBirth(e.target.value)}
+                          className="flex-1 max-w-md"
+                        />
+                        <Button
+                          onClick={() => updateDateOfBirthMutation.mutate(profileDateOfBirth)}
+                          disabled={updateDateOfBirthMutation.isPending || !profileDateOfBirth || profileDateOfBirth === dobData?.dateOfBirth}
+                          style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+                          data-testid="button-save-dob"
+                        >
+                          {updateDateOfBirthMutation.isPending ? (
+                            <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          ) : (
+                            <Save className="w-4 h-4 mr-2" />
+                          )}
+                          Save Birthday
                         </Button>
                       </div>
                     </div>

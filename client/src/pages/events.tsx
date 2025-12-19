@@ -22,7 +22,11 @@ function formatEventDate(dateString: string): string {
   });
 }
 
-function formatEventTime(timeString: string): string {
+function formatEventTime(timeString: string, locationType?: string): string {
+  // Birthday events show as "All Day"
+  if (locationType === "birthday") {
+    return "All Day";
+  }
   const [hours, minutes] = timeString.split(':');
   const hour = parseInt(hours);
   const ampm = hour >= 12 ? 'PM' : 'AM';
@@ -30,8 +34,13 @@ function formatEventTime(timeString: string): string {
   return `${hour12}:${minutes} ${ampm}`;
 }
 
-function formatLocation(event: Event): { text: string; type: "physical" | "online" | "phone"; link?: string } {
-  const locationType = (event.locationType as "physical" | "online" | "phone") || "physical";
+function formatLocation(event: Event): { text: string; type: "physical" | "online" | "phone" | "birthday"; link?: string } {
+  const locationType = (event.locationType as "physical" | "online" | "phone" | "birthday") || "physical";
+  
+  // Birthday - special celebration event
+  if (locationType === "birthday") {
+    return { text: "Birthday Celebration", type: "birthday" };
+  }
   
   // Online meeting - only show "Online Meeting", ignore any address data
   if (locationType === "online") {
@@ -271,7 +280,7 @@ export default function Events() {
                         <div className="flex items-center gap-3">
                           <Clock className="w-5 h-5 text-primary flex-shrink-0" />
                           <span data-testid={`event-time-${event.id}`}>
-                            {formatEventTime(event.eventTime)}
+                            {formatEventTime(event.eventTime, event.locationType)}
                           </span>
                         </div>
                         <div className="flex items-center gap-3">
