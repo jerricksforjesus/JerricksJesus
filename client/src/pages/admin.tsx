@@ -2372,10 +2372,10 @@ export default function AdminDashboard() {
                     {/* Return to Site */}
                     <Link href="/" onClick={() => setIsMobileSettingsOpen(false)}>
                       <button
-                        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
+                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left text-sm transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
                         data-testid="button-return-to-site-mobile"
                       >
-                        <Home className="w-5 h-5 flex-shrink-0" />
+                        <Home className="w-4 h-4 flex-shrink-0" />
                         Return to Site
                       </button>
                     </Link>
@@ -2393,13 +2393,13 @@ export default function AdminDashboard() {
                             setIsMobileSettingsOpen(false);
                           }}
                           data-testid={`mobile-nav-${item.id}`}
-                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left text-sm transition-colors ${
                             activeSection === item.id
                               ? "bg-[#b47a5f] text-white font-medium"
                               : "text-muted-foreground hover:bg-muted hover:text-foreground"
                           }`}
                         >
-                          <Icon className="w-5 h-5 flex-shrink-0" />
+                          <Icon className="w-4 h-4 flex-shrink-0" />
                           {item.label}
                         </button>
                       );
@@ -2414,10 +2414,10 @@ export default function AdminDashboard() {
                             setIsCreateUserOpen(true);
                             setIsMobileSettingsOpen(false);
                           }}
-                          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
+                          className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left text-sm transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
                           data-testid="button-create-user-mobile"
                         >
-                          <UserPlus className="w-5 h-5 flex-shrink-0" />
+                          <UserPlus className="w-4 h-4 flex-shrink-0" />
                           Add User
                         </button>
                       </>
@@ -2431,10 +2431,10 @@ export default function AdminDashboard() {
                         setIsMobileSettingsOpen(false);
                         handleLogout();
                       }}
-                      className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors text-red-600 hover:bg-red-50"
+                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left text-sm transition-colors text-red-600 hover:bg-red-50"
                       data-testid="button-logout-mobile"
                     >
-                      <LogOut className="w-5 h-5 flex-shrink-0" />
+                      <LogOut className="w-4 h-4 flex-shrink-0" />
                       Log Out
                     </button>
                   </div>
