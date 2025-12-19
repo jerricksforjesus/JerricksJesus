@@ -13,7 +13,7 @@ export function Navigation() {
   const [isScrolled, setIsScrolled] = useState(false);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(0);
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
   const { theme } = useNavTheme();
   
   const isHomePage = location === "/";
@@ -136,6 +136,7 @@ export function Navigation() {
         <div className="absolute top-full left-0 right-0 bg-background border-b p-6 md:hidden flex flex-col gap-4 animate-in slide-in-from-top-5">
           {navLinks.map((link) => {
             const isAccountLink = link.label === getAccountLabel() && user;
+            const mobileLabel = link.label === "Sanctuary" ? "Return Home" : link.label;
             return (
               <Link 
                 key={link.href} 
@@ -146,11 +147,22 @@ export function Navigation() {
                   className="cursor-pointer text-lg font-serif font-medium"
                   onClick={() => !isAccountLink && setMobileMenuOpen(false)}
                 >
-                  {link.label}
+                  {mobileLabel}
                 </span>
               </Link>
             );
           })}
+          {user && (
+            <button
+              className="cursor-pointer text-lg font-serif font-medium text-left text-red-600"
+              onClick={async () => {
+                setMobileMenuOpen(false);
+                await logout();
+              }}
+            >
+              Logout
+            </button>
+          )}
         </div>
       )}
     </nav>
