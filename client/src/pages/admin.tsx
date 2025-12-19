@@ -2224,6 +2224,10 @@ export default function AdminDashboard() {
     return fallbackImages[index % fallbackImages.length];
   };
 
+  // State for portrait photo crop dialog
+  const [showCropPrompt, setShowCropPrompt] = useState(false);
+  const [pendingCropPhoto, setPendingCropPhoto] = useState<{ id: number; url: string } | null>(null);
+
   const handlePhotoUploadComplete = async (result: UploadResult<Record<string, unknown>, Record<string, unknown>>) => {
     if (!result.successful || result.successful.length === 0) {
       toast({
@@ -2237,21 +2241,26 @@ export default function AdminDashboard() {
     const uploadedFile = result.successful[0];
     const imagePath = uploadedFile.uploadURL || "";
 
-    // Get the original file to check dimensions
-    const originalFile = uploadedFile.data as File | undefined;
+    // Get the original file to check dimensions - try multiple ways to access it
+    const originalFile = (uploadedFile as any).data as File | Blob | undefined;
     let imageWidth: number | undefined;
     let imageHeight: number | undefined;
     let needsCropping = 0;
 
-    if (originalFile) {
+    if (originalFile && originalFile instanceof Blob) {
       try {
-        const dims = await getImageDimensions(originalFile);
+        // Create a file from blob if needed
+        const file = originalFile instanceof File ? originalFile : new File([originalFile], 'photo.jpg', { type: originalFile.type });
+        const dims = await getImageDimensions(file);
         imageWidth = dims.width;
         imageHeight = dims.height;
         needsCropping = isPortraitImage(dims.width, dims.height) ? 1 : 0;
+        console.log("Photo dimensions detected:", dims.width, "x", dims.height, "needsCropping:", needsCropping);
       } catch (e) {
         console.error("Failed to get image dimensions:", e);
       }
+    } else {
+      console.log("No file data available for dimension check, will detect from URL after upload");
     }
 
     const photoData: InsertPhoto = {
@@ -2271,14 +2280,54 @@ export default function AdminDashboard() {
 
       if (!response.ok) throw new Error("Failed to save photo");
 
+      const savedPhoto = await response.json();
+      
       queryClient.invalidateQueries({ queryKey: ["photos"] });
       setPhotoCaption("");
 
-      if (needsCropping) {
-        toast({
-          title: "Photo Added (Portrait Detected)",
-          description: "This photo has a portrait orientation and may be cropped in the carousel. You can adjust the crop from the gallery.",
-        });
+      // If portrait detected from file, prompt to crop
+      if (needsCropping && savedPhoto.id) {
+        // Get signed URL for the image
+        const signedUrlResponse = await fetch(`/api/objects/signed-url?path=${encodeURIComponent(imagePath)}`);
+        if (signedUrlResponse.ok) {
+          const { url } = await signedUrlResponse.json();
+          setPendingCropPhoto({ id: savedPhoto.id, url });
+          setShowCropPrompt(true);
+        }
+        return;
+      }
+      
+      // If we couldn't detect dimensions from file, try to detect from URL after a short delay
+      if (!imageWidth && !imageHeight && savedPhoto.id) {
+        setTimeout(async () => {
+          try {
+            const signedUrlResponse = await fetch(`/api/objects/signed-url?path=${encodeURIComponent(imagePath)}`);
+            if (signedUrlResponse.ok) {
+              const { url } = await signedUrlResponse.json();
+              const dims = await getImageDimensionsFromUrl(url);
+              const needsCrop = isPortraitImage(dims.width, dims.height) ? 1 : 0;
+              
+              if (needsCrop) {
+                await fetch(`/api/photos/${savedPhoto.id}`, {
+                  method: "PATCH",
+                  headers: { "Content-Type": "application/json" },
+                  credentials: "include",
+                  body: JSON.stringify({
+                    imageWidth: dims.width,
+                    imageHeight: dims.height,
+                    needsCropping: needsCrop,
+                  }),
+                });
+                queryClient.invalidateQueries({ queryKey: ["photos"] });
+                // Show crop prompt for delayed detection too
+                setPendingCropPhoto({ id: savedPhoto.id, url });
+                setShowCropPrompt(true);
+              }
+            }
+          } catch (e) {
+            console.error("Failed to detect dimensions from URL:", e);
+          }
+        }, 1000);
       } else {
         toast({
           title: "Photo Added",
@@ -2293,6 +2342,84 @@ export default function AdminDashboard() {
       });
     }
   };
+
+  const handleCropNow = () => {
+    if (pendingCropPhoto) {
+      setPhotoCropId(pendingCropPhoto.id);
+      setCropImageSrc(pendingCropPhoto.url);
+      setIsCropperOpen(true);
+    }
+    setShowCropPrompt(false);
+    setPendingCropPhoto(null);
+  };
+
+  const handleSkipCrop = () => {
+    toast({
+      title: "Photo Added",
+      description: "You can crop this photo later from the gallery.",
+    });
+    setShowCropPrompt(false);
+    setPendingCropPhoto(null);
+  };
+
+  // Auto-scan photos for portrait orientation on first load
+  const [hasScanned, setHasScanned] = useState(false);
+  
+  useEffect(() => {
+    if (hasScanned || photos.length === 0) return;
+    
+    // Check if any photos need scanning (no dimensions set and not already cropped)
+    const photosToScan = photos.filter(p => 
+      !p.imageWidth && !p.imageHeight && p.wasCropped !== 1 && p.needsCropping !== 1
+    );
+    
+    if (photosToScan.length === 0) {
+      setHasScanned(true);
+      return;
+    }
+    
+    const scanPhotos = async () => {
+      let detectedCount = 0;
+      
+      for (const photo of photosToScan) {
+        const url = getPhotoUrl(photo);
+        if (!url) continue;
+        
+        try {
+          const dims = await getImageDimensionsFromUrl(url);
+          const needsCrop = isPortraitImage(dims.width, dims.height) ? 1 : 0;
+          
+          if (needsCrop) {
+            await fetch(`/api/photos/${photo.id}`, {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              credentials: "include",
+              body: JSON.stringify({
+                imageWidth: dims.width,
+                imageHeight: dims.height,
+                needsCropping: needsCrop,
+              }),
+            });
+            detectedCount++;
+          }
+        } catch (e) {
+          console.error("Failed to check photo:", photo.id, e);
+        }
+      }
+      
+      if (detectedCount > 0) {
+        queryClient.invalidateQueries({ queryKey: ["photos"] });
+        toast({
+          title: "Portrait Photos Detected",
+          description: `${detectedCount} photo(s) may need cropping for the carousel.`,
+        });
+      }
+      
+      setHasScanned(true);
+    };
+    
+    scanPhotos();
+  }, [photos, hasScanned]);
 
   const handleCropExistingPhoto = async (photo: Photo) => {
     const url = getPhotoUrl(photo);
@@ -3708,6 +3835,44 @@ export default function AdminDashboard() {
         title="Adjust Photo for Carousel"
         description="Portrait photos may get cropped in the carousel. Adjust the crop area to select which part of the image to display."
       />
+
+      {/* Portrait Photo Crop Prompt Dialog */}
+      <Dialog open={showCropPrompt} onOpenChange={setShowCropPrompt}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-amber-500" />
+              Portrait Photo Detected
+            </DialogTitle>
+            <DialogDescription>
+              This photo is in portrait orientation (taller than wide). It will need to be cropped to fit properly in the carousel which uses a 16:9 landscape format.
+            </DialogDescription>
+          </DialogHeader>
+          {pendingCropPhoto?.url && (
+            <div className="my-4 flex justify-center">
+              <div className="relative w-32 h-48 rounded-lg overflow-hidden border-2 border-amber-500/50">
+                <img 
+                  src={pendingCropPhoto.url} 
+                  alt="Uploaded photo preview" 
+                  className="w-full h-full object-cover"
+                />
+              </div>
+            </div>
+          )}
+          <DialogFooter className="flex gap-2 sm:gap-0">
+            <Button variant="outline" onClick={handleSkipCrop}>
+              Crop Later
+            </Button>
+            <Button 
+              onClick={handleCropNow}
+              style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+            >
+              <Crop className="w-4 h-4 mr-2" />
+              Crop Now
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={isCreateUserOpen} onOpenChange={setIsCreateUserOpen}>
         <DialogContent>
