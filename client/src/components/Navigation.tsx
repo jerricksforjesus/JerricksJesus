@@ -64,7 +64,9 @@ export function Navigation() {
     <nav
       className={cn(
         "fixed top-0 left-0 right-0 z-50 transition-all duration-500 ease-in-out px-6 py-3",
-        isScrolled ? "bg-background md:bg-background/90 md:backdrop-blur-md shadow-sm" : "bg-transparent"
+        // Mobile: always solid background. Desktop: transparent until scrolled
+        "bg-background md:bg-transparent",
+        isScrolled && "md:bg-background/90 md:backdrop-blur-md md:shadow-sm"
       )}
     >
       <div className="max-w-7xl mx-auto flex justify-between items-center">
@@ -72,7 +74,9 @@ export function Navigation() {
           <span 
             className={cn(
               "cursor-pointer font-serif text-2xl md:text-3xl font-bold tracking-tighter hover:opacity-80 transition-colors duration-300",
-              useLightText && !isScrolled ? "text-white" : "text-foreground"
+              // Mobile: always dark text. Desktop: light text on transparent, dark when scrolled
+              "text-foreground",
+              useLightText && !isScrolled && "md:text-white"
             )}
             onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
           >JERRICKS FOR JESUS</span>
@@ -119,12 +123,9 @@ export function Navigation() {
           </Link>
         </div>
 
-        {/* Mobile Menu Toggle */}
+        {/* Mobile Menu Toggle - always dark since mobile has solid background */}
         <button
-          className={cn(
-            "md:hidden transition-colors duration-300",
-            useLightText && !isScrolled ? "text-white" : "text-foreground"
-          )}
+          className="md:hidden transition-colors duration-300 text-foreground"
           onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
         >
           {mobileMenuOpen ? <X /> : <Menu />}
