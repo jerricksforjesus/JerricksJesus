@@ -5,6 +5,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/lib/auth";
 import { NavThemeProvider } from "@/lib/navThemeContext";
+import { WorshipPlayerProvider } from "@/contexts/WorshipPlayerContext";
+import { MiniMusicPlayer } from "@/components/MiniMusicPlayer";
 import NotFound from "@/pages/not-found";
 import Home from "@/pages/home";
 import LiveStream from "@/pages/live";
@@ -32,10 +34,13 @@ function App() {
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <NavThemeProvider>
-          <TooltipProvider>
-            <Toaster />
-            <Router />
-          </TooltipProvider>
+          <WorshipPlayerProvider>
+            <TooltipProvider>
+              <Toaster />
+              <Router />
+              <MiniMusicPlayer />
+            </TooltipProvider>
+          </WorshipPlayerProvider>
         </NavThemeProvider>
       </AuthProvider>
     </QueryClientProvider>
