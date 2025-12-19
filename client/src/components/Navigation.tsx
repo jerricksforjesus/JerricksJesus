@@ -5,6 +5,7 @@ import { Menu, X } from "lucide-react";
 import { useAuth } from "@/lib/auth";
 import { motion } from "framer-motion";
 import { useNavTheme } from "@/lib/navThemeContext";
+import { useToast } from "@/hooks/use-toast";
 
 export const OPEN_SETTINGS_PANEL_EVENT = "openSettingsPanel";
 
@@ -15,6 +16,7 @@ export function Navigation() {
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(0);
   const { user, logout } = useAuth();
   const { theme } = useNavTheme();
+  const { toast } = useToast();
   
   const isHomePage = location === "/";
   const useLightText = theme === "light" || (theme === "auto" && isHomePage);
@@ -160,6 +162,7 @@ export function Navigation() {
               onClick={async () => {
                 setMobileMenuOpen(false);
                 await logout();
+                toast({ title: "Logged out", description: "You have been signed out." });
               }}
             >
               Logout
