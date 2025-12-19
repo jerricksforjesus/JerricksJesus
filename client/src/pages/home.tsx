@@ -57,7 +57,7 @@ export default function Home() {
               {footer?.tagline || "A sanctuary for the digital age. Bringing the word of God to wherever you are."}
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <div>
               <h4 className="font-bold uppercase tracking-widest mb-4 text-sm text-primary">Visit</h4>
               <p className="text-background/60" data-testid="text-footer-address-line1">
