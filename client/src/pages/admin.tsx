@@ -1423,16 +1423,13 @@ export default function AdminDashboard() {
   }, []);
 
   // Listen for custom event to open settings panel from Navigation
+  // This only opens the panel - it does NOT change the current section
   useEffect(() => {
-    const handleOpenPanel = (e: Event) => {
-      const customEvent = e as CustomEvent<{ section?: string }>;
-      if (customEvent.detail?.section) {
-        setActiveSection(customEvent.detail.section);
-      }
+    const handleOpenPanel = () => {
       setIsMobileSettingsOpen(true);
     };
-    window.addEventListener(OPEN_SETTINGS_PANEL_EVENT, handleOpenPanel as EventListener);
-    return () => window.removeEventListener(OPEN_SETTINGS_PANEL_EVENT, handleOpenPanel as EventListener);
+    window.addEventListener(OPEN_SETTINGS_PANEL_EVENT, handleOpenPanel);
+    return () => window.removeEventListener(OPEN_SETTINGS_PANEL_EVENT, handleOpenPanel);
   }, []);
 
   const { data: zoomData, isLoading: zoomLoading } = useQuery<{ zoomLink: string }>({
