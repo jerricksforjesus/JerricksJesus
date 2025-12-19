@@ -616,7 +616,10 @@ export async function registerRoutes(
   // Helper to get valid YouTube access token (refreshes if needed)
   async function getValidYoutubeToken(): Promise<string | null> {
     const auth = await storage.getYoutubeAuth();
-    if (!auth) return null;
+    if (!auth) {
+      console.log("YouTube auth: No auth record found in database");
+      return null;
+    }
 
     // Check if token is expired or will expire in next 5 minutes
     const now = new Date();
@@ -624,13 +627,19 @@ export async function registerRoutes(
     const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
 
     if (expiresAt > fiveMinutesFromNow) {
+      console.log("YouTube auth: Using valid access token (expires " + expiresAt.toISOString() + ")");
       return auth.accessToken;
     }
+
+    console.log("YouTube auth: Token expired at " + expiresAt.toISOString() + ", attempting refresh...");
 
     // Refresh the token
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
-    if (!clientId || !clientSecret) return null;
+    if (!clientId || !clientSecret) {
+      console.error("YouTube auth: Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET");
+      return null;
+    }
 
     try {
       const oauth2Client = new OAuth2Client(clientId, clientSecret);
@@ -642,10 +651,12 @@ export async function registerRoutes(
           credentials.access_token,
           new Date(credentials.expiry_date)
         );
+        console.log("YouTube auth: Token refreshed successfully, new expiry: " + new Date(credentials.expiry_date).toISOString());
         return credentials.access_token;
       }
-    } catch (error) {
-      console.error("Error refreshing YouTube token:", error);
+    } catch (error: any) {
+      console.error("YouTube auth: Failed to refresh token:", error.message || error);
+      // If refresh fails, the admin needs to reconnect
     }
 
     return null;
@@ -684,13 +695,13 @@ export async function registerRoutes(
         return res.status(400).json({ error: "This video is already in the playlist" });
       }
 
-      // Get OAuth token for all YouTube operations (avoids API key referrer restrictions)
+      // Get OAuth token - required for adding to playlist
       const accessToken = await getValidYoutubeToken();
       if (!accessToken) {
-        return res.status(400).json({ error: "YouTube channel not connected. Please connect YouTube first." });
+        return res.status(400).json({ error: "YouTube connection expired. Please ask an admin to reconnect YouTube in Settings." });
       }
 
-      // Fetch video info using OAuth token (no referrer restrictions)
+      // Fetch video info using OAuth token
       const videoResponse = await fetch(
         `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}`,
         { headers: { "Authorization": `Bearer ${accessToken}` } }
@@ -709,7 +720,7 @@ export async function registerRoutes(
         return res.status(404).json({ error: "Video not found on YouTube" });
       }
 
-      // Add to YouTube playlist (using the same token)
+      // Add to YouTube playlist
       try {
         const playlistResponse = await fetch(
           `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet`,
