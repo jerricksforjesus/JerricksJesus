@@ -255,6 +255,11 @@ export function BibleQuizSection() {
               animate={{ opacity: 1, x: 0 }}
               exit={{ opacity: 0, x: 20 }}
             >
+              {/* Mobile only: Login to add progress text */}
+              <p className="md:hidden text-center text-base text-muted-foreground mb-6">
+                Login to add your progress<br /> to the leaderboard.
+              </p>
+              
               {/* Personal Stats & Leaderboard */}
               <div className="grid md:grid-cols-2 gap-6 mb-10">
                 {/* Personal Stats Card */}
@@ -336,11 +341,6 @@ export function BibleQuizSection() {
                   )}
                 </div>
               </div>
-              
-              {/* Mobile only: Login to add progress text */}
-              <p className="md:hidden text-center text-base text-muted-foreground mb-6">
-                Login to add your progress<br /> to the leaderboard.
-              </p>
 
               {/* Mobile/Tablet Accordion View */}
               <div className="lg:hidden">
