@@ -1934,7 +1934,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/photos/:id", async (req, res) => {
+  app.put("/api/photos/:id", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { caption, displayOrder, imagePath, imageWidth, imageHeight, needsCropping } = req.body;
