@@ -130,17 +130,9 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     volumeRef.current = volume;
   }, [volume]);
 
-  const registerMainHost = useCallback((element: HTMLDivElement | null) => {
-    mainHostRef.current = element;
-  }, []);
-
-  const registerMiniHost = useCallback((element: HTMLDivElement | null) => {
-    miniHostRef.current = element;
-  }, []);
-
   const showMiniPlayer = miniPlayerActivated && !mainPlayerVisible && !miniPlayerDismissed;
 
-  useEffect(() => {
+  const syncPlayerHost = useCallback(() => {
     const wrapper = playerWrapperRef.current;
     if (!wrapper) return;
 
@@ -150,6 +142,20 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
       targetHost.appendChild(wrapper);
     }
   }, [mainPlayerVisible, showMiniPlayer]);
+
+  const registerMainHost = useCallback((element: HTMLDivElement | null) => {
+    mainHostRef.current = element;
+    syncPlayerHost();
+  }, [syncPlayerHost]);
+
+  const registerMiniHost = useCallback((element: HTMLDivElement | null) => {
+    miniHostRef.current = element;
+    syncPlayerHost();
+  }, [syncPlayerHost]);
+
+  useEffect(() => {
+    syncPlayerHost();
+  }, [syncPlayerHost]);
 
   useEffect(() => {
     if (videos.length === 0) return;
