@@ -129,7 +129,7 @@ export function FamilyPhotoCarousel() {
         </div>
 
         {photos.length > 1 && (
-          <div className="flex justify-center items-center gap-4 mt-6">
+          <div className="flex justify-center items-center gap-8 mt-6">
             <Button
               variant="ghost"
               size="icon"
@@ -139,21 +139,6 @@ export function FamilyPhotoCarousel() {
             >
               <ChevronLeft className="w-6 h-6" />
             </Button>
-            
-            <div className="flex gap-2">
-              {photos.map((_, index) => (
-                <button
-                  key={index}
-                  onClick={() => setCurrentIndex(index)}
-                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                    index === currentIndex 
-                      ? 'bg-primary w-8' 
-                      : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
-                  }`}
-                  data-testid={`button-carousel-dot-${index}`}
-                />
-              ))}
-            </div>
             
             <Button
               variant="ghost"
