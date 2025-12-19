@@ -471,6 +471,21 @@ function WorshipPlaylistManager() {
         </div>
       )}
 
+      {/* Warning for foundational members when YouTube is disconnected */}
+      {!isAdmin && !connectionStatus?.connected && (
+        <div className="border border-yellow-300 rounded-lg p-4 bg-yellow-50">
+          <div className="flex items-center gap-3">
+            <Youtube className="w-5 h-5 text-yellow-600" />
+            <div>
+              <h3 className="font-medium text-yellow-800">YouTube Playlist Requires Reconnection</h3>
+              <p className="text-sm text-yellow-700 mt-1">
+                The YouTube connection has expired. Please ask an admin to reconnect YouTube in the Settings section to add new videos.
+              </p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="space-y-4">
         <h3 className="font-medium">Add Video to Playlist</h3>
         <form onSubmit={handleAddVideo} className="flex gap-3">
