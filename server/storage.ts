@@ -46,6 +46,7 @@ export interface IStorage {
   createPhoto(photo: InsertPhoto): Promise<Photo>;
   updatePhoto(id: number, data: Partial<InsertPhoto>): Promise<Photo | undefined>;
   deletePhoto(id: number): Promise<void>;
+  reorderPhotos(orderedIds: number[]): Promise<void>;
   
   // Quiz methods
   getQuestionById(id: number): Promise<QuizQuestion | undefined>;
@@ -352,6 +353,14 @@ export class DbStorage implements IStorage {
 
   async deletePhoto(id: number): Promise<void> {
     await db.delete(photos).where(eq(photos.id, id));
+  }
+
+  async reorderPhotos(orderedIds: number[]): Promise<void> {
+    for (let i = 0; i < orderedIds.length; i++) {
+      await db.update(photos)
+        .set({ displayOrder: i })
+        .where(eq(photos.id, orderedIds[i]));
+    }
   }
 
   // Quiz methods

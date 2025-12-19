@@ -1,13 +1,25 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { Photo } from "@shared/schema";
 
+function shuffleArray<T>(array: T[], seed: number): T[] {
+  const shuffled = [...array];
+  let currentSeed = seed;
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    currentSeed = (currentSeed * 1103515245 + 12345) & 0x7fffffff;
+    const j = currentSeed % (i + 1);
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
 export function FamilyPhotoCarousel() {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [signedUrls, setSignedUrls] = useState<Record<string, string>>({});
+  const [shuffleSeed] = useState(() => Math.floor(Math.random() * 1000000));
 
   const { data: photos = [] } = useQuery<Photo[]>({
     queryKey: ["photos"],
@@ -17,6 +29,23 @@ export function FamilyPhotoCarousel() {
       return response.json();
     },
   });
+
+  const { data: shouldRandomize = false } = useQuery<boolean>({
+    queryKey: ["carousel-randomize"],
+    queryFn: async () => {
+      const response = await fetch("/api/settings/carousel-randomize");
+      if (!response.ok) return false;
+      const data = await response.json();
+      return data.randomize;
+    },
+  });
+
+  const displayPhotos = useMemo(() => {
+    if (shouldRandomize && photos.length > 0) {
+      return shuffleArray(photos, shuffleSeed);
+    }
+    return photos;
+  }, [photos, shouldRandomize, shuffleSeed]);
 
   useEffect(() => {
     const fetchSignedUrls = async () => {
@@ -45,28 +74,28 @@ export function FamilyPhotoCarousel() {
   }, [photos]);
 
   useEffect(() => {
-    if (photos.length <= 1) return;
+    if (displayPhotos.length <= 1) return;
     
     const timer = setInterval(() => {
-      setCurrentIndex((prev) => (prev + 1) % photos.length);
+      setCurrentIndex((prev) => (prev + 1) % displayPhotos.length);
     }, 5000);
 
     return () => clearInterval(timer);
-  }, [photos.length]);
+  }, [displayPhotos.length]);
 
   const goToPrevious = () => {
-    setCurrentIndex((prev) => (prev - 1 + photos.length) % photos.length);
+    setCurrentIndex((prev) => (prev - 1 + displayPhotos.length) % displayPhotos.length);
   };
 
   const goToNext = () => {
-    setCurrentIndex((prev) => (prev + 1) % photos.length);
+    setCurrentIndex((prev) => (prev + 1) % displayPhotos.length);
   };
 
-  if (photos.length === 0) {
+  if (displayPhotos.length === 0) {
     return null;
   }
 
-  const currentPhoto = photos[currentIndex];
+  const currentPhoto = displayPhotos[currentIndex];
   const imageUrl = signedUrls[currentPhoto?.id] || "";
 
   return (

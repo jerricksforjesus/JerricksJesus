@@ -39,8 +39,130 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  rectSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+import { GripVertical, Shuffle } from "lucide-react";
+import { Switch } from "@/components/ui/switch";
 
 const fallbackImages = [thumb1, thumb2, thumb3];
+
+interface SortablePhotoItemProps {
+  photo: Photo;
+  photoUrl: string | undefined;
+  canEdit: boolean;
+  onCrop: (photo: Photo) => void;
+  onDelete: (id: number) => void;
+}
+
+function SortablePhotoItem({ photo, photoUrl, canEdit, onCrop, onDelete }: SortablePhotoItemProps) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: photo.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 50 : 1,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative group rounded-lg overflow-hidden border bg-card ${isDragging ? 'ring-2 ring-primary shadow-lg' : ''}`}
+      data-testid={`photo-item-${photo.id}`}
+    >
+      {/* Drag handle */}
+      <div
+        {...attributes}
+        {...listeners}
+        className="absolute top-1 left-1 z-30 bg-black/70 hover:bg-black/90 text-white rounded p-1.5 cursor-grab active:cursor-grabbing touch-none"
+        data-testid={`drag-handle-${photo.id}`}
+      >
+        <GripVertical className="w-4 h-4" />
+      </div>
+      
+      {/* Status Banner */}
+      {photo.needsCropping === 1 ? (
+        <div className="absolute top-0 left-0 right-0 bg-amber-500/90 text-white text-xs px-2 py-1 flex items-center justify-center gap-1 z-10">
+          <AlertTriangle className="w-3 h-3" />
+          <span>Needs Cropping</span>
+        </div>
+      ) : photo.wasCropped === 1 ? (
+        <div className="absolute top-0 left-0 right-0 bg-green-600/90 text-white text-xs px-2 py-1 flex items-center justify-center gap-1 z-10">
+          <Check className="w-3 h-3" />
+          <span>Cropped</span>
+        </div>
+      ) : null}
+      
+      <div className="aspect-square bg-muted">
+        {photoUrl ? (
+          <img 
+            src={photoUrl} 
+            alt={photo.caption || "Family photo"}
+            className="w-full h-full object-cover pointer-events-none"
+            draggable={false}
+          />
+        ) : (
+          <div className="w-full h-full flex items-center justify-center">
+            <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
+          </div>
+        )}
+      </div>
+      
+      {photo.caption && (
+        <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-2 pr-20 truncate z-10">
+          {photo.caption}
+        </div>
+      )}
+      
+      <div className="absolute bottom-1 right-1 flex gap-1 z-20">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          className={`h-8 w-8 ${photo.needsCropping === 1 ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-black/70 hover:bg-black/90 text-white"}`}
+          onClick={() => onCrop(photo)}
+          data-testid={`button-crop-photo-${photo.id}`}
+        >
+          <Crop className="w-4 h-4" />
+        </Button>
+        {canEdit && (
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            className="h-8 w-8 bg-black/70 hover:bg-black/90 text-white"
+            onClick={() => onDelete(photo.id)}
+            data-testid={`button-delete-photo-${photo.id}`}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        )}
+      </div>
+    </div>
+  );
+}
 
 function ApprovePhotosTab() {
   const { toast } = useToast();
@@ -1859,6 +1981,92 @@ export default function AdminDashboard() {
   });
 
   const [photoSignedUrls, setPhotoSignedUrls] = useState<Record<number, string>>({});
+  const [localPhotos, setLocalPhotos] = useState<Photo[]>([]);
+  
+  useEffect(() => {
+    setLocalPhotos(photos);
+  }, [photos]);
+
+  const { data: carouselRandomize = false } = useQuery<boolean>({
+    queryKey: ["carousel-randomize"],
+    queryFn: async () => {
+      const response = await fetch("/api/settings/carousel-randomize");
+      if (!response.ok) throw new Error("Failed to fetch setting");
+      const data = await response.json();
+      return data.randomize;
+    },
+  });
+
+  const reorderPhotosMutation = useMutation({
+    mutationFn: async (orderedIds: number[]) => {
+      const response = await fetch("/api/photos/reorder", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ orderedIds }),
+      });
+      if (!response.ok) throw new Error("Failed to reorder photos");
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["photos"] });
+      toast({ title: "Photos Reordered", description: "The photo order has been saved." });
+    },
+    onError: () => {
+      setLocalPhotos(photos);
+      toast({ title: "Error", description: "Failed to reorder photos.", variant: "destructive" });
+    },
+  });
+
+  const updateRandomizeMutation = useMutation({
+    mutationFn: async (randomize: boolean) => {
+      const response = await fetch("/api/settings/carousel-randomize", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ randomize }),
+      });
+      if (!response.ok) throw new Error("Failed to update setting");
+      return response.json();
+    },
+    onSuccess: (_, randomize) => {
+      queryClient.invalidateQueries({ queryKey: ["carousel-randomize"] });
+      toast({ 
+        title: randomize ? "Randomize Enabled" : "Randomize Disabled", 
+        description: randomize 
+          ? "Photos will appear in random order on the carousel." 
+          : "Photos will appear in the order you arranged them."
+      });
+    },
+    onError: () => {
+      toast({ title: "Error", description: "Failed to update setting.", variant: "destructive" });
+    },
+  });
+
+  const photoSensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: { distance: 8 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { delay: 250, tolerance: 5 },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handlePhotoDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = localPhotos.findIndex((p) => p.id === active.id);
+      const newIndex = localPhotos.findIndex((p) => p.id === over.id);
+      const newOrder = arrayMove(localPhotos, oldIndex, newIndex);
+      setLocalPhotos(newOrder);
+      reorderPhotosMutation.mutate(newOrder.map((p) => p.id));
+    }
+  };
+
+  const getPhotoUrl = (photo: Photo) => photoSignedUrls[photo.id];
 
   interface BookStatus {
     name: string;
@@ -2489,10 +2697,6 @@ export default function AdminDashboard() {
     }
   };
 
-  const getPhotoUrl = (photo: Photo) => {
-    return photoSignedUrls[photo.id] || "";
-  };
-
   useLayoutEffect(() => {
     if (!authLoading && !user) {
       setLocation("/login");
@@ -2892,8 +3096,24 @@ export default function AdminDashboard() {
                 <div className="flex justify-between items-start">
                   <div>
                     <CardTitle>Family Photo Gallery</CardTitle>
-                    <CardDescription>Add photos to display on the homepage carousel.</CardDescription>
+                    <CardDescription>Add photos and drag to rearrange their order. On mobile, tap and hold to drag.</CardDescription>
                   </div>
+                </div>
+                
+                {/* Randomize Toggle */}
+                <div className="flex items-center justify-between mt-4 p-4 bg-muted/50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <Shuffle className="w-5 h-5 text-muted-foreground" />
+                    <div>
+                      <p className="font-medium text-sm">Randomize Carousel</p>
+                      <p className="text-xs text-muted-foreground">Show photos in random order on homepage</p>
+                    </div>
+                  </div>
+                  <Switch
+                    checked={carouselRandomize}
+                    onCheckedChange={(checked) => updateRandomizeMutation.mutate(checked)}
+                    data-testid="switch-randomize-carousel"
+                  />
                 </div>
                 
                 <div className="mt-6 space-y-4 border-t pt-6">
@@ -2920,70 +3140,30 @@ export default function AdminDashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                  {photos.length === 0 ? (
-                    <p className="col-span-full text-center text-muted-foreground py-8">No photos uploaded yet.</p>
-                  ) : (
-                    photos.map((photo) => (
-                      <div key={photo.id} className="relative group rounded-lg overflow-hidden border bg-card" data-testid={`photo-item-${photo.id}`}>
-                        {/* Status Banner - only shown in admin/foundational section */}
-                        {photo.needsCropping === 1 ? (
-                          <div className="absolute top-0 left-0 right-0 bg-amber-500/90 text-white text-xs px-2 py-1 flex items-center justify-center gap-1 z-10">
-                            <AlertTriangle className="w-3 h-3" />
-                            <span>Needs Cropping</span>
-                          </div>
-                        ) : photo.wasCropped === 1 ? (
-                          <div className="absolute top-0 left-0 right-0 bg-green-600/90 text-white text-xs px-2 py-1 flex items-center justify-center gap-1 z-10">
-                            <Check className="w-3 h-3" />
-                            <span>Cropped</span>
-                          </div>
-                        ) : null}
-                        <div className="aspect-square bg-muted">
-                          {getPhotoUrl(photo) ? (
-                            <img 
-                              src={getPhotoUrl(photo)} 
-                              alt={photo.caption || "Family photo"}
-                              className="w-full h-full object-cover"
-                            />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <div className="animate-pulse text-muted-foreground text-sm">Loading...</div>
-                            </div>
-                          )}
-                        </div>
-                        {photo.caption && (
-                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-2 pr-20 truncate z-10">
-                            {photo.caption}
-                          </div>
-                        )}
-                        <div className="absolute bottom-1 right-1 flex gap-1 z-20">
-                          {/* Crop button - available to admin and foundational */}
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className={`h-8 w-8 ${photo.needsCropping === 1 ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-black/70 hover:bg-black/90 text-white"}`}
-                            onClick={() => handleCropExistingPhoto(photo)}
-                            data-testid={`button-crop-photo-${photo.id}`}
-                          >
-                            <Crop className="w-4 h-4" />
-                          </Button>
-                          {/* Delete button - available to admin and foundational */}
-                          {canEdit && (
-                            <Button 
-                              variant="ghost" 
-                              size="icon" 
-                              className="h-8 w-8 bg-black/70 hover:bg-black/90 text-white"
-                              onClick={() => deletePhotoMutation.mutate(photo.id)}
-                              data-testid={`button-delete-photo-${photo.id}`}
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          )}
-                        </div>
+                {localPhotos.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No photos uploaded yet.</p>
+                ) : (
+                  <DndContext
+                    sensors={photoSensors}
+                    collisionDetection={closestCenter}
+                    onDragEnd={handlePhotoDragEnd}
+                  >
+                    <SortableContext items={localPhotos.map(p => p.id)} strategy={rectSortingStrategy}>
+                      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                        {localPhotos.map((photo) => (
+                          <SortablePhotoItem
+                            key={photo.id}
+                            photo={photo}
+                            photoUrl={getPhotoUrl(photo)}
+                            canEdit={canEdit}
+                            onCrop={handleCropExistingPhoto}
+                            onDelete={(id) => deletePhotoMutation.mutate(id)}
+                          />
+                        ))}
                       </div>
-                    ))
-                  )}
-                </div>
+                    </SortableContext>
+                  </DndContext>
+                )}
               </CardContent>
             </Card>
           )}

@@ -2022,6 +2022,43 @@ export async function registerRoutes(
     }
   });
 
+  // Bulk reorder photos
+  app.patch("/api/photos/reorder", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+    try {
+      const { orderedIds } = req.body;
+      if (!Array.isArray(orderedIds) || orderedIds.some(id => typeof id !== "number")) {
+        return res.status(400).json({ error: "orderedIds must be an array of numbers" });
+      }
+      await storage.reorderPhotos(orderedIds);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error reordering photos:", error);
+      res.status(500).json({ error: "Failed to reorder photos" });
+    }
+  });
+
+  // Carousel randomize setting
+  app.get("/api/settings/carousel-randomize", async (req, res) => {
+    try {
+      const value = await storage.getSetting("carousel_randomize");
+      res.json({ randomize: value === "true" });
+    } catch (error) {
+      console.error("Error fetching carousel randomize setting:", error);
+      res.status(500).json({ error: "Failed to fetch setting" });
+    }
+  });
+
+  app.put("/api/settings/carousel-randomize", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+    try {
+      const { randomize } = req.body;
+      await storage.setSetting("carousel_randomize", String(randomize));
+      res.json({ success: true, randomize });
+    } catch (error) {
+      console.error("Error updating carousel randomize setting:", error);
+      res.status(500).json({ error: "Failed to update setting" });
+    }
+  });
+
   // Member Photo Submission Routes
   
   // Get current user's submitted photos
