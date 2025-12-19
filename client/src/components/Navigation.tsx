@@ -136,7 +136,9 @@ export function Navigation() {
         <div className="absolute top-full left-0 right-0 bg-background border-b p-6 md:hidden flex flex-col gap-4 animate-in slide-in-from-top-5">
           {navLinks.map((link) => {
             const isAccountLink = link.label === getAccountLabel() && user;
-            const mobileLabel = link.label === "Sanctuary" ? "Return Home" : link.label;
+            let mobileLabel = link.label;
+            if (link.label === "Sanctuary") mobileLabel = "Return Home";
+            if (link.label === "Admin") mobileLabel = "Admin Settings";
             return (
               <Link 
                 key={link.href} 
