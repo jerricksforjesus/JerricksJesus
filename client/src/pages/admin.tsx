@@ -2422,23 +2422,23 @@ export default function AdminDashboard() {
                         </button>
                       </>
                     )}
+
+                    <div className="border-t my-3" />
+
+                    {/* Log Out - Part of the list */}
+                    <button
+                      onClick={() => {
+                        setIsMobileSettingsOpen(false);
+                        handleLogout();
+                      }}
+                      className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors text-red-600 hover:bg-red-50"
+                      data-testid="button-logout-mobile"
+                    >
+                      <LogOut className="w-5 h-5 flex-shrink-0" />
+                      Log Out
+                    </button>
                   </div>
                 </nav>
-
-                {/* Logout at Bottom */}
-                <div className="p-4 border-t">
-                  <button
-                    onClick={() => {
-                      setIsMobileSettingsOpen(false);
-                      handleLogout();
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors text-red-600 hover:bg-red-50"
-                    data-testid="button-logout-mobile"
-                  >
-                    <LogOut className="w-5 h-5 flex-shrink-0" />
-                    Log Out
-                  </button>
-                </div>
               </motion.div>
             </>
           )}
