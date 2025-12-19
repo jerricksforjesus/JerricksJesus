@@ -92,7 +92,7 @@ export function FamilyPhotoCarousel() {
         </motion.div>
 
         <div className="relative">
-          <div className="aspect-[16/9] md:aspect-[21/9] overflow-hidden rounded-2xl shadow-2xl bg-muted">
+          <div className="aspect-[16/9] overflow-hidden rounded-2xl shadow-2xl bg-muted">
             <AnimatePresence mode="wait">
               {imageUrl && (
                 <motion.div
