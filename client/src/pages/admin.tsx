@@ -98,7 +98,7 @@ function SortablePhotoItem({ photo, photoUrl, canEdit, onCrop, onDelete }: Sorta
       <div
         {...attributes}
         {...listeners}
-        className="absolute bottom-1 left-1 z-30 bg-black/70 hover:bg-black/90 text-white rounded p-1.5 cursor-grab active:cursor-grabbing touch-none"
+        className="absolute bottom-1 left-1 z-30 h-8 w-8 flex items-center justify-center bg-black/70 hover:bg-black/90 text-white rounded cursor-grab active:cursor-grabbing touch-none"
         data-testid={`drag-handle-${photo.id}`}
       >
         <GripVertical className="w-4 h-4" />
