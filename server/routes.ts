@@ -1956,6 +1956,21 @@ export async function registerRoutes(
     }
   });
 
+  // Bulk reorder photos (must be before /api/photos/:id to avoid route conflict)
+  app.patch("/api/photos/reorder", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+    try {
+      const { orderedIds } = req.body;
+      if (!Array.isArray(orderedIds) || orderedIds.some(id => typeof id !== "number")) {
+        return res.status(400).json({ error: "orderedIds must be an array of numbers" });
+      }
+      await storage.reorderPhotos(orderedIds);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error reordering photos:", error);
+      res.status(500).json({ error: "Failed to reorder photos" });
+    }
+  });
+
   app.put("/api/photos/:id", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
@@ -2019,21 +2034,6 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error deleting photo:", error);
       res.status(500).json({ error: "Failed to delete photo" });
-    }
-  });
-
-  // Bulk reorder photos
-  app.patch("/api/photos/reorder", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
-    try {
-      const { orderedIds } = req.body;
-      if (!Array.isArray(orderedIds) || orderedIds.some(id => typeof id !== "number")) {
-        return res.status(400).json({ error: "orderedIds must be an array of numbers" });
-      }
-      await storage.reorderPhotos(orderedIds);
-      res.json({ success: true });
-    } catch (error) {
-      console.error("Error reordering photos:", error);
-      res.status(500).json({ error: "Failed to reorder photos" });
     }
   });
 
