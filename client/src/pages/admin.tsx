@@ -3416,6 +3416,7 @@ export default function AdminDashboard() {
                           onChange={(value) => setProfileDateOfBirth(value)}
                           placeholder="Select your birthday"
                           className="flex-1 max-w-md"
+                          disableFuture
                         />
                         <Button
                           onClick={() => updateDateOfBirthMutation.mutate(profileDateOfBirth)}

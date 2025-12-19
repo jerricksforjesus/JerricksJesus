@@ -31,6 +31,7 @@ interface DatePickerProps {
   fromYear?: number
   toYear?: number
   disablePast?: boolean
+  disableFuture?: boolean
 }
 
 export function DatePicker({
@@ -44,6 +45,7 @@ export function DatePicker({
   fromYear = 1920,
   toYear = 2050,
   disablePast = false,
+  disableFuture = false,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false)
   
@@ -131,8 +133,8 @@ export function DatePicker({
           defaultMonth={date || (disablePast ? today : undefined)}
           captionLayout="dropdown"
           startMonth={disablePast ? today : new Date(fromYear, 0)}
-          endMonth={new Date(toYear, 11)}
-          disabled={disablePast ? { before: today } : undefined}
+          endMonth={disableFuture ? today : new Date(toYear, 11)}
+          disabled={disablePast ? { before: today } : disableFuture ? { after: today } : undefined}
           hideNavigation
           classNames={{
             month_caption: "mx-0",
