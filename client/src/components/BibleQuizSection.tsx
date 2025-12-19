@@ -479,9 +479,9 @@ export function BibleQuizSection() {
                 </div>
               </div>
 
-              <p className="text-center text-sm text-muted-foreground mt-6">
+              <p className="text-center text-base text-muted-foreground mt-6">
                 {user 
-                  ? "Completed books show a checkmark. Books with a book icon are ready to take!"
+                  ? <>Completed books show a checkmark.<br className="md:hidden" /> Books with a book icon are ready to take!</>
                   : "Sign in to track your progress and see your completed books marked with checkmarks."
                 }
               </p>
