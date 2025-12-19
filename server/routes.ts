@@ -88,10 +88,13 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Username/email and password are required" });
       }
       
+      // Convert username/email to lowercase for case-insensitive login
+      const normalizedUsername = username.toLowerCase().trim();
+      
       // Try to find user by username first, then by email
-      let user = await storage.getUserByUsername(username);
+      let user = await storage.getUserByUsername(normalizedUsername);
       if (!user) {
-        user = await storage.getUserByEmail(username);
+        user = await storage.getUserByEmail(normalizedUsername);
       }
       if (!user || !user.password) {
         return res.status(401).json({ error: "Invalid username/email or password" });
@@ -175,27 +178,31 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Username and password are required" });
       }
       
+      // Normalize username and email to lowercase for case-insensitive matching
+      const normalizedUsername = username.toLowerCase().trim();
+      const normalizedEmail = email ? email.toLowerCase().trim() : null;
+      
       // Email validation for regular user registration (not admin-created accounts)
       if (!role || role === USER_ROLES.MEMBER) {
-        if (!email) {
+        if (!normalizedEmail) {
           return res.status(400).json({ error: "Email is required" });
         }
         
         // Simple email format validation
         const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
+        if (!emailRegex.test(normalizedEmail)) {
           return res.status(400).json({ error: "Invalid email format" });
         }
         
         // Check if email already exists
-        const existingEmail = await storage.getUserByEmail(email);
+        const existingEmail = await storage.getUserByEmail(normalizedEmail);
         if (existingEmail) {
           return res.status(400).json({ error: "Email already registered" });
         }
       }
       
       // Check if username already exists
-      const existingUser = await storage.getUserByUsername(username);
+      const existingUser = await storage.getUserByUsername(normalizedUsername);
       if (existingUser) {
         return res.status(400).json({ error: "Username already taken" });
       }
@@ -214,10 +221,10 @@ export async function registerRoutes(
       // Hash password
       const hashedPassword = await bcrypt.hash(password, 10);
       
-      // Create user
+      // Create user with normalized username and email
       const user = await storage.createUser({
-        username,
-        email: email || null,
+        username: normalizedUsername,
+        email: normalizedEmail,
         password: hashedPassword,
         role: userRole,
       });
@@ -1116,13 +1123,16 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Username must be at least 3 characters" });
       }
       
+      // Normalize username to lowercase
+      const normalizedUsername = username.toLowerCase().trim();
+      
       // Check if username is already taken
-      const existingUser = await storage.getUserByUsername(username);
+      const existingUser = await storage.getUserByUsername(normalizedUsername);
       if (existingUser && existingUser.id !== userId) {
         return res.status(400).json({ error: "Username is already taken" });
       }
       
-      const updated = await storage.updateUsername(userId, username);
+      const updated = await storage.updateUsername(userId, normalizedUsername);
       if (!updated) {
         return res.status(500).json({ error: "Failed to update username" });
       }
