@@ -2931,18 +2931,6 @@ export default function AdminDashboard() {
                   ) : (
                     photos.map((photo) => (
                       <div key={photo.id} className="relative group rounded-lg overflow-hidden border bg-card" data-testid={`photo-item-${photo.id}`}>
-                        {/* Status Banner - only shown in admin/foundational section */}
-                        {photo.needsCropping === 1 ? (
-                          <div className="absolute top-0 left-0 right-0 bg-amber-500/90 text-white text-xs px-2 py-1 flex items-center justify-center gap-1 z-10">
-                            <AlertTriangle className="w-3 h-3" />
-                            <span>Needs Cropping</span>
-                          </div>
-                        ) : photo.wasCropped === 1 ? (
-                          <div className="absolute top-0 left-0 right-0 bg-green-600/90 text-white text-xs px-2 py-1 flex items-center justify-center gap-1 z-10">
-                            <Check className="w-3 h-3" />
-                            <span>Cropped</span>
-                          </div>
-                        ) : null}
                         <div className="aspect-square bg-muted">
                           {getPhotoUrl(photo) ? (
                             <img 
@@ -2966,7 +2954,7 @@ export default function AdminDashboard() {
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className={photo.needsCropping === 1 ? "bg-amber-500/80 hover:bg-amber-600 text-white" : "bg-black/50 hover:bg-black/70 text-white"}
+                            className="bg-black/50 hover:bg-black/70 text-white"
                             onClick={() => handleCropExistingPhoto(photo)}
                             data-testid={`button-crop-photo-${photo.id}`}
                           >
