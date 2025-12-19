@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 interface User {
   id: string;
   username: string;
+  email?: string | null;
   role: "admin" | "foundational" | "member";
   googleId?: string | null;
   mustChangePassword?: number;

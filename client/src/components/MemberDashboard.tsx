@@ -478,7 +478,25 @@ export function MemberDashboard() {
                 </div>
               </CardHeader>
               <CardContent className="space-y-8">
-                <div className="space-y-4">
+                {/* Account Info Section */}
+                <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+                  <h3 className="font-medium text-lg flex items-center gap-2">
+                    <UserIcon className="w-5 h-5" style={{ color: "#b47a5f" }} />
+                    Account Information
+                  </h3>
+                  <div className="grid gap-2 text-sm">
+                    <div className="flex justify-between items-center py-2 border-b border-border/50">
+                      <span className="text-muted-foreground">Username:</span>
+                      <span className="font-medium" data-testid="text-profile-username">{user?.username || "N/A"}</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-muted-foreground">Email:</span>
+                      <span className="font-medium" data-testid="text-profile-email">{user?.email || "Not set"}</span>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="border-t pt-6 space-y-4">
                   <div className="flex items-center gap-3 mb-4">
                     <UserIcon className="w-5 h-5" style={{ color: "#b47a5f" }} />
                     <h3 className="font-medium text-lg">Update Username</h3>

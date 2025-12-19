@@ -158,6 +158,7 @@ export async function registerRoutes(
       user: { 
         id: req.user.id, 
         username: req.user.username, 
+        email: req.user.email,
         role: req.user.role,
         googleId: req.user.googleId,
         mustChangePassword: req.user.mustChangePassword,
