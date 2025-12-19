@@ -3627,6 +3627,25 @@ export default function AdminDashboard() {
                     <UserIcon className="w-5 h-5" style={{ color: "#b47a5f" }} />
                     <h3 className="font-medium text-lg">Profile Settings</h3>
                   </div>
+                  
+                  {/* Account Info Section */}
+                  <div className="bg-muted/30 rounded-lg p-4 space-y-3 mb-6">
+                    <h4 className="font-medium flex items-center gap-2">
+                      <UserIcon className="w-4 h-4" style={{ color: "#b47a5f" }} />
+                      Account Information
+                    </h4>
+                    <div className="grid gap-2 text-sm">
+                      <div className="flex justify-between items-center py-2 border-b border-border/50">
+                        <span className="text-muted-foreground">Username:</span>
+                        <span className="font-medium" data-testid="text-profile-username">{user?.username || "N/A"}</span>
+                      </div>
+                      <div className="flex justify-between items-center py-2">
+                        <span className="text-muted-foreground">Email:</span>
+                        <span className="font-medium" data-testid="text-profile-email">{user?.email || "Not set"}</span>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="space-y-6">
                     <div className="space-y-4">
                       <h4 className="font-medium">Update Username</h4>
