@@ -1408,6 +1408,7 @@ export default function AdminDashboard() {
   const [alternativeZoomSchedule, setAlternativeZoomSchedule] = useState<{ day: string; slots: string[] }[]>([]);
   const [activeSection, setActiveSection] = useState("verse");
   const [isNavOpen, setIsNavOpen] = useState(false);
+  const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
 
   const { data: zoomData, isLoading: zoomLoading } = useQuery<{ zoomLink: string }>({
     queryKey: ["zoom-link"],
@@ -2308,56 +2309,140 @@ export default function AdminDashboard() {
           </div>
         </aside>
 
-        {/* Mobile Navigation */}
+        {/* Mobile Navigation Bar */}
         <div className="lg:hidden fixed top-20 left-0 right-0 z-30 bg-card border-b shadow-sm">
-          <div className="p-3 space-y-2">
-            <Link href="/">
-              <Button 
-                variant="outline" 
-                size="sm"
-                className="w-full"
-                data-testid="button-return-to-site-mobile"
-              >
-                <Home className="h-4 w-4 mr-2" />
-                Return to Site
-              </Button>
-            </Link>
-            <div className="flex items-center justify-between gap-3">
-              <Select value={activeSection} onValueChange={setActiveSection}>
-                <SelectTrigger className="flex-1" data-testid="mobile-section-select">
-                  <SelectValue placeholder="Select section" />
-                </SelectTrigger>
-                <SelectContent>
-                  {navItems.map((item) => (
-                    <SelectItem key={item.id} value={item.id}>
-                      {item.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <div className="flex gap-2">
-                {isAdmin && (
-                  <Button 
-                    size="sm"
-                    onClick={() => setIsCreateUserOpen(true)}
-                    data-testid="button-create-user-mobile"
-                    style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
-                  >
-                    <UserPlus className="h-4 w-4" />
-                  </Button>
-                )}
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={handleLogout}
-                  data-testid="button-logout-mobile"
-                >
-                  <LogOut className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
+          <div className="p-3">
+            <Button 
+              variant="outline" 
+              className="w-full justify-between"
+              onClick={() => setIsMobileSettingsOpen(true)}
+              data-testid="button-open-mobile-settings"
+            >
+              <span className="flex items-center gap-2">
+                <Menu className="h-4 w-4" />
+                {navItems.find(item => item.id === activeSection)?.label || "Select Section"}
+              </span>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
           </div>
         </div>
+
+        {/* Mobile Full-Page Settings Panel */}
+        <AnimatePresence>
+          {isMobileSettingsOpen && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="lg:hidden fixed inset-0 bg-black/50 z-40"
+                onClick={() => setIsMobileSettingsOpen(false)}
+              />
+              
+              {/* Slide-in Panel */}
+              <motion.div
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="lg:hidden fixed inset-y-0 right-0 w-full max-w-sm bg-card z-50 shadow-xl flex flex-col"
+              >
+                {/* Panel Header */}
+                <div className="flex items-center justify-between p-4 border-b" style={{ backgroundColor: "#b47a5f" }}>
+                  <div>
+                    <h2 className="text-lg font-serif font-bold text-white">My Account</h2>
+                    <p className="text-sm text-white/80">{user.username}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsMobileSettingsOpen(false)}
+                    className="text-white hover:bg-white/20"
+                    data-testid="button-close-mobile-settings"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                {/* Navigation Items */}
+                <nav className="flex-1 overflow-y-auto p-4">
+                  <div className="space-y-1">
+                    {/* Return to Site */}
+                    <Link href="/" onClick={() => setIsMobileSettingsOpen(false)}>
+                      <button
+                        className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
+                        data-testid="button-return-to-site-mobile"
+                      >
+                        <Home className="w-5 h-5 flex-shrink-0" />
+                        Return to Site
+                      </button>
+                    </Link>
+
+                    <div className="border-t my-3" />
+
+                    {/* Section Navigation */}
+                    {navItems.map((item) => {
+                      const Icon = item.icon;
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            setActiveSection(item.id);
+                            setIsMobileSettingsOpen(false);
+                          }}
+                          data-testid={`mobile-nav-${item.id}`}
+                          className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
+                            activeSection === item.id
+                              ? "bg-[#b47a5f] text-white font-medium"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                          }`}
+                        >
+                          <Icon className="w-5 h-5 flex-shrink-0" />
+                          {item.label}
+                        </button>
+                      );
+                    })}
+
+                    {/* Admin: Add User */}
+                    {isAdmin && (
+                      <>
+                        <div className="border-t my-3" />
+                        <button
+                          onClick={() => {
+                            setIsCreateUserOpen(true);
+                            setIsMobileSettingsOpen(false);
+                          }}
+                          className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
+                          data-testid="button-create-user-mobile"
+                        >
+                          <UserPlus className="w-5 h-5 flex-shrink-0" />
+                          Add User
+                        </button>
+                      </>
+                    )}
+                  </div>
+                </nav>
+
+                {/* Logout at Bottom */}
+                <div className="p-4 border-t">
+                  <button
+                    onClick={() => {
+                      setIsMobileSettingsOpen(false);
+                      handleLogout();
+                    }}
+                    className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors text-red-600 hover:bg-red-50"
+                    data-testid="button-logout-mobile"
+                  >
+                    <LogOut className="w-5 h-5 flex-shrink-0" />
+                    Log Out
+                  </button>
+                </div>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
         {/* Main Content */}
         <main className="flex-1 p-6 lg:p-8 pt-20 lg:pt-8 pb-12 overflow-y-auto">
