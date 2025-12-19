@@ -87,7 +87,7 @@ export function FamilyPhotoCarousel() {
             Moments of Fellowship
           </h2>
           <p className="text-muted-foreground mt-2 max-w-xl mx-auto">
-            Capturing the joy and love shared within our community
+            Capturing the joy and love shared<br className="md:hidden" /> within our community
           </p>
         </motion.div>
 
