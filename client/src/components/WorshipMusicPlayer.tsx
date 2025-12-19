@@ -82,6 +82,7 @@ export function WorshipMusicPlayer() {
   const playerContainerRef = useRef<HTMLDivElement>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const volumeRef = useRef(volume);
+  const autoPlayOnReadyRef = useRef(false);
 
   const { data: videos = [], isLoading } = useQuery<WorshipVideo[]>({
     queryKey: ["worship-videos"],
@@ -162,6 +163,10 @@ export function WorshipMusicPlayer() {
           onReady: (event) => {
             setPlayerReady(true);
             event.target.setVolume(volumeRef.current);
+            if (autoPlayOnReadyRef.current) {
+              event.target.playVideo();
+              autoPlayOnReadyRef.current = false;
+            }
             setDuration(event.target.getDuration());
           },
           onStateChange: (event) => {
@@ -234,6 +239,7 @@ export function WorshipMusicPlayer() {
   };
 
   const handlePrevious = () => {
+    autoPlayOnReadyRef.current = isPlaying;
     setIsPlaying(false);
     setCurrentIndex(prev => (prev > 0) ? prev - 1 : videos.length - 1);
     setCurrentTime(0);
@@ -242,6 +248,7 @@ export function WorshipMusicPlayer() {
   };
 
   const handleNext = () => {
+    autoPlayOnReadyRef.current = isPlaying;
     setIsPlaying(false);
     setCurrentIndex(prev => (prev < videos.length - 1) ? prev + 1 : 0);
     setCurrentTime(0);
@@ -303,6 +310,7 @@ export function WorshipMusicPlayer() {
   };
 
   const selectTrack = (index: number) => {
+    autoPlayOnReadyRef.current = isPlaying;
     setIsPlaying(false);
     setCurrentIndex(index);
     setCurrentTime(0);
