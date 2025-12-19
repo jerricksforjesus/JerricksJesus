@@ -1230,6 +1230,107 @@ export async function registerRoutes(
     }
   });
 
+  // Profile: Update date of birth
+  app.patch("/api/profile/date-of-birth", requireAuth, async (req, res) => {
+    try {
+      const { dateOfBirth } = req.body;
+      const userId = req.user!.id;
+      
+      if (!dateOfBirth || typeof dateOfBirth !== "string") {
+        return res.status(400).json({ error: "Date of birth is required" });
+      }
+      
+      // Validate date format (YYYY-MM-DD)
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(dateOfBirth)) {
+        return res.status(400).json({ error: "Invalid date format. Use YYYY-MM-DD" });
+      }
+      
+      const updated = await storage.updateDateOfBirth(userId, dateOfBirth);
+      if (!updated) {
+        return res.status(500).json({ error: "Failed to update date of birth" });
+      }
+      
+      // Check if birthday event needs to be created for this year
+      await createBirthdayEventIfNeeded(updated);
+      
+      res.json({ 
+        success: true,
+        dateOfBirth: updated.dateOfBirth
+      });
+    } catch (error) {
+      console.error("Error updating date of birth:", error);
+      res.status(500).json({ error: "Failed to update date of birth" });
+    }
+  });
+
+  // Get current user's date of birth
+  app.get("/api/profile/date-of-birth", requireAuth, async (req, res) => {
+    try {
+      const user = await storage.getUser(req.user!.id);
+      res.json({ dateOfBirth: user?.dateOfBirth || null });
+    } catch (error) {
+      console.error("Error fetching date of birth:", error);
+      res.status(500).json({ error: "Failed to fetch date of birth" });
+    }
+  });
+
+  // Helper function to create birthday event
+  async function createBirthdayEventIfNeeded(user: { id: string; username: string; dateOfBirth: string | null }) {
+    if (!user.dateOfBirth) return;
+    
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const [birthYear, birthMonth, birthDay] = user.dateOfBirth.split("-");
+    
+    // Create birthday date for current year
+    const birthdayThisYear = `${currentYear}-${birthMonth}-${birthDay}`;
+    
+    // Check if birthday event already exists for this user this year
+    const existingEvents = await storage.getAllEvents();
+    const existingBirthdayEvent = existingEvents.find(event => 
+      event.locationType === "birthday" && 
+      event.eventDate === birthdayThisYear &&
+      event.description?.includes(user.id)
+    );
+    
+    if (existingBirthdayEvent) return; // Already exists
+    
+    // Create birthday event
+    await storage.createEvent({
+      title: `${user.username}'s Birthday`,
+      eventDate: birthdayThisYear,
+      eventTime: "All Day",
+      locationType: "birthday",
+      streetAddress: "",
+      city: "",
+      state: "",
+      zipCode: "",
+      contactName: "",
+      contactPhone: "",
+      contactType: "phone",
+      buttonLabel: "Send Wishes",
+      description: `Birthday celebration for ${user.username} (user:${user.id})`,
+      createdBy: user.id,
+    });
+  }
+
+  // Cron-like function to check and create birthday events (call on server start)
+  async function checkAllBirthdaysAndCreateEvents() {
+    try {
+      const usersWithBirthdays = await storage.getUsersWithBirthdays();
+      for (const user of usersWithBirthdays) {
+        await createBirthdayEventIfNeeded(user);
+      }
+      console.log(`Checked ${usersWithBirthdays.length} users for birthday events`);
+    } catch (error) {
+      console.error("Error checking birthdays:", error);
+    }
+  }
+  
+  // Run birthday check on startup
+  checkAllBirthdaysAndCreateEvents();
+
   // Video Upload Routes
   app.post("/api/objects/upload", async (req, res) => {
     try {

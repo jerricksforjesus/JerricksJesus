@@ -17,6 +17,8 @@ export interface IStorage {
   clearMustChangePassword(id: string): Promise<User | undefined>;
   deleteUser(id: string): Promise<void>;
   linkGoogleAccount(id: string, googleId: string): Promise<User | undefined>;
+  updateDateOfBirth(id: string, dateOfBirth: string): Promise<User | undefined>;
+  getUsersWithBirthdays(): Promise<User[]>;
   
   // Session methods
   createSession(session: InsertSession): Promise<Session>;
@@ -197,6 +199,20 @@ export class DbStorage implements IStorage {
       .where(eq(schema.users.id, id))
       .returning();
     return user;
+  }
+
+  async updateDateOfBirth(id: string, dateOfBirth: string): Promise<User | undefined> {
+    const [user] = await db.update(schema.users)
+      .set({ dateOfBirth })
+      .where(eq(schema.users.id, id))
+      .returning();
+    return user;
+  }
+
+  async getUsersWithBirthdays(): Promise<User[]> {
+    return await db.query.users.findMany({
+      where: (users, { isNotNull }) => isNotNull(users.dateOfBirth),
+    });
   }
 
   async createSession(session: InsertSession): Promise<Session> {
