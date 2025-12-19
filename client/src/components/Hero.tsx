@@ -115,7 +115,7 @@ export function Hero() {
             <Button 
               asChild
               size="lg" 
-              className="font-bold px-8"
+              className="font-bold px-8 min-w-[200px]"
               style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
               data-testid="button-join-zoom-hero"
             >
@@ -138,7 +138,7 @@ export function Hero() {
             <Button 
               asChild
               size="lg" 
-              className="font-bold px-8"
+              className="font-bold px-8 min-w-[200px]"
               style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
               data-testid="button-sign-in-hero"
             >
