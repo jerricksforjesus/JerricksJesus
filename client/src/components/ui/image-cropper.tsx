@@ -56,11 +56,22 @@ export function ImageCropper({
   const [crop, setCrop] = React.useState<Crop>()
   const [completedCrop, setCompletedCrop] = React.useState<Crop>()
   const [isProcessing, setIsProcessing] = React.useState(false)
+  const [isImageLoaded, setIsImageLoaded] = React.useState(false)
   const imgRef = React.useRef<HTMLImageElement>(null)
+
+  // Reset loading state when dialog opens or image changes
+  React.useEffect(() => {
+    if (open) {
+      setIsImageLoaded(false)
+      setCrop(undefined)
+      setCompletedCrop(undefined)
+    }
+  }, [open, imageSrc])
 
   const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const { width, height } = e.currentTarget
     setCrop(centerAspectCrop(width, height, aspectRatio))
+    setIsImageLoaded(true)
   }
 
   const getCroppedImg = async (): Promise<Blob | null> => {
@@ -125,23 +136,33 @@ export function ImageCropper({
           <DialogTitle>{title}</DialogTitle>
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
-        <div className="flex justify-center py-4">
-          <ReactCrop
-            crop={crop}
-            onChange={(c) => setCrop(c)}
-            onComplete={(c) => setCompletedCrop(c)}
-            aspect={aspectRatio}
-            className="max-h-[60vh]"
-          >
-            <img
-              ref={imgRef}
-              src={imageSrc}
-              alt="Crop preview"
-              onLoad={onImageLoad}
-              style={{ maxHeight: "60vh", maxWidth: "100%" }}
-              crossOrigin="anonymous"
-            />
-          </ReactCrop>
+        <div className="flex justify-center py-4 min-h-[200px]">
+          {/* Loading state while image loads */}
+          {!isImageLoaded && (
+            <div className="flex flex-col items-center justify-center gap-3 text-muted-foreground">
+              <Loader2 className="w-8 h-8 animate-spin" />
+              <span className="text-sm">Loading image...</span>
+            </div>
+          )}
+          {/* Hidden image that loads in background, then shows crop UI */}
+          <div style={{ display: isImageLoaded ? 'block' : 'none' }}>
+            <ReactCrop
+              crop={crop}
+              onChange={(c) => setCrop(c)}
+              onComplete={(c) => setCompletedCrop(c)}
+              aspect={aspectRatio}
+              className="max-h-[60vh]"
+            >
+              <img
+                ref={imgRef}
+                src={imageSrc}
+                alt="Crop preview"
+                onLoad={onImageLoad}
+                style={{ maxHeight: "60vh", maxWidth: "100%" }}
+                crossOrigin="anonymous"
+              />
+            </ReactCrop>
+          </div>
         </div>
         <DialogFooter className="gap-2 sm:gap-0">
           <Button
@@ -153,7 +174,7 @@ export function ImageCropper({
           </Button>
           <Button
             onClick={handleCropConfirm}
-            disabled={!completedCrop || isProcessing}
+            disabled={!completedCrop || isProcessing || !isImageLoaded}
             style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
           >
             {isProcessing ? (
