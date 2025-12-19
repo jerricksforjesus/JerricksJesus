@@ -151,6 +151,7 @@ export function ImageCropper({
               onChange={(c) => setCrop(c)}
               onComplete={(c) => setCompletedCrop(c)}
               aspect={aspectRatio}
+              keepSelection={true}
               className="max-h-[60vh]"
             >
               <img
