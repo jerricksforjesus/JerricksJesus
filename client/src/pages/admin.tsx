@@ -1579,7 +1579,7 @@ export default function AdminDashboard() {
     },
   });
 
-  type AdminUser = { id: string; username: string; role: string; googleId: string | null };
+  type AdminUser = { id: string; username: string; email: string | null; role: string; googleId: string | null };
 
   const { data: allUsers = [], isLoading: usersLoading } = useQuery<AdminUser[]>({
     queryKey: ["admin-users"],
@@ -3307,6 +3307,9 @@ export default function AdminDashboard() {
                           </div>
                           <div className="min-w-0">
                             <p className="font-medium truncate">{u.username}</p>
+                            {u.email && (
+                              <p className="text-sm text-muted-foreground truncate">{u.email}</p>
+                            )}
                             <p className="text-sm text-muted-foreground flex items-center gap-1">
                               {u.role === "admin" && <Shield className="w-3 h-3" />}
                               {u.role === "foundational" && <UserCheck className="w-3 h-3" />}

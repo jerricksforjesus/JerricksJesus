@@ -973,6 +973,7 @@ export async function registerRoutes(
       const users = allUsers.map(u => ({
         id: u.id,
         username: u.username,
+        email: u.email || null,
         role: u.role,
         googleId: u.googleId || null,
       }));
