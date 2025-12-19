@@ -55,7 +55,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (user) {
-      setLocation("/admin");
+      setLocation("/");
     }
   }, [user, setLocation]);
 
@@ -66,7 +66,7 @@ export default function LoginPage() {
     try {
       await login(loginUsername, loginPassword);
       toast({ title: "Welcome back!", description: "You have been logged in successfully." });
-      setLocation("/admin");
+      setLocation("/");
     } catch (error: any) {
       toast({ 
         title: "Login failed", 
@@ -117,7 +117,7 @@ export default function LoginPage() {
       // Automatically log in after successful registration
       await login(registerUsername, registerPassword);
       toast({ title: "Welcome!", description: "Your account has been created and you're now signed in." });
-      setLocation("/admin");
+      setLocation("/");
     } catch (error: any) {
       toast({ 
         title: "Registration failed", 
