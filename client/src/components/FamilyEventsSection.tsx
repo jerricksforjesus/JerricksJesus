@@ -84,7 +84,7 @@ export function FamilyEventsSection() {
           </span>
           <h2 className="font-serif text-4xl md:text-5xl mt-2 mb-4">Family Events</h2>
           <p className="text-muted-foreground max-w-xl mx-auto">
-            Join us for worship, fellowship, and community gatherings
+            Join us for worship, fellowship,<br className="md:hidden" /> and community gatherings
           </p>
         </div>
 
