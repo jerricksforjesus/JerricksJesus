@@ -139,7 +139,7 @@ export function Hero() {
               asChild
               size="lg" 
               className="font-bold px-8 min-w-[200px]"
-              style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+              style={{ backgroundColor: "transparent", color: "#ffffff", border: "2px solid #ffffff" }}
               data-testid="button-sign-in-hero"
             >
               <Link href="/login">
