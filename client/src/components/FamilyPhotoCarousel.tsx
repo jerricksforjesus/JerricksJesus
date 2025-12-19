@@ -126,45 +126,44 @@ export function FamilyPhotoCarousel() {
               </div>
             )}
           </div>
-
-          {photos.length > 1 && (
-            <>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute left-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white rounded-full w-12 h-12"
-                onClick={goToPrevious}
-                data-testid="button-carousel-prev"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                className="absolute right-4 top-1/2 -translate-y-1/2 bg-black/30 hover:bg-black/50 text-white rounded-full w-12 h-12"
-                onClick={goToNext}
-                data-testid="button-carousel-next"
-              >
-                <ChevronRight className="w-6 h-6" />
-              </Button>
-            </>
-          )}
         </div>
 
         {photos.length > 1 && (
-          <div className="flex justify-center gap-2 mt-6">
-            {photos.map((_, index) => (
-              <button
-                key={index}
-                onClick={() => setCurrentIndex(index)}
-                className={`w-2 h-2 rounded-full transition-all duration-300 ${
-                  index === currentIndex 
-                    ? 'bg-primary w-8' 
-                    : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
-                }`}
-                data-testid={`button-carousel-dot-${index}`}
-              />
-            ))}
+          <div className="flex justify-center items-center gap-4 mt-6">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="bg-primary/10 hover:bg-primary/20 text-primary rounded-full w-12 h-12"
+              onClick={goToPrevious}
+              data-testid="button-carousel-prev"
+            >
+              <ChevronLeft className="w-6 h-6" />
+            </Button>
+            
+            <div className="flex gap-2">
+              {photos.map((_, index) => (
+                <button
+                  key={index}
+                  onClick={() => setCurrentIndex(index)}
+                  className={`w-2 h-2 rounded-full transition-all duration-300 ${
+                    index === currentIndex 
+                      ? 'bg-primary w-8' 
+                      : 'bg-muted-foreground/30 hover:bg-muted-foreground/50'
+                  }`}
+                  data-testid={`button-carousel-dot-${index}`}
+                />
+              ))}
+            </div>
+            
+            <Button
+              variant="ghost"
+              size="icon"
+              className="bg-primary/10 hover:bg-primary/20 text-primary rounded-full w-12 h-12"
+              onClick={goToNext}
+              data-testid="button-carousel-next"
+            >
+              <ChevronRight className="w-6 h-6" />
+            </Button>
           </div>
         )}
       </div>
