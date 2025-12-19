@@ -3,6 +3,7 @@ import { MemberDashboard } from "@/components/MemberDashboard";
 import { BibleQuizSection } from "@/components/BibleQuizSection";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -1000,12 +1001,11 @@ function EventsManagementTab() {
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="space-y-2">
               <Label htmlFor="event-date">Date *</Label>
-              <Input
+              <DatePicker
                 id="event-date"
-                type="date"
                 value={eventDate}
-                onChange={(e) => setEventDate(e.target.value)}
-                className="font-sans"
+                onChange={(value) => setEventDate(value)}
+                placeholder="Select event date"
                 data-testid="input-event-date"
               />
             </div>
@@ -2569,11 +2569,11 @@ export default function AdminDashboard() {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="video-date">Date</Label>
-                      <Input 
-                        id="video-date" 
-                        type="date"
+                      <DatePicker
+                        id="video-date"
                         value={videoDate}
-                        onChange={(e) => setVideoDate(e.target.value)}
+                        onChange={(value) => setVideoDate(value)}
+                        placeholder="Select video date"
                         data-testid="input-video-date"
                       />
                     </div>
@@ -3408,12 +3408,12 @@ export default function AdminDashboard() {
                         Add your birthday and we'll create an event in the Family Events section to celebrate with you!
                       </p>
                       <div className="flex flex-col sm:flex-row gap-3">
-                        <Input
+                        <DatePicker
                           id="profile-dob"
                           data-testid="input-profile-dob"
-                          type="date"
                           value={profileDateOfBirth}
-                          onChange={(e) => setProfileDateOfBirth(e.target.value)}
+                          onChange={(value) => setProfileDateOfBirth(value)}
+                          placeholder="Select your birthday"
                           className="flex-1 max-w-md"
                         />
                         <Button
