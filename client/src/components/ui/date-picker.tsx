@@ -2,7 +2,7 @@
 
 import * as React from "react"
 import { format } from "date-fns"
-import { CalendarIcon } from "lucide-react"
+import { CalendarIcon, X } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -20,6 +20,8 @@ interface DatePickerProps {
   disabled?: boolean
   id?: string
   "data-testid"?: string
+  fromYear?: number
+  toYear?: number
 }
 
 export function DatePicker({
@@ -30,6 +32,8 @@ export function DatePicker({
   disabled,
   id,
   "data-testid": testId,
+  fromYear = 1920,
+  toYear = 2050,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false)
   
@@ -49,6 +53,13 @@ export function DatePicker({
     setOpen(false)
   }
 
+  const handleClear = (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (onChange) {
+      onChange("")
+    }
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -65,18 +76,26 @@ export function DatePicker({
             className
           )}
         >
-          <CalendarIcon className="mr-3 h-4 w-4 text-primary" />
+          <CalendarIcon className="mr-2 h-4 w-4 text-primary flex-shrink-0" />
           {date ? (
-            <span className="font-sans">
-              {format(date, "MMMM d, yyyy")}
+            <span className="font-sans flex-1 truncate">
+              {format(date, "MMM d, yyyy")}
             </span>
           ) : (
-            <span>{placeholder}</span>
+            <span className="flex-1">{placeholder}</span>
+          )}
+          {value && (
+            <span
+              onClick={handleClear}
+              className="ml-2 h-5 w-5 rounded-full hover:bg-muted flex items-center justify-center cursor-pointer"
+            >
+              <X className="h-3 w-3 text-muted-foreground" />
+            </span>
           )}
         </Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-auto p-0 border-border/50 shadow-lg" 
+        className="w-auto p-0 border-border shadow-lg" 
         align="start"
         sideOffset={4}
       >
@@ -85,8 +104,10 @@ export function DatePicker({
           selected={date}
           onSelect={handleSelect}
           defaultMonth={date}
+          captionLayout="dropdown"
+          startMonth={new Date(fromYear, 0)}
+          endMonth={new Date(toYear, 11)}
           initialFocus
-          className="rounded-xl"
         />
       </PopoverContent>
     </Popover>
