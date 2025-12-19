@@ -1937,11 +1937,44 @@ export async function registerRoutes(
   app.put("/api/photos/:id", async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const { caption, displayOrder } = req.body;
+      const { caption, displayOrder, imagePath, imageWidth, imageHeight, needsCropping } = req.body;
       
-      const updateData: { caption?: string; displayOrder?: number } = {};
+      const updateData: { caption?: string; displayOrder?: number; imagePath?: string; imageWidth?: number | null; imageHeight?: number | null; needsCropping?: number } = {};
       if (caption !== undefined) updateData.caption = caption;
       if (displayOrder !== undefined) updateData.displayOrder = displayOrder;
+      if (imagePath !== undefined) {
+        updateData.imagePath = objectStorageService.normalizeObjectEntityPath(imagePath);
+      }
+      if (imageWidth !== undefined) updateData.imageWidth = imageWidth;
+      if (imageHeight !== undefined) updateData.imageHeight = imageHeight;
+      if (needsCropping !== undefined) updateData.needsCropping = needsCropping;
+      
+      const photo = await storage.updatePhoto(id, updateData);
+      if (!photo) {
+        return res.status(404).json({ error: "Photo not found" });
+      }
+      res.json(photo);
+    } catch (error) {
+      console.error("Error updating photo:", error);
+      res.status(500).json({ error: "Failed to update photo" });
+    }
+  });
+
+  // PATCH endpoint for partial photo updates (used by cropper)
+  app.patch("/api/photos/:id", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+    try {
+      const id = parseInt(req.params.id);
+      const { caption, displayOrder, imagePath, imageWidth, imageHeight, needsCropping } = req.body;
+      
+      const updateData: { caption?: string; displayOrder?: number; imagePath?: string; imageWidth?: number | null; imageHeight?: number | null; needsCropping?: number } = {};
+      if (caption !== undefined) updateData.caption = caption;
+      if (displayOrder !== undefined) updateData.displayOrder = displayOrder;
+      if (imagePath !== undefined) {
+        updateData.imagePath = objectStorageService.normalizeObjectEntityPath(imagePath);
+      }
+      if (imageWidth !== undefined) updateData.imageWidth = imageWidth;
+      if (imageHeight !== undefined) updateData.imageHeight = imageHeight;
+      if (needsCropping !== undefined) updateData.needsCropping = needsCropping;
       
       const photo = await storage.updatePhoto(id, updateData);
       if (!photo) {

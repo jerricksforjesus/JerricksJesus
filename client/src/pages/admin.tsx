@@ -8,7 +8,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus, Users, Shield, UserCheck, Camera, CheckCircle, XCircle, Clock, Settings, Key, User as UserIcon, Eye, EyeOff, Music, Youtube, Link2, ExternalLink, Menu, X, ChevronRight, Calendar, MapPin, Phone, Home } from "lucide-react";
+import { Plus, Trash2, Save, Upload, Pencil, Play, Image, BookOpen, Check, RefreshCw, Loader2, LogOut, UserPlus, Users, Shield, UserCheck, Camera, CheckCircle, XCircle, Clock, Settings, Key, User as UserIcon, Eye, EyeOff, Music, Youtube, Link2, ExternalLink, Menu, X, ChevronRight, Calendar, MapPin, Phone, Home, AlertTriangle, Crop } from "lucide-react";
+import { ImageCropper, isPortraitImage, getImageDimensions, getImageDimensionsFromUrl } from "@/components/ui/image-cropper";
 import { useState, useEffect, useLayoutEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { ObjectUploader } from "@/components/ObjectUploader";
@@ -1396,6 +1397,10 @@ export default function AdminDashboard() {
   const [isPlayerOpen, setIsPlayerOpen] = useState(false);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [photoCaption, setPhotoCaption] = useState("");
+  const [isCropperOpen, setIsCropperOpen] = useState(false);
+  const [cropImageSrc, setCropImageSrc] = useState("");
+  const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
+  const [photoCropId, setPhotoCropId] = useState<number | null>(null);
   const [selectedQuizBook, setSelectedQuizBook] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [addMoreCount, setAddMoreCount] = useState<string>("1");
@@ -2232,9 +2237,29 @@ export default function AdminDashboard() {
     const uploadedFile = result.successful[0];
     const imagePath = uploadedFile.uploadURL || "";
 
+    // Get the original file to check dimensions
+    const originalFile = uploadedFile.data as File | undefined;
+    let imageWidth: number | undefined;
+    let imageHeight: number | undefined;
+    let needsCropping = 0;
+
+    if (originalFile) {
+      try {
+        const dims = await getImageDimensions(originalFile);
+        imageWidth = dims.width;
+        imageHeight = dims.height;
+        needsCropping = isPortraitImage(dims.width, dims.height) ? 1 : 0;
+      } catch (e) {
+        console.error("Failed to get image dimensions:", e);
+      }
+    }
+
     const photoData: InsertPhoto = {
       imagePath: imagePath,
       caption: photoCaption || undefined,
+      imageWidth,
+      imageHeight,
+      needsCropping,
     };
 
     try {
@@ -2249,14 +2274,88 @@ export default function AdminDashboard() {
       queryClient.invalidateQueries({ queryKey: ["photos"] });
       setPhotoCaption("");
 
-      toast({
-        title: "Photo Added",
-        description: "The photo has been added to the family gallery.",
-      });
+      if (needsCropping) {
+        toast({
+          title: "Photo Added (Portrait Detected)",
+          description: "This photo has a portrait orientation and may be cropped in the carousel. You can adjust the crop from the gallery.",
+        });
+      } else {
+        toast({
+          title: "Photo Added",
+          description: "The photo has been added to the family gallery.",
+        });
+      }
     } catch (error) {
       toast({
         title: "Save Failed",
         description: "The photo was uploaded but failed to save.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  const handleCropExistingPhoto = async (photo: Photo) => {
+    const url = getPhotoUrl(photo);
+    if (url) {
+      setPhotoCropId(photo.id);
+      setCropImageSrc(url);
+      setIsCropperOpen(true);
+    }
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    if (!photoCropId) return;
+
+    try {
+      // Get upload parameters for the cropped image
+      const uploadParamsResponse = await fetch("/api/objects/upload", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          filename: `cropped_photo_${photoCropId}_${Date.now()}.jpg`,
+          contentType: "image/jpeg",
+        }),
+      });
+
+      if (!uploadParamsResponse.ok) throw new Error("Failed to get upload URL");
+      const { url, objectPath } = await uploadParamsResponse.json();
+
+      // Upload the cropped image
+      const uploadResponse = await fetch(url, {
+        method: "PUT",
+        body: croppedBlob,
+        headers: { "Content-Type": "image/jpeg" },
+      });
+
+      if (!uploadResponse.ok) throw new Error("Failed to upload cropped image");
+
+      // Update the photo record with the new cropped image
+      const updateResponse = await fetch(`/api/photos/${photoCropId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          imagePath: objectPath,
+          needsCropping: 0,
+          imageWidth: null,
+          imageHeight: null,
+        }),
+      });
+
+      if (!updateResponse.ok) throw new Error("Failed to update photo");
+
+      queryClient.invalidateQueries({ queryKey: ["photos"] });
+      setPhotoCropId(null);
+      setCropImageSrc("");
+
+      toast({
+        title: "Photo Cropped",
+        description: "The photo has been cropped and updated successfully.",
+      });
+    } catch (error) {
+      console.error("Crop error:", error);
+      toast({
+        title: "Crop Failed",
+        description: "Failed to save the cropped image.",
         variant: "destructive",
       });
     }
@@ -2699,6 +2798,13 @@ export default function AdminDashboard() {
                   ) : (
                     photos.map((photo) => (
                       <div key={photo.id} className="relative group rounded-lg overflow-hidden border bg-card" data-testid={`photo-item-${photo.id}`}>
+                        {/* Needs Cropping Banner - only shown in admin section */}
+                        {photo.needsCropping === 1 && (
+                          <div className="absolute top-0 left-0 right-0 bg-amber-500/90 text-white text-xs px-2 py-1 flex items-center justify-center gap-1 z-10">
+                            <AlertTriangle className="w-3 h-3" />
+                            <span>Needs Cropping</span>
+                          </div>
+                        )}
                         <div className="aspect-square bg-muted">
                           {getPhotoUrl(photo) ? (
                             <img 
@@ -2717,17 +2823,29 @@ export default function AdminDashboard() {
                             {photo.caption}
                           </div>
                         )}
-                        {isAdmin && (
+                        <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                          {/* Crop button - always visible for any photo that can be cropped */}
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className="absolute top-2 right-2 bg-black/50 hover:bg-black/70 text-white opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={() => deletePhotoMutation.mutate(photo.id)}
-                            data-testid={`button-delete-photo-${photo.id}`}
+                            className={photo.needsCropping === 1 ? "bg-amber-500/80 hover:bg-amber-600 text-white" : "bg-black/50 hover:bg-black/70 text-white"}
+                            onClick={() => handleCropExistingPhoto(photo)}
+                            data-testid={`button-crop-photo-${photo.id}`}
                           >
-                            <Trash2 className="w-4 h-4" />
+                            <Crop className="w-4 h-4" />
                           </Button>
-                        )}
+                          {isAdmin && (
+                            <Button 
+                              variant="ghost" 
+                              size="icon" 
+                              className="bg-black/50 hover:bg-black/70 text-white"
+                              onClick={() => deletePhotoMutation.mutate(photo.id)}
+                              data-testid={`button-delete-photo-${photo.id}`}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          )}
+                        </div>
                       </div>
                     ))
                   )}
@@ -3567,6 +3685,16 @@ export default function AdminDashboard() {
           setIsEditOpen(false);
           setSelectedVideo(null);
         }} 
+      />
+
+      <ImageCropper
+        open={isCropperOpen}
+        onOpenChange={setIsCropperOpen}
+        imageSrc={cropImageSrc}
+        onCropComplete={handleCropComplete}
+        aspectRatio={16 / 9}
+        title="Adjust Photo for Carousel"
+        description="Portrait photos may get cropped in the carousel. Adjust the crop area to select which part of the image to display."
       />
 
       <Dialog open={isCreateUserOpen} onOpenChange={setIsCreateUserOpen}>
