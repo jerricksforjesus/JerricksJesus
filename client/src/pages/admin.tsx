@@ -1995,6 +1995,8 @@ export default function AdminDashboard() {
       const data = await response.json();
       return data.randomize;
     },
+    refetchInterval: 5000,
+    refetchOnWindowFocus: true,
   });
 
   const reorderPhotosMutation = useMutation({
