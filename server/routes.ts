@@ -1937,9 +1937,9 @@ export async function registerRoutes(
   app.put("/api/photos/:id", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const { caption, displayOrder, imagePath, imageWidth, imageHeight, needsCropping } = req.body;
+      const { caption, displayOrder, imagePath, imageWidth, imageHeight, needsCropping, wasCropped } = req.body;
       
-      const updateData: { caption?: string; displayOrder?: number; imagePath?: string; imageWidth?: number | null; imageHeight?: number | null; needsCropping?: number } = {};
+      const updateData: { caption?: string; displayOrder?: number; imagePath?: string; imageWidth?: number | null; imageHeight?: number | null; needsCropping?: number; wasCropped?: number } = {};
       if (caption !== undefined) updateData.caption = caption;
       if (displayOrder !== undefined) updateData.displayOrder = displayOrder;
       if (imagePath !== undefined) {
@@ -1948,6 +1948,7 @@ export async function registerRoutes(
       if (imageWidth !== undefined) updateData.imageWidth = imageWidth;
       if (imageHeight !== undefined) updateData.imageHeight = imageHeight;
       if (needsCropping !== undefined) updateData.needsCropping = needsCropping;
+      if (wasCropped !== undefined) updateData.wasCropped = wasCropped;
       
       const photo = await storage.updatePhoto(id, updateData);
       if (!photo) {
@@ -1964,9 +1965,9 @@ export async function registerRoutes(
   app.patch("/api/photos/:id", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const { caption, displayOrder, imagePath, imageWidth, imageHeight, needsCropping } = req.body;
+      const { caption, displayOrder, imagePath, imageWidth, imageHeight, needsCropping, wasCropped } = req.body;
       
-      const updateData: { caption?: string; displayOrder?: number; imagePath?: string; imageWidth?: number | null; imageHeight?: number | null; needsCropping?: number } = {};
+      const updateData: { caption?: string; displayOrder?: number; imagePath?: string; imageWidth?: number | null; imageHeight?: number | null; needsCropping?: number; wasCropped?: number } = {};
       if (caption !== undefined) updateData.caption = caption;
       if (displayOrder !== undefined) updateData.displayOrder = displayOrder;
       if (imagePath !== undefined) {
@@ -1975,6 +1976,7 @@ export async function registerRoutes(
       if (imageWidth !== undefined) updateData.imageWidth = imageWidth;
       if (imageHeight !== undefined) updateData.imageHeight = imageHeight;
       if (needsCropping !== undefined) updateData.needsCropping = needsCropping;
+      if (wasCropped !== undefined) updateData.wasCropped = wasCropped;
       
       const photo = await storage.updatePhoto(id, updateData);
       if (!photo) {

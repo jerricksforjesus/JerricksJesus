@@ -2307,21 +2307,18 @@ export default function AdminDashboard() {
     if (!photoCropId) return;
 
     try {
-      // Get upload parameters for the cropped image
+      // Get upload URL (same flow as ObjectUploader)
       const uploadParamsResponse = await fetch("/api/objects/upload", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          filename: `cropped_photo_${photoCropId}_${Date.now()}.jpg`,
-          contentType: "image/jpeg",
-        }),
       });
 
       if (!uploadParamsResponse.ok) throw new Error("Failed to get upload URL");
-      const { url, objectPath } = await uploadParamsResponse.json();
+      const { uploadURL } = await uploadParamsResponse.json();
 
-      // Upload the cropped image
-      const uploadResponse = await fetch(url, {
+      if (!uploadURL) throw new Error("No upload URL returned");
+
+      // Upload the cropped image to the signed URL
+      const uploadResponse = await fetch(uploadURL, {
         method: "PUT",
         body: croppedBlob,
         headers: { "Content-Type": "image/jpeg" },
@@ -2329,19 +2326,28 @@ export default function AdminDashboard() {
 
       if (!uploadResponse.ok) throw new Error("Failed to upload cropped image");
 
-      // Update the photo record with the new cropped image
+      // The uploadURL becomes the object path (server will normalize it)
       const updateResponse = await fetch(`/api/photos/${photoCropId}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
-          imagePath: objectPath,
+          imagePath: uploadURL,
           needsCropping: 0,
+          wasCropped: 1,
           imageWidth: null,
           imageHeight: null,
         }),
       });
 
       if (!updateResponse.ok) throw new Error("Failed to update photo");
+
+      // Clear the signed URL cache for this photo so it reloads with the new image
+      setPhotoSignedUrls(prev => {
+        const updated = { ...prev };
+        delete updated[photoCropId];
+        return updated;
+      });
 
       queryClient.invalidateQueries({ queryKey: ["photos"] });
       setPhotoCropId(null);
@@ -2798,13 +2804,18 @@ export default function AdminDashboard() {
                   ) : (
                     photos.map((photo) => (
                       <div key={photo.id} className="relative group rounded-lg overflow-hidden border bg-card" data-testid={`photo-item-${photo.id}`}>
-                        {/* Needs Cropping Banner - only shown in admin section */}
-                        {photo.needsCropping === 1 && (
+                        {/* Status Banner - only shown in admin/foundational section */}
+                        {photo.needsCropping === 1 ? (
                           <div className="absolute top-0 left-0 right-0 bg-amber-500/90 text-white text-xs px-2 py-1 flex items-center justify-center gap-1 z-10">
                             <AlertTriangle className="w-3 h-3" />
                             <span>Needs Cropping</span>
                           </div>
-                        )}
+                        ) : photo.wasCropped === 1 ? (
+                          <div className="absolute top-0 left-0 right-0 bg-green-600/90 text-white text-xs px-2 py-1 flex items-center justify-center gap-1 z-10">
+                            <Check className="w-3 h-3" />
+                            <span>Cropped</span>
+                          </div>
+                        ) : null}
                         <div className="aspect-square bg-muted">
                           {getPhotoUrl(photo) ? (
                             <img 
@@ -2824,7 +2835,7 @@ export default function AdminDashboard() {
                           </div>
                         )}
                         <div className="absolute top-2 right-2 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          {/* Crop button - always visible for any photo that can be cropped */}
+                          {/* Crop button - available to admin and foundational */}
                           <Button 
                             variant="ghost" 
                             size="icon" 
@@ -2834,7 +2845,8 @@ export default function AdminDashboard() {
                           >
                             <Crop className="w-4 h-4" />
                           </Button>
-                          {isAdmin && (
+                          {/* Delete button - available to admin and foundational */}
+                          {canEdit && (
                             <Button 
                               variant="ghost" 
                               size="icon" 

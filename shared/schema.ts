@@ -84,6 +84,7 @@ export const photos = pgTable("photos", {
   imageWidth: integer("image_width"),
   imageHeight: integer("image_height"),
   needsCropping: integer("needs_cropping").default(0).notNull(),
+  wasCropped: integer("was_cropped").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
