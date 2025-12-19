@@ -41,6 +41,7 @@ function Calendar({
       "*:after:pointer-events-none *:after:absolute *:after:bottom-1 *:after:start-1/2 *:after:z-10 *:after:size-[3px] *:after:-translate-x-1/2 *:after:rounded-full *:after:bg-primary [&[data-selected]:not(.range-middle)>*]:after:bg-background [&[data-disabled]>*]:after:bg-foreground/30 *:after:transition-colors",
     outside: "text-muted-foreground data-selected:bg-accent/50 data-selected:text-muted-foreground",
     hidden: "invisible",
+    disabled: "text-muted-foreground/40 opacity-50 cursor-not-allowed",
     week_number: "size-9 p-0 text-xs font-medium text-muted-foreground/80",
   };
 

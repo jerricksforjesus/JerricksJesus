@@ -30,6 +30,7 @@ interface DatePickerProps {
   "data-testid"?: string
   fromYear?: number
   toYear?: number
+  disablePast?: boolean
 }
 
 export function DatePicker({
@@ -42,10 +43,14 @@ export function DatePicker({
   "data-testid": testId,
   fromYear = 1920,
   toYear = 2050,
+  disablePast = false,
 }: DatePickerProps) {
   const [open, setOpen] = React.useState(false)
   
   const date = value ? new Date(value + 'T00:00:00') : undefined
+  
+  const today = new Date()
+  today.setHours(0, 0, 0, 0)
 
   const handleSelect = (selectedDate: Date | undefined) => {
     if (onChange) {
@@ -123,10 +128,11 @@ export function DatePicker({
           mode="single"
           selected={date}
           onSelect={handleSelect}
-          defaultMonth={date}
+          defaultMonth={date || (disablePast ? today : undefined)}
           captionLayout="dropdown"
-          startMonth={new Date(fromYear, 0)}
+          startMonth={disablePast ? today : new Date(fromYear, 0)}
           endMonth={new Date(toYear, 11)}
+          disabled={disablePast ? { before: today } : undefined}
           hideNavigation
           classNames={{
             month_caption: "mx-0",

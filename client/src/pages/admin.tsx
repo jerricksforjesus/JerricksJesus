@@ -1007,6 +1007,7 @@ function EventsManagementTab() {
                 onChange={(value) => setEventDate(value)}
                 placeholder="Select event date"
                 data-testid="input-event-date"
+                disablePast
               />
             </div>
             <div className="space-y-2">
