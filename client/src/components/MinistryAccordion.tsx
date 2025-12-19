@@ -9,6 +9,7 @@ import { useQuery } from "@tanstack/react-query";
 import { WorshipMusicSection } from "./WorshipMusicSection";
 import { FamilyPhotoGallery } from "./FamilyPhotoGallery";
 import { CharityComingSoon } from "./CharityComingSoon";
+import { AddToHomeScreen } from "./AddToHomeScreen";
 
 interface Ministry {
   id: string;
@@ -44,6 +45,8 @@ export function MinistryAccordion() {
         return <FamilyPhotoGallery />;
       case "charity_coming_soon":
         return <CharityComingSoon message={ministry.customContent.message} />;
+      case "add_to_home_screen":
+        return <AddToHomeScreen />;
       default:
         return null;
     }

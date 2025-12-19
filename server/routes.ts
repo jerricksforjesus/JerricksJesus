@@ -1835,6 +1835,16 @@ export async function registerRoutes(
             type: "charity_coming_soon",
             message: "Jerricks for Jesus Charity – Coming Soon"
           }
+        },
+        {
+          id: "add-to-home",
+          title: "Add to Home Screen",
+          description: "Access Jerricks for Jesus directly from your phone's home screen for quick and easy access to our services, events, and community.",
+          icon: "smartphone",
+          imageUrl: null,
+          customContent: {
+            type: "add_to_home_screen"
+          }
         }
       ];
 
