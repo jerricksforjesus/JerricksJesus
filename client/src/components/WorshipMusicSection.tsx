@@ -5,6 +5,7 @@ import { Play, Music, ExternalLink } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { VisuallyHidden } from "@radix-ui/react-visually-hidden";
+import { WorshipMusicPlayer } from "./WorshipMusicPlayer";
 
 const WORSHIP_PLAYLIST_ID = "PLkDsdLHKY8laSsy8xYfILnVzFMedR0Rgy";
 
@@ -154,6 +155,8 @@ export function WorshipMusicSection() {
           </AnimatePresence>
         </DialogContent>
       </Dialog>
+
+      <WorshipMusicPlayer />
     </div>
   );
 }
