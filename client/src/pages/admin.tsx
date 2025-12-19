@@ -2343,11 +2343,11 @@ export default function AdminDashboard() {
               
               {/* Slide-in Panel */}
               <motion.div
-                initial={{ x: "100%" }}
+                initial={{ x: "-100%" }}
                 animate={{ x: 0 }}
-                exit={{ x: "100%" }}
+                exit={{ x: "-100%" }}
                 transition={{ type: "spring", damping: 25, stiffness: 300 }}
-                className="lg:hidden fixed inset-y-0 right-0 w-full max-w-sm bg-card z-50 shadow-xl flex flex-col"
+                className="lg:hidden fixed inset-y-0 left-0 w-full max-w-sm bg-card z-50 shadow-xl flex flex-col"
               >
                 {/* Panel Header */}
                 <div className="flex items-center justify-between p-4 border-b" style={{ backgroundColor: "#b47a5f" }}>
