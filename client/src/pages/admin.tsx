@@ -262,6 +262,7 @@ interface WorshipVideo {
 
 interface YouTubeConnectionStatus {
   connected: boolean;
+  needsReconnect?: boolean;
   channelName?: string;
   channelId?: string;
   connectedAt?: string;
@@ -471,15 +472,18 @@ function WorshipPlaylistManager() {
         </div>
       )}
 
-      {/* Warning for foundational members when YouTube is disconnected */}
-      {!isAdmin && !connectionStatus?.connected && (
+      {/* Warning when YouTube token needs refresh */}
+      {connectionStatus?.needsReconnect && (
         <div className="border border-yellow-300 rounded-lg p-4 bg-yellow-50">
           <div className="flex items-center gap-3">
             <Youtube className="w-5 h-5 text-yellow-600" />
             <div>
               <h3 className="font-medium text-yellow-800">YouTube Playlist Requires Reconnection</h3>
               <p className="text-sm text-yellow-700 mt-1">
-                The YouTube connection has expired. Please ask an admin to reconnect YouTube in the Settings section to add new videos.
+                {isAdmin 
+                  ? "The YouTube connection has expired. Please reconnect YouTube in the Settings section to continue adding videos."
+                  : "The YouTube connection has expired. Please ask an admin to reconnect YouTube in the Settings section to add new videos."
+                }
               </p>
             </div>
           </div>

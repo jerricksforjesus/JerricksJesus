@@ -433,10 +433,16 @@ export async function registerRoutes(
     try {
       const auth = await storage.getYoutubeAuth();
       if (!auth) {
-        return res.json({ connected: false });
+        return res.json({ connected: false, needsReconnect: false });
       }
+      
+      // Check if token is valid by attempting to get a valid token
+      const validToken = await getValidYoutubeToken();
+      const needsReconnect = !validToken;
+      
       res.json({ 
-        connected: true, 
+        connected: !needsReconnect, 
+        needsReconnect,
         channelName: auth.channelName,
         channelId: auth.channelId,
         connectedAt: auth.createdAt,
