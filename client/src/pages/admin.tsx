@@ -3001,17 +3001,17 @@ export default function AdminDashboard() {
                     {allUsers.map((u) => (
                       <div 
                         key={u.id} 
-                        className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                         data-testid={`user-row-${u.id}`}
                       >
                         <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-full flex items-center justify-center" style={{ backgroundColor: "#b47a5f" }}>
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: "#b47a5f" }}>
                             <span className="text-white font-medium text-sm">
                               {u.username.charAt(0).toUpperCase()}
                             </span>
                           </div>
-                          <div>
-                            <p className="font-medium">{u.username}</p>
+                          <div className="min-w-0">
+                            <p className="font-medium truncate">{u.username}</p>
                             <p className="text-sm text-muted-foreground flex items-center gap-1">
                               {u.role === "admin" && <Shield className="w-3 h-3" />}
                               {u.role === "foundational" && <UserCheck className="w-3 h-3" />}
@@ -3022,7 +3022,7 @@ export default function AdminDashboard() {
                         
                         {/* Show controls only if not viewing yourself AND (you're admin OR the target user is not an admin) */}
                         {user?.id !== u.id && (isAdmin || u.role !== "admin") && (
-                          <div className="flex items-center gap-2">
+                          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
                             <Select
                               value={u.role}
                               onValueChange={(newRole) => {
@@ -3030,7 +3030,7 @@ export default function AdminDashboard() {
                               }}
                               disabled={updateUserRoleMutation.isPending}
                             >
-                              <SelectTrigger className="w-[150px]" data-testid={`select-role-${u.id}`}>
+                              <SelectTrigger className="w-[130px]" data-testid={`select-role-${u.id}`}>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
