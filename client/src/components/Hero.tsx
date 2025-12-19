@@ -1,9 +1,10 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Radio, Video } from "lucide-react";
+import { Radio, Video, LogIn } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth";
 import heroBg from "@assets/generated_images/sunlight_through_stained_glass_in_modern_church.png";
 
 interface LiveStatus {
@@ -18,6 +19,7 @@ interface ZoomSettings {
 
 export function Hero() {
   const containerRef = useRef<HTMLDivElement>(null);
+  const { user } = useAuth();
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
@@ -121,6 +123,29 @@ export function Hero() {
                 <Video className="w-5 h-5 mr-2" />
                 Join the Zoom
               </a>
+            </Button>
+          </motion.div>
+        )}
+
+        {/* Sign In Button - only show when not logged in */}
+        {!user && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 0.8 }}
+            className="mt-4"
+          >
+            <Button 
+              asChild
+              size="lg" 
+              className="font-bold px-8"
+              style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+              data-testid="button-sign-in-hero"
+            >
+              <Link href="/login">
+                <LogIn className="w-5 h-5 mr-2" />
+                Sign In
+              </Link>
             </Button>
           </motion.div>
         )}

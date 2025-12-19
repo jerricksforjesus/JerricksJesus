@@ -9,8 +9,6 @@ import { BibleQuizSection } from "@/components/BibleQuizSection";
 import { FamilyEventsSection } from "@/components/FamilyEventsSection";
 import { MinistryAccordion } from "@/components/MinistryAccordion";
 import { useQuery } from "@tanstack/react-query";
-import { useAuth } from "@/lib/auth";
-import { Link } from "wouter";
 
 interface FooterInfo {
   churchName: string;
