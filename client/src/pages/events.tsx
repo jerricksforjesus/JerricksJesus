@@ -1,7 +1,7 @@
 import { Navigation } from "@/components/Navigation";
 import { useQuery } from "@tanstack/react-query";
-import { useEffect } from "react";
-import { Calendar, Clock, MapPin, Phone, ChevronDown, ExternalLink, Mail } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Calendar, Clock, MapPin, Phone, ChevronDown, ExternalLink, Mail, Grid, List } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { useNavTheme } from "@/lib/navThemeContext";
+import { EventsCalendar } from "@/components/EventsCalendar";
 import type { Event, Photo } from "@shared/schema";
 
 function formatEventDate(dateString: string): string {
@@ -213,16 +214,45 @@ export default function Events() {
         </div>
       </section>
 
+      {/* Events Calendar Section */}
+      <section className="py-12 md:py-16 px-4 md:px-8 max-w-6xl mx-auto w-full">
+        <h2 
+          className="font-serif text-3xl md:text-4xl text-center mb-4"
+          data-testid="events-calendar-title"
+        >
+          Event Calendar
+        </h2>
+        <p className="text-center text-muted-foreground mb-8 max-w-2xl mx-auto">
+          Browse our upcoming events at a glance
+        </p>
+        
+        {events && events.length > 0 && (
+          <EventsCalendar 
+            events={events} 
+            onEventClick={(event) => {
+              const element = document.getElementById(`event-card-${event.id}`);
+              if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                element.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+                setTimeout(() => {
+                  element.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+                }, 2000);
+              }
+            }}
+          />
+        )}
+      </section>
+
       {/* Events Lineup Section */}
-      <section className="py-16 md:py-24 px-4 md:px-8 max-w-7xl mx-auto w-full">
+      <section className="py-12 md:py-16 px-4 md:px-8 max-w-7xl mx-auto w-full">
         <h2 
           className="font-serif text-3xl md:text-4xl text-center mb-4"
           data-testid="events-lineup-title"
         >
-          Our Events Lineup
+          Upcoming Events
         </h2>
         <p className="text-center text-muted-foreground mb-12 max-w-2xl mx-auto">
-          Discover upcoming events and activities at Jerricks for Jesus
+          Full details for all our upcoming events and activities
         </p>
 
         {eventsLoading ? (
@@ -240,7 +270,8 @@ export default function Events() {
             {events.map((event) => (
               <div 
                 key={event.id}
-                className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-shadow"
+                id={`event-card-${event.id}`}
+                className="bg-card border border-border rounded-2xl overflow-hidden shadow-sm hover:shadow-md transition-all duration-300"
                 data-testid={`event-card-${event.id}`}
               >
                 <div className="flex flex-col md:flex-row">
