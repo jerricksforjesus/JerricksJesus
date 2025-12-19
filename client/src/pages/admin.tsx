@@ -1414,17 +1414,10 @@ export default function AdminDashboard() {
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
 
-  // Check if mobile viewport
-  const isMobileViewport = () => window.innerWidth < 1024;
-
-  // Auto-open panel on mobile if arriving with openPanel param
+  // Clean up URL params after reading section
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    if (params.get("openPanel") === "true" && isMobileViewport()) {
-      setIsMobileSettingsOpen(true);
-    }
-    // Clean up URL params after reading
-    if (params.has("section") || params.has("openPanel")) {
+    if (params.has("section")) {
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);

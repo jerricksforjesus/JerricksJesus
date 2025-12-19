@@ -39,17 +39,13 @@ export function Navigation() {
   const handleMobileAccountClick = (e: React.MouseEvent) => {
     if (!user) return; // Let normal navigation to /login happen
     
-    // If already on admin page, trigger the settings panel with settings section
+    // Only open the settings panel if already on admin page
     if (location.startsWith("/admin")) {
       e.preventDefault();
       window.dispatchEvent(new CustomEvent(OPEN_SETTINGS_PANEL_EVENT, { detail: { section: "settings" } }));
       setMobileMenuOpen(false);
-    } else {
-      // Navigate to admin with settings section (mobile will auto-open panel)
-      e.preventDefault();
-      setLocation("/admin?section=settings&openPanel=true");
-      setMobileMenuOpen(false);
     }
+    // Otherwise, let normal navigation happen (no special behavior)
   };
 
   const navLinks = [
