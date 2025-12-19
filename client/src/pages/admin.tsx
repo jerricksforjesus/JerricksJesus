@@ -1,4 +1,4 @@
-import { Navigation } from "@/components/Navigation";
+import { Navigation, OPEN_SETTINGS_PANEL_EVENT } from "@/components/Navigation";
 import { MemberDashboard } from "@/components/MemberDashboard";
 import { BibleQuizSection } from "@/components/BibleQuizSection";
 import { Button } from "@/components/ui/button";
@@ -1406,9 +1406,41 @@ export default function AdminDashboard() {
   const [zoomLinkInput, setZoomLinkInput] = useState("");
   const [alternativeZoomLink, setAlternativeZoomLink] = useState("");
   const [alternativeZoomSchedule, setAlternativeZoomSchedule] = useState<{ day: string; slots: string[] }[]>([]);
-  const [activeSection, setActiveSection] = useState("verse");
+  const [activeSection, setActiveSection] = useState(() => {
+    // Check URL params for initial section
+    const params = new URLSearchParams(window.location.search);
+    return params.get("section") || "verse";
+  });
   const [isNavOpen, setIsNavOpen] = useState(false);
   const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
+
+  // Check if mobile viewport
+  const isMobileViewport = () => window.innerWidth < 1024;
+
+  // Auto-open panel on mobile if arriving with openPanel param
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get("openPanel") === "true" && isMobileViewport()) {
+      setIsMobileSettingsOpen(true);
+    }
+    // Clean up URL params after reading
+    if (params.has("section") || params.has("openPanel")) {
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
+  // Listen for custom event to open settings panel from Navigation
+  useEffect(() => {
+    const handleOpenPanel = (e: Event) => {
+      const customEvent = e as CustomEvent<{ section?: string }>;
+      if (customEvent.detail?.section) {
+        setActiveSection(customEvent.detail.section);
+      }
+      setIsMobileSettingsOpen(true);
+    };
+    window.addEventListener(OPEN_SETTINGS_PANEL_EVENT, handleOpenPanel as EventListener);
+    return () => window.removeEventListener(OPEN_SETTINGS_PANEL_EVENT, handleOpenPanel as EventListener);
+  }, []);
 
   const { data: zoomData, isLoading: zoomLoading } = useQuery<{ zoomLink: string }>({
     queryKey: ["zoom-link"],

@@ -6,6 +6,8 @@ import { useAuth } from "@/lib/auth";
 import { motion } from "framer-motion";
 import { useNavTheme } from "@/lib/navThemeContext";
 
+export const OPEN_SETTINGS_PANEL_EVENT = "openSettingsPanel";
+
 export function Navigation() {
   const [location] = useLocation();
   const [isScrolled, setIsScrolled] = useState(false);
@@ -29,6 +31,25 @@ export function Navigation() {
     if (!user) return "Login";
     if (user.role === "admin") return "Admin";
     return "My Account";
+  };
+
+  const [, setLocation] = useLocation();
+  
+  // Mobile-only: handle My Account click differently
+  const handleMobileAccountClick = (e: React.MouseEvent) => {
+    if (!user) return; // Let normal navigation to /login happen
+    
+    // If already on admin page, trigger the settings panel with settings section
+    if (location.startsWith("/admin")) {
+      e.preventDefault();
+      window.dispatchEvent(new CustomEvent(OPEN_SETTINGS_PANEL_EVENT, { detail: { section: "settings" } }));
+      setMobileMenuOpen(false);
+    } else {
+      // Navigate to admin with settings section (mobile will auto-open panel)
+      e.preventDefault();
+      setLocation("/admin?section=settings&openPanel=true");
+      setMobileMenuOpen(false);
+    }
   };
 
   const navLinks = [
@@ -112,16 +133,23 @@ export function Navigation() {
       {/* Mobile Nav */}
       {mobileMenuOpen && (
         <div className="absolute top-full left-0 right-0 bg-background border-b p-6 md:hidden flex flex-col gap-4 animate-in slide-in-from-top-5">
-          {navLinks.map((link) => (
-            <Link key={link.href} href={link.href}>
-              <span
-                className="cursor-pointer text-lg font-serif font-medium"
-                onClick={() => setMobileMenuOpen(false)}
+          {navLinks.map((link) => {
+            const isAccountLink = link.label === getAccountLabel() && user;
+            return (
+              <Link 
+                key={link.href} 
+                href={link.href} 
+                onClick={isAccountLink ? handleMobileAccountClick : undefined}
               >
-                {link.label}
-              </span>
-            </Link>
-          ))}
+                <span
+                  className="cursor-pointer text-lg font-serif font-medium"
+                  onClick={() => !isAccountLink && setMobileMenuOpen(false)}
+                >
+                  {link.label}
+                </span>
+              </Link>
+            );
+          })}
         </div>
       )}
     </nav>
