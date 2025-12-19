@@ -3,6 +3,7 @@
 import * as React from "react"
 import { format } from "date-fns"
 import { CalendarIcon, X } from "lucide-react"
+import { DropdownNavProps, DropdownProps } from "react-day-picker"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
@@ -11,6 +12,13 @@ import {
   PopoverContent,
   PopoverTrigger,
 } from "@/components/ui/popover"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
 interface DatePickerProps {
   value?: string
@@ -60,6 +68,18 @@ export function DatePicker({
     }
   }
 
+  const handleCalendarChange = (
+    _value: string | number,
+    _e: React.ChangeEventHandler<HTMLSelectElement>,
+  ) => {
+    const _event = {
+      target: {
+        value: String(_value),
+      },
+    } as React.ChangeEvent<HTMLSelectElement>
+    _e(_event)
+  }
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -95,7 +115,7 @@ export function DatePicker({
         </Button>
       </PopoverTrigger>
       <PopoverContent 
-        className="w-auto min-w-[320px] p-0 border-border shadow-lg" 
+        className="w-auto min-w-[280px] p-3 border-border shadow-lg bg-card" 
         align="start"
         sideOffset={4}
       >
@@ -107,7 +127,43 @@ export function DatePicker({
           captionLayout="dropdown"
           startMonth={new Date(fromYear, 0)}
           endMonth={new Date(toYear, 11)}
-          initialFocus
+          hideNavigation
+          classNames={{
+            month_caption: "mx-0",
+          }}
+          components={{
+            DropdownNav: (props: DropdownNavProps) => {
+              return <div className="flex w-full items-center gap-2">{props.children}</div>
+            },
+            Dropdown: (props: DropdownProps) => {
+              return (
+                <Select
+                  value={String(props.value)}
+                  onValueChange={(value) => {
+                    if (props.onChange) {
+                      handleCalendarChange(value, props.onChange)
+                    }
+                  }}
+                >
+                  <SelectTrigger className="h-8 w-fit font-medium first:grow bg-accent/40 border-input hover:bg-accent/60 font-serif">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[min(26rem,var(--radix-select-content-available-height))] bg-card">
+                    {props.options?.map((option) => (
+                      <SelectItem
+                        key={option.value}
+                        value={String(option.value)}
+                        disabled={option.disabled}
+                        className="font-sans"
+                      >
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )
+            },
+          }}
         />
       </PopoverContent>
     </Popover>
