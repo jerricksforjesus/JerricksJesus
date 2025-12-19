@@ -214,36 +214,7 @@ export default function Events() {
         </div>
       </section>
 
-      {/* Events Calendar Section */}
-      <section className="py-12 md:py-16 px-4 md:px-8 max-w-6xl mx-auto w-full">
-        <h2 
-          className="font-serif text-3xl md:text-4xl text-center mb-4"
-          data-testid="events-calendar-title"
-        >
-          Event Calendar
-        </h2>
-        <p className="text-center text-muted-foreground mb-8 max-w-2xl mx-auto">
-          Browse our upcoming events at a glance
-        </p>
-        
-        {events && events.length > 0 && (
-          <EventsCalendar 
-            events={events} 
-            onEventClick={(event) => {
-              const element = document.getElementById(`event-card-${event.id}`);
-              if (element) {
-                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                element.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
-                setTimeout(() => {
-                  element.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
-                }, 2000);
-              }
-            }}
-          />
-        )}
-      </section>
-
-      {/* Events Lineup Section */}
+      {/* Upcoming Events Section */}
       <section className="py-12 md:py-16 px-4 md:px-8 max-w-7xl mx-auto w-full">
         <h2 
           className="font-serif text-3xl md:text-4xl text-center mb-4"
@@ -398,6 +369,35 @@ export default function Events() {
               </div>
             ))}
           </div>
+        )}
+      </section>
+
+      {/* Events Calendar Section */}
+      <section className="py-12 md:py-16 px-4 md:px-8 max-w-6xl mx-auto w-full">
+        <h2 
+          className="font-serif text-3xl md:text-4xl text-center mb-4"
+          data-testid="events-calendar-title"
+        >
+          Event Calendar
+        </h2>
+        <p className="text-center text-muted-foreground mb-8 max-w-2xl mx-auto">
+          Browse our upcoming events at a glance
+        </p>
+        
+        {events && events.length > 0 && (
+          <EventsCalendar 
+            events={events} 
+            onEventClick={(event) => {
+              const element = document.getElementById(`event-card-${event.id}`);
+              if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                element.classList.add('ring-2', 'ring-primary', 'ring-offset-2');
+                setTimeout(() => {
+                  element.classList.remove('ring-2', 'ring-primary', 'ring-offset-2');
+                }, 2000);
+              }
+            }}
+          />
         )}
       </section>
 
