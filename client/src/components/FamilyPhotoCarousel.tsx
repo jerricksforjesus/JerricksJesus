@@ -38,7 +38,6 @@ export function FamilyPhotoCarousel() {
       const data = await response.json();
       return data.randomize;
     },
-    refetchInterval: 10000,
     refetchOnWindowFocus: true,
   });
 
