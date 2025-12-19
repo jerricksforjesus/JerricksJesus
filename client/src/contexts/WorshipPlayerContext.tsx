@@ -104,6 +104,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const [apiLoaded, setApiLoaded] = useState(false);
   const [mainPlayerVisible, setMainPlayerVisible] = useState(false);
   const [miniPlayerDismissed, setMiniPlayerDismissed] = useState(false);
+  const [miniPlayerActivated, setMiniPlayerActivated] = useState(false);
   
   const playerRef = useRef<YTPlayer | null>(null);
   const playerWrapperRef = useRef<HTMLDivElement | null>(null);
@@ -137,7 +138,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     miniHostRef.current = element;
   }, []);
 
-  const showMiniPlayer = isPlaying && !mainPlayerVisible && !miniPlayerDismissed;
+  const showMiniPlayer = miniPlayerActivated && !mainPlayerVisible && !miniPlayerDismissed;
 
   useEffect(() => {
     const wrapper = playerWrapperRef.current;
@@ -231,6 +232,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
           onStateChange: (event) => {
             if (event.data === window.YT.PlayerState.PLAYING) {
               setIsPlaying(true);
+              setMiniPlayerActivated(true);
               setMiniPlayerDismissed(false);
               startProgressTracking();
             } else if (event.data === window.YT.PlayerState.PAUSED) {
@@ -385,6 +387,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const dismissMiniPlayer = useCallback(() => {
     pause();
     setMiniPlayerDismissed(true);
+    setMiniPlayerActivated(false);
   }, [pause]);
 
   const value: WorshipPlayerContextType = {
