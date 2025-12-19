@@ -19,6 +19,7 @@ import { useWorshipPlayer } from "@/contexts/WorshipPlayerContext";
 export function WorshipMusicPlayer() {
   const [showPlaylist, setShowPlaylist] = useState(false);
   const observerRef = useRef<HTMLDivElement>(null);
+  const videoHostRef = useRef<HTMLDivElement>(null);
   
   const {
     videos,
@@ -30,7 +31,6 @@ export function WorshipMusicPlayer() {
     currentTime,
     duration,
     currentVideo,
-    mainPlayerSlotRef,
     togglePlay,
     next,
     previous,
@@ -39,7 +39,15 @@ export function WorshipMusicPlayer() {
     setVolume,
     toggleMute,
     setMainPlayerVisible,
+    registerMainHost,
   } = useWorshipPlayer();
+
+  useEffect(() => {
+    registerMainHost(videoHostRef.current);
+    return () => {
+      registerMainHost(null);
+    };
+  }, [registerMainHost]);
 
   useEffect(() => {
     const element = observerRef.current;
@@ -94,7 +102,7 @@ export function WorshipMusicPlayer() {
       <div className="p-4">
         <div className="flex gap-4">
           <div 
-            ref={mainPlayerSlotRef}
+            ref={videoHostRef}
             className="relative w-32 h-24 md:w-40 md:h-28 rounded-lg overflow-hidden bg-black flex-shrink-0"
           >
           </div>

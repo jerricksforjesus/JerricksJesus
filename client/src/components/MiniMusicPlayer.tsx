@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, SkipBack, SkipForward, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -5,6 +6,8 @@ import { Slider } from "@/components/ui/slider";
 import { useWorshipPlayer } from "@/contexts/WorshipPlayerContext";
 
 export function MiniMusicPlayer() {
+  const videoHostRef = useRef<HTMLDivElement>(null);
+
   const {
     currentVideo,
     isPlaying,
@@ -16,7 +19,15 @@ export function MiniMusicPlayer() {
     previous,
     seek,
     dismissMiniPlayer,
+    registerMiniHost,
   } = useWorshipPlayer();
+
+  useEffect(() => {
+    registerMiniHost(videoHostRef.current);
+    return () => {
+      registerMiniHost(null);
+    };
+  }, [registerMiniHost]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -48,7 +59,10 @@ export function MiniMusicPlayer() {
 
           <div className="container mx-auto px-4 py-3">
             <div className="flex items-center gap-3">
-              <div className="w-20 h-12 flex-shrink-0">
+              <div 
+                ref={videoHostRef}
+                className="w-16 h-12 flex-shrink-0 rounded overflow-hidden bg-black"
+              >
               </div>
 
               <div className="flex-1 min-w-0">

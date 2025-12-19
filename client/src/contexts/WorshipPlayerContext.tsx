@@ -68,7 +68,6 @@ interface WorshipPlayerContextType {
   mainPlayerVisible: boolean;
   miniPlayerDismissed: boolean;
   showMiniPlayer: boolean;
-  mainPlayerSlotRef: React.RefObject<HTMLDivElement>;
   play: () => void;
   pause: () => void;
   togglePlay: () => void;
@@ -80,6 +79,8 @@ interface WorshipPlayerContextType {
   toggleMute: () => void;
   setMainPlayerVisible: (visible: boolean) => void;
   dismissMiniPlayer: () => void;
+  registerMainHost: (element: HTMLDivElement | null) => void;
+  registerMiniHost: (element: HTMLDivElement | null) => void;
 }
 
 const WorshipPlayerContext = createContext<WorshipPlayerContextType | null>(null);
@@ -101,13 +102,13 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const [duration, setDuration] = useState(0);
   const [playerReady, setPlayerReady] = useState(false);
   const [apiLoaded, setApiLoaded] = useState(false);
-  const [mainPlayerVisible, setMainPlayerVisible] = useState(true);
+  const [mainPlayerVisible, setMainPlayerVisible] = useState(false);
   const [miniPlayerDismissed, setMiniPlayerDismissed] = useState(false);
-  const [slotRect, setSlotRect] = useState<DOMRect | null>(null);
   
   const playerRef = useRef<YTPlayer | null>(null);
-  const playerWrapperRef = useRef<HTMLDivElement>(null);
-  const mainPlayerSlotRef = useRef<HTMLDivElement>(null);
+  const playerWrapperRef = useRef<HTMLDivElement | null>(null);
+  const mainHostRef = useRef<HTMLDivElement | null>(null);
+  const miniHostRef = useRef<HTMLDivElement | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const volumeRef = useRef(volume);
   const autoPlayOnReadyRef = useRef(false);
@@ -128,25 +129,26 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     volumeRef.current = volume;
   }, [volume]);
 
-  useEffect(() => {
-    const updateSlotRect = () => {
-      if (mainPlayerSlotRef.current) {
-        setSlotRect(mainPlayerSlotRef.current.getBoundingClientRect());
-      }
-    };
-
-    updateSlotRect();
-    window.addEventListener('scroll', updateSlotRect, { passive: true });
-    window.addEventListener('resize', updateSlotRect);
-    
-    const interval = setInterval(updateSlotRect, 200);
-
-    return () => {
-      window.removeEventListener('scroll', updateSlotRect);
-      window.removeEventListener('resize', updateSlotRect);
-      clearInterval(interval);
-    };
+  const registerMainHost = useCallback((element: HTMLDivElement | null) => {
+    mainHostRef.current = element;
   }, []);
+
+  const registerMiniHost = useCallback((element: HTMLDivElement | null) => {
+    miniHostRef.current = element;
+  }, []);
+
+  const showMiniPlayer = isPlaying && !mainPlayerVisible && !miniPlayerDismissed;
+
+  useEffect(() => {
+    const wrapper = playerWrapperRef.current;
+    if (!wrapper) return;
+
+    const targetHost = mainPlayerVisible ? mainHostRef.current : (showMiniPlayer ? miniHostRef.current : null);
+    
+    if (targetHost && wrapper.parentElement !== targetHost) {
+      targetHost.appendChild(wrapper);
+    }
+  }, [mainPlayerVisible, showMiniPlayer]);
 
   useEffect(() => {
     if (videos.length === 0) return;
@@ -174,7 +176,15 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   }, [videos.length]);
 
   useEffect(() => {
-    if (!apiLoaded || !currentVideo || !playerWrapperRef.current) return;
+    if (!apiLoaded || !currentVideo) return;
+
+    if (!playerWrapperRef.current) {
+      const wrapper = document.createElement('div');
+      wrapper.style.width = '100%';
+      wrapper.style.height = '100%';
+      wrapper.setAttribute('data-testid', 'global-video-player');
+      playerWrapperRef.current = wrapper;
+    }
 
     const createPlayer = () => {
       if (playerRef.current) {
@@ -377,49 +387,6 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     setMiniPlayerDismissed(true);
   }, [pause]);
 
-  const showMiniPlayer = isPlaying && !mainPlayerVisible && !miniPlayerDismissed;
-
-  const getVideoStyles = (): React.CSSProperties => {
-    if (showMiniPlayer) {
-      return {
-        position: 'fixed',
-        bottom: '76px',
-        left: '16px',
-        width: '64px',
-        height: '48px',
-        zIndex: 51,
-        borderRadius: '8px',
-        overflow: 'hidden',
-        transition: 'all 0.3s ease-out',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.3)',
-      };
-    }
-    
-    if (mainPlayerVisible && slotRect && slotRect.width > 0) {
-      return {
-        position: 'fixed',
-        top: `${slotRect.top}px`,
-        left: `${slotRect.left}px`,
-        width: `${slotRect.width}px`,
-        height: `${slotRect.height}px`,
-        zIndex: 1,
-        borderRadius: '8px',
-        overflow: 'hidden',
-        transition: 'all 0.3s ease-out',
-      };
-    }
-
-    return {
-      position: 'fixed',
-      opacity: 0,
-      pointerEvents: 'none',
-      top: '0',
-      left: '0',
-      width: '160px',
-      height: '90px',
-    };
-  };
-
   const value: WorshipPlayerContextType = {
     videos,
     isLoading,
@@ -434,7 +401,6 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     mainPlayerVisible,
     miniPlayerDismissed,
     showMiniPlayer,
-    mainPlayerSlotRef: mainPlayerSlotRef as React.RefObject<HTMLDivElement>,
     play,
     pause,
     togglePlay,
@@ -446,16 +412,13 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     toggleMute,
     setMainPlayerVisible,
     dismissMiniPlayer,
+    registerMainHost,
+    registerMiniHost,
   };
 
   return (
     <WorshipPlayerContext.Provider value={value}>
       {children}
-      <div 
-        ref={playerWrapperRef}
-        style={getVideoStyles()}
-        data-testid="global-video-player"
-      />
     </WorshipPlayerContext.Provider>
   );
 }
