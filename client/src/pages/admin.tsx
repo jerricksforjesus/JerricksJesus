@@ -2952,16 +2952,16 @@ export default function AdminDashboard() {
                           )}
                         </div>
                         {photo.caption && (
-                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-2 truncate">
+                          <div className="absolute bottom-0 left-0 right-0 bg-black/60 text-white text-xs p-2 pr-20 truncate z-10">
                             {photo.caption}
                           </div>
                         )}
-                        <div className="absolute bottom-2 right-2 flex gap-1">
+                        <div className="absolute bottom-1 right-1 flex gap-1 z-20">
                           {/* Crop button - available to admin and foundational */}
                           <Button 
                             variant="ghost" 
                             size="icon" 
-                            className={photo.needsCropping === 1 ? "bg-amber-500/80 hover:bg-amber-600 text-white" : "bg-black/50 hover:bg-black/70 text-white"}
+                            className={`h-8 w-8 ${photo.needsCropping === 1 ? "bg-amber-500 hover:bg-amber-600 text-white" : "bg-black/70 hover:bg-black/90 text-white"}`}
                             onClick={() => handleCropExistingPhoto(photo)}
                             data-testid={`button-crop-photo-${photo.id}`}
                           >
@@ -2972,7 +2972,7 @@ export default function AdminDashboard() {
                             <Button 
                               variant="ghost" 
                               size="icon" 
-                              className="bg-black/50 hover:bg-black/70 text-white"
+                              className="h-8 w-8 bg-black/70 hover:bg-black/90 text-white"
                               onClick={() => deletePhotoMutation.mutate(photo.id)}
                               data-testid={`button-delete-photo-${photo.id}`}
                             >
