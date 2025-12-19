@@ -2310,7 +2310,7 @@ export default function AdminDashboard() {
         </aside>
 
         {/* Mobile Navigation Bar */}
-        <div className="lg:hidden fixed top-16 left-0 right-0 z-30 bg-background border-b shadow-sm">
+        <div className="lg:hidden fixed top-14 left-0 right-0 z-30 bg-background border-b shadow-sm">
           <div className="p-3">
             <Button 
               variant="outline" 
