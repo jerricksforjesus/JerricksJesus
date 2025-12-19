@@ -240,10 +240,10 @@ export function BibleQuizSection() {
             <BookOpen className="w-8 h-8 text-primary" />
             <h2 className="text-3xl md:text-5xl font-serif font-bold">Bible Quiz</h2>
           </div>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-base max-w-2xl mx-auto">
             Test your knowledge of Scripture.<br />
-            Choose a book of the Bible and answer 10 questions.<br />
-            Login to add your progress to the leaderboard.
+            Choose a book of the Bible<br className="md:hidden" /> and answer 10 questions.<br />
+            Login to add your progress<br className="md:hidden" /> to the leaderboard.
           </p>
         </motion.div>
 
