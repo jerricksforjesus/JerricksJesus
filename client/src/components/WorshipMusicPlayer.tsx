@@ -92,24 +92,24 @@ export function WorshipMusicPlayer() {
       data-testid="worship-music-player"
     >
       <div className="p-4">
-        <div className="flex gap-4">
+        <div className="flex gap-3">
           <div 
             ref={mainPlayerRef as React.RefObject<HTMLDivElement>}
-            className="relative w-32 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-black"
+            className="relative w-24 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-black"
           >
           </div>
 
-          <div className="flex-1 min-w-0">
-            <div className="mb-3">
-              <h3 className="font-semibold text-lg line-clamp-1" data-testid="current-track-title">
+          <div className="flex-1 min-w-0 overflow-hidden">
+            <div className="mb-2">
+              <h3 className="font-semibold text-base line-clamp-1" data-testid="current-track-title">
                 {currentVideo?.title || "No track selected"}
               </h3>
-              <p className="text-sm text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Track {currentIndex + 1} of {videos.length}
               </p>
             </div>
 
-            <div className="mb-3">
+            <div className="mb-2">
               <Slider
                 value={[currentTime]}
                 max={duration || 100}
@@ -124,14 +124,14 @@ export function WorshipMusicPlayer() {
               </div>
             </div>
 
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1 flex-wrap">
+              <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={previous}
                   disabled={currentIndex === 0}
-                  className="h-9 w-9"
+                  className="h-8 w-8"
                   data-testid="button-previous"
                 >
                   <SkipBack className="w-4 h-4" />
@@ -140,24 +140,24 @@ export function WorshipMusicPlayer() {
                   variant="default"
                   size="icon"
                   onClick={togglePlay}
-                  className="h-11 w-11 rounded-full"
+                  className="h-10 w-10 rounded-full"
                   data-testid="button-play-pause"
                 >
-                  {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={next}
                   disabled={currentIndex === videos.length - 1}
-                  className="h-9 w-9"
+                  className="h-8 w-8"
                   data-testid="button-next"
                 >
                   <SkipForward className="w-4 h-4" />
                 </Button>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 ml-auto">
                 <Button
                   variant="ghost"
                   size="icon"
@@ -172,7 +172,7 @@ export function WorshipMusicPlayer() {
                   max={100}
                   step={1}
                   onValueChange={(value) => setVolume(value[0])}
-                  className="w-20"
+                  className="w-16"
                   data-testid="volume-slider"
                 />
               </div>
