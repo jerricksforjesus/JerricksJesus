@@ -132,16 +132,26 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
 
   const showMiniPlayer = miniPlayerActivated && !mainPlayerVisible && !miniPlayerDismissed;
 
+  const mainPlayerVisibleRef = useRef(mainPlayerVisible);
+  const showMiniPlayerRef = useRef(showMiniPlayer);
+  
+  useEffect(() => {
+    mainPlayerVisibleRef.current = mainPlayerVisible;
+    showMiniPlayerRef.current = showMiniPlayer;
+  }, [mainPlayerVisible, showMiniPlayer]);
+
   const syncPlayerHost = useCallback(() => {
     const wrapper = playerWrapperRef.current;
     if (!wrapper) return;
 
-    const targetHost = mainPlayerVisible ? mainHostRef.current : (showMiniPlayer ? miniHostRef.current : null);
+    const targetHost = mainPlayerVisibleRef.current 
+      ? mainHostRef.current 
+      : (showMiniPlayerRef.current ? miniHostRef.current : null);
     
     if (targetHost && wrapper.parentElement !== targetHost) {
       targetHost.appendChild(wrapper);
     }
-  }, [mainPlayerVisible, showMiniPlayer]);
+  }, []);
 
   const registerMainHost = useCallback((element: HTMLDivElement | null) => {
     mainHostRef.current = element;
@@ -155,7 +165,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     syncPlayerHost();
-  }, [syncPlayerHost]);
+  }, [mainPlayerVisible, showMiniPlayer, syncPlayerHost]);
 
   useEffect(() => {
     if (videos.length === 0) return;
