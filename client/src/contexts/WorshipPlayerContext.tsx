@@ -132,35 +132,28 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
 
   const showMiniPlayer = miniPlayerActivated && !mainPlayerVisible && !miniPlayerDismissed;
 
-  const syncPlayerHost = useCallback((forceMainVisible?: boolean, forceShowMini?: boolean) => {
+  const syncPlayerHost = useCallback(() => {
     const wrapper = playerWrapperRef.current;
     if (!wrapper) return;
 
-    const isMainVisible = forceMainVisible ?? mainPlayerVisible;
-    const shouldShowMini = forceShowMini ?? showMiniPlayer;
-
-    const targetHost = isMainVisible 
+    const targetHost = mainPlayerVisible 
       ? mainHostRef.current 
-      : (shouldShowMini ? miniHostRef.current : null);
+      : miniHostRef.current;
     
     if (targetHost && wrapper.parentElement !== targetHost) {
       targetHost.appendChild(wrapper);
     }
-  }, [mainPlayerVisible, showMiniPlayer]);
+  }, [mainPlayerVisible]);
 
   const registerMainHost = useCallback((element: HTMLDivElement | null) => {
     mainHostRef.current = element;
-    if (element) {
-      syncPlayerHost(true, false);
-    }
+    syncPlayerHost();
   }, [syncPlayerHost]);
 
   const registerMiniHost = useCallback((element: HTMLDivElement | null) => {
     miniHostRef.current = element;
-    if (element && showMiniPlayer) {
-      syncPlayerHost(false, true);
-    }
-  }, [syncPlayerHost, showMiniPlayer]);
+    syncPlayerHost();
+  }, [syncPlayerHost]);
 
   useEffect(() => {
     syncPlayerHost();
