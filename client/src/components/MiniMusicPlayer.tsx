@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, SkipBack, SkipForward, X } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, X, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useWorshipPlayer } from "@/contexts/WorshipPlayerContext";
@@ -10,19 +10,17 @@ export function MiniMusicPlayer() {
     isPlaying,
     currentTime,
     duration,
+    volume,
+    isMuted,
     showMiniPlayer,
     togglePlay,
     next,
     previous,
     seek,
+    setVolume,
+    toggleMute,
     dismissMiniPlayer,
   } = useWorshipPlayer();
-
-  const formatTime = (seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = Math.floor(seconds % 60);
-    return `${mins}:${secs.toString().padStart(2, "0")}`;
-  };
 
   return (
     <AnimatePresence>
@@ -64,9 +62,25 @@ export function MiniMusicPlayer() {
                 <p className="font-medium text-sm line-clamp-1" data-testid="mini-track-title">
                   {currentVideo.title}
                 </p>
-                <p className="text-xs text-muted-foreground">
-                  {formatTime(currentTime)} / {formatTime(duration)}
-                </p>
+                <div className="flex items-center gap-1 mt-1">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={toggleMute}
+                    className="h-6 w-6"
+                    data-testid="mini-button-mute"
+                  >
+                    {isMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+                  </Button>
+                  <Slider
+                    value={[isMuted ? 0 : volume]}
+                    max={100}
+                    step={1}
+                    onValueChange={(value) => setVolume(value[0])}
+                    className="w-16"
+                    data-testid="mini-volume-slider"
+                  />
+                </div>
               </div>
 
               <div className="flex items-center gap-1">
