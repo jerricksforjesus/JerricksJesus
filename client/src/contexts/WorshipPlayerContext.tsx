@@ -132,40 +132,39 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
 
   const showMiniPlayer = miniPlayerActivated && !mainPlayerVisible && !miniPlayerDismissed;
 
-  const mainPlayerVisibleRef = useRef(mainPlayerVisible);
-  const showMiniPlayerRef = useRef(showMiniPlayer);
-  
-  useEffect(() => {
-    mainPlayerVisibleRef.current = mainPlayerVisible;
-    showMiniPlayerRef.current = showMiniPlayer;
-  }, [mainPlayerVisible, showMiniPlayer]);
-
-  const syncPlayerHost = useCallback(() => {
+  const syncPlayerHost = useCallback((forceMainVisible?: boolean, forceShowMini?: boolean) => {
     const wrapper = playerWrapperRef.current;
     if (!wrapper) return;
 
-    const targetHost = mainPlayerVisibleRef.current 
+    const isMainVisible = forceMainVisible ?? mainPlayerVisible;
+    const shouldShowMini = forceShowMini ?? showMiniPlayer;
+
+    const targetHost = isMainVisible 
       ? mainHostRef.current 
-      : (showMiniPlayerRef.current ? miniHostRef.current : null);
+      : (shouldShowMini ? miniHostRef.current : null);
     
     if (targetHost && wrapper.parentElement !== targetHost) {
       targetHost.appendChild(wrapper);
     }
-  }, []);
+  }, [mainPlayerVisible, showMiniPlayer]);
 
   const registerMainHost = useCallback((element: HTMLDivElement | null) => {
     mainHostRef.current = element;
-    syncPlayerHost();
+    if (element) {
+      syncPlayerHost(true, false);
+    }
   }, [syncPlayerHost]);
 
   const registerMiniHost = useCallback((element: HTMLDivElement | null) => {
     miniHostRef.current = element;
-    syncPlayerHost();
-  }, [syncPlayerHost]);
+    if (element && showMiniPlayer) {
+      syncPlayerHost(false, true);
+    }
+  }, [syncPlayerHost, showMiniPlayer]);
 
   useEffect(() => {
     syncPlayerHost();
-  }, [mainPlayerVisible, showMiniPlayer, syncPlayerHost]);
+  }, [syncPlayerHost]);
 
   useEffect(() => {
     if (videos.length === 0) return;

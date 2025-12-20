@@ -23,11 +23,13 @@ export function MiniMusicPlayer() {
   } = useWorshipPlayer();
 
   useEffect(() => {
-    registerMiniHost(videoHostRef.current);
+    if (showMiniPlayer && videoHostRef.current) {
+      registerMiniHost(videoHostRef.current);
+    }
     return () => {
       registerMiniHost(null);
     };
-  }, [registerMiniHost]);
+  }, [registerMiniHost, showMiniPlayer]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
