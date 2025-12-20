@@ -72,7 +72,7 @@ export function MinistryAccordion() {
                 {item.title}
               </AccordionTrigger>
               <AccordionContent className="pb-8">
-                <p className="text-lg text-muted-foreground font-sans leading-relaxed mb-4">
+                <p className="text-muted-foreground font-sans mb-4 text-[16px]">
                   {item.description}
                 </p>
                 {renderCustomContent(item)}
