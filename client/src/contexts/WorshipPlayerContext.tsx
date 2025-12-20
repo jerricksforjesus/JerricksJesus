@@ -106,38 +106,39 @@ function PlayerPortal({
   playerContainerRef: React.RefObject<HTMLDivElement | null>;
   currentVideo: WorshipVideo | undefined;
 }) {
-  const [position, setPosition] = useState({ top: 0, left: 0, width: 0, height: 0 });
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 96, height: 64 });
 
   useEffect(() => {
     const updatePosition = () => {
-      if (mainPlayerVisible && mainPlayerRef.current) {
+      if (mainPlayerRef.current) {
         const rect = mainPlayerRef.current.getBoundingClientRect();
-        setPosition({
-          top: rect.top + window.scrollY,
-          left: rect.left + window.scrollX,
-          width: rect.width,
-          height: rect.height,
-        });
+        if (rect.width > 0 && rect.height > 0) {
+          setPosition({
+            top: rect.top + window.scrollY,
+            left: rect.left + window.scrollX,
+            width: rect.width,
+            height: rect.height,
+          });
+        }
       }
     };
 
     updatePosition();
-
-    if (mainPlayerVisible) {
-      window.addEventListener('resize', updatePosition);
-      window.addEventListener('scroll', updatePosition);
-      const interval = setInterval(updatePosition, 100);
-      return () => {
-        window.removeEventListener('resize', updatePosition);
-        window.removeEventListener('scroll', updatePosition);
-        clearInterval(interval);
-      };
-    }
-  }, [mainPlayerVisible, mainPlayerRef]);
+    
+    window.addEventListener('resize', updatePosition);
+    window.addEventListener('scroll', updatePosition);
+    const interval = setInterval(updatePosition, 100);
+    
+    return () => {
+      window.removeEventListener('resize', updatePosition);
+      window.removeEventListener('scroll', updatePosition);
+      clearInterval(interval);
+    };
+  }, [mainPlayerRef, mainPlayerVisible]);
 
   if (!currentVideo) return null;
 
-  const isMainMode = mainPlayerVisible;
+  const isMainMode = mainPlayerVisible && position.width > 0;
   const isMiniMode = showMiniPlayer && !mainPlayerVisible;
   const isHidden = !isMainMode && !isMiniMode;
 
@@ -152,7 +153,7 @@ function PlayerPortal({
         bottom: isMiniMode ? '0' : 'auto',
         width: isMainMode ? position.width : (isMiniMode ? '64px' : '1px'),
         height: isMainMode ? position.height : (isMiniMode ? '48px' : '1px'),
-        zIndex: isMainMode ? 10 : (isMiniMode ? 60 : -1),
+        zIndex: isMainMode ? 50 : (isMiniMode ? 60 : -1),
         overflow: 'hidden',
         borderRadius: isMainMode ? '8px' : '4px',
         pointerEvents: isHidden ? 'none' : 'auto',
