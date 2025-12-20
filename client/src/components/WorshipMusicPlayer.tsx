@@ -95,7 +95,7 @@ export function WorshipMusicPlayer() {
         <div className="flex gap-4">
           <div 
             ref={mainPlayerRef as React.RefObject<HTMLDivElement>}
-            className="relative w-48 h-32 flex-shrink-0 rounded-lg overflow-hidden bg-black"
+            className="relative w-32 h-20 flex-shrink-0 rounded-lg overflow-hidden bg-black"
           >
           </div>
 
