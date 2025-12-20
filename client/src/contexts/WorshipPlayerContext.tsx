@@ -184,6 +184,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const volumeRef = useRef(volume);
   const autoPlayOnReadyRef = useRef(false);
+  const userInitiatedPlayRef = useRef(false);
 
   const { data: videos = [], isLoading } = useQuery<WorshipVideo[]>({
     queryKey: ["worship-videos"],
@@ -261,7 +262,9 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
           const state = event.data;
           if (state === window.YT.PlayerState.PLAYING) {
             setIsPlaying(true);
-            setMiniPlayerActivated(true);
+            if (userInitiatedPlayRef.current) {
+              setMiniPlayerActivated(true);
+            }
             
             const dur = event.target.getDuration();
             if (dur) setDuration(dur);
@@ -314,6 +317,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   }, [currentIndex, currentVideo, playerReady]);
 
   const play = useCallback(() => {
+    userInitiatedPlayRef.current = true;
     setMiniPlayerDismissed(false);
     if (playerRef.current) {
       try {
