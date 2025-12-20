@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useRef, useEffect, useCallback, type ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 
 interface WorshipVideo {
@@ -79,8 +80,7 @@ interface WorshipPlayerContextType {
   toggleMute: () => void;
   setMainPlayerVisible: (visible: boolean) => void;
   dismissMiniPlayer: () => void;
-  registerMainHost: (element: HTMLDivElement | null) => void;
-  registerMiniHost: (element: HTMLDivElement | null) => void;
+  mainPlayerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 const WorshipPlayerContext = createContext<WorshipPlayerContextType | null>(null);
@@ -91,6 +91,77 @@ export function useWorshipPlayer() {
     throw new Error("useWorshipPlayer must be used within a WorshipPlayerProvider");
   }
   return context;
+}
+
+function PlayerPortal({ 
+  mainPlayerVisible, 
+  showMiniPlayer,
+  mainPlayerRef,
+  playerContainerRef,
+  currentVideo,
+}: { 
+  mainPlayerVisible: boolean;
+  showMiniPlayer: boolean;
+  mainPlayerRef: React.RefObject<HTMLDivElement | null>;
+  playerContainerRef: React.RefObject<HTMLDivElement | null>;
+  currentVideo: WorshipVideo | undefined;
+}) {
+  const [position, setPosition] = useState({ top: 0, left: 0, width: 0, height: 0 });
+
+  useEffect(() => {
+    const updatePosition = () => {
+      if (mainPlayerVisible && mainPlayerRef.current) {
+        const rect = mainPlayerRef.current.getBoundingClientRect();
+        setPosition({
+          top: rect.top + window.scrollY,
+          left: rect.left + window.scrollX,
+          width: rect.width,
+          height: rect.height,
+        });
+      }
+    };
+
+    updatePosition();
+
+    if (mainPlayerVisible) {
+      window.addEventListener('resize', updatePosition);
+      window.addEventListener('scroll', updatePosition);
+      const interval = setInterval(updatePosition, 100);
+      return () => {
+        window.removeEventListener('resize', updatePosition);
+        window.removeEventListener('scroll', updatePosition);
+        clearInterval(interval);
+      };
+    }
+  }, [mainPlayerVisible, mainPlayerRef]);
+
+  if (!currentVideo) return null;
+
+  const isMainMode = mainPlayerVisible;
+  const isMiniMode = showMiniPlayer && !mainPlayerVisible;
+  const isHidden = !isMainMode && !isMiniMode;
+
+  return createPortal(
+    <div
+      ref={playerContainerRef}
+      data-testid="global-video-player"
+      style={{
+        position: isMainMode ? 'absolute' : 'fixed',
+        top: isMainMode ? position.top : (isMiniMode ? 'auto' : '-9999px'),
+        left: isMainMode ? position.left : (isMiniMode ? '-9999px' : '-9999px'),
+        bottom: isMiniMode ? '0' : 'auto',
+        width: isMainMode ? position.width : (isMiniMode ? '64px' : '1px'),
+        height: isMainMode ? position.height : (isMiniMode ? '48px' : '1px'),
+        zIndex: isMainMode ? 10 : (isMiniMode ? 60 : -1),
+        overflow: 'hidden',
+        borderRadius: isMainMode ? '8px' : '4px',
+        pointerEvents: isHidden ? 'none' : 'auto',
+        opacity: isHidden ? 0 : 1,
+        transition: 'none',
+      }}
+    />,
+    document.body
+  );
 }
 
 export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
@@ -107,9 +178,8 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const [miniPlayerActivated, setMiniPlayerActivated] = useState(false);
   
   const playerRef = useRef<YTPlayer | null>(null);
-  const playerWrapperRef = useRef<HTMLDivElement | null>(null);
-  const mainHostRef = useRef<HTMLDivElement | null>(null);
-  const miniHostRef = useRef<HTMLDivElement | null>(null);
+  const playerContainerRef = useRef<HTMLDivElement | null>(null);
+  const mainPlayerRef = useRef<HTMLDivElement | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const volumeRef = useRef(volume);
   const autoPlayOnReadyRef = useRef(false);
@@ -131,33 +201,6 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   }, [volume]);
 
   const showMiniPlayer = miniPlayerActivated && !mainPlayerVisible && !miniPlayerDismissed;
-
-  const syncPlayerHost = useCallback(() => {
-    const wrapper = playerWrapperRef.current;
-    if (!wrapper) return;
-
-    const targetHost = mainPlayerVisible 
-      ? mainHostRef.current 
-      : miniHostRef.current;
-    
-    if (targetHost && wrapper.parentElement !== targetHost) {
-      targetHost.appendChild(wrapper);
-    }
-  }, [mainPlayerVisible]);
-
-  const registerMainHost = useCallback((element: HTMLDivElement | null) => {
-    mainHostRef.current = element;
-    syncPlayerHost();
-  }, [syncPlayerHost]);
-
-  const registerMiniHost = useCallback((element: HTMLDivElement | null) => {
-    miniHostRef.current = element;
-    syncPlayerHost();
-  }, [syncPlayerHost]);
-
-  useEffect(() => {
-    syncPlayerHost();
-  }, [syncPlayerHost]);
 
   useEffect(() => {
     if (videos.length === 0) return;
@@ -185,131 +228,109 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   }, [videos.length]);
 
   useEffect(() => {
-    if (!apiLoaded || !currentVideo) return;
+    if (!apiLoaded || !currentVideo || !playerContainerRef.current) return;
 
-    if (!playerWrapperRef.current) {
-      const wrapper = document.createElement('div');
-      wrapper.style.width = '100%';
-      wrapper.style.height = '100%';
-      wrapper.setAttribute('data-testid', 'global-video-player');
-      playerWrapperRef.current = wrapper;
-    }
+    if (playerRef.current) return;
 
-    const createPlayer = () => {
-      if (playerRef.current) {
-        playerRef.current.destroy();
-        playerRef.current = null;
-      }
-
-      const wrapper = playerWrapperRef.current;
-      if (!wrapper) return;
-
-      while (wrapper.firstChild) {
-        wrapper.removeChild(wrapper.firstChild);
-      }
-
-      const playerDiv = document.createElement('div');
-      playerDiv.id = 'worship-player-iframe';
-      playerDiv.style.width = '100%';
-      playerDiv.style.height = '100%';
-      wrapper.appendChild(playerDiv);
-
-      playerRef.current = new window.YT.Player(playerDiv, {
-        height: "100%",
-        width: "100%",
-        videoId: currentVideo.youtubeVideoId,
-        playerVars: {
-          autoplay: 0,
-          controls: 0,
-          modestbranding: 1,
-          rel: 0,
-          showinfo: 0,
-          fs: 0,
-          playsinline: 1,
+    const player = new window.YT.Player(playerContainerRef.current, {
+      height: "100%",
+      width: "100%",
+      videoId: currentVideo.youtubeVideoId,
+      playerVars: {
+        autoplay: 0,
+        controls: 0,
+        modestbranding: 1,
+        rel: 0,
+        showinfo: 0,
+        fs: 0,
+        playsinline: 1,
+      },
+      events: {
+        onReady: (event) => {
+          playerRef.current = event.target;
+          setPlayerReady(true);
+          event.target.setVolume(volumeRef.current);
+          
+          if (autoPlayOnReadyRef.current) {
+            event.target.playVideo();
+            autoPlayOnReadyRef.current = false;
+          }
         },
-        events: {
-          onReady: (event) => {
-            setPlayerReady(true);
-            event.target.setVolume(volumeRef.current);
-            if (autoPlayOnReadyRef.current) {
-              event.target.playVideo();
-              autoPlayOnReadyRef.current = false;
+        onStateChange: (event) => {
+          const state = event.data;
+          if (state === window.YT.PlayerState.PLAYING) {
+            setIsPlaying(true);
+            setMiniPlayerActivated(true);
+            
+            const dur = event.target.getDuration();
+            if (dur) setDuration(dur);
+            
+            if (progressIntervalRef.current) {
+              clearInterval(progressIntervalRef.current);
             }
-            setDuration(event.target.getDuration());
-          },
-          onStateChange: (event) => {
-            if (event.data === window.YT.PlayerState.PLAYING) {
-              setIsPlaying(true);
-              setMiniPlayerActivated(true);
-              setMiniPlayerDismissed(false);
-              startProgressTracking();
-            } else if (event.data === window.YT.PlayerState.PAUSED) {
-              setIsPlaying(false);
-              stopProgressTracking();
-            } else if (event.data === window.YT.PlayerState.ENDED) {
-              setIsPlaying(false);
-              stopProgressTracking();
-              setCurrentIndex(prev => (prev < videos.length - 1) ? prev + 1 : 0);
-              autoPlayOnReadyRef.current = true;
+            progressIntervalRef.current = setInterval(() => {
+              if (playerRef.current) {
+                try {
+                  const time = playerRef.current.getCurrentTime();
+                  setCurrentTime(time);
+                } catch {
+                }
+              }
+            }, 500);
+          } else if (state === window.YT.PlayerState.PAUSED) {
+            setIsPlaying(false);
+            if (progressIntervalRef.current) {
+              clearInterval(progressIntervalRef.current);
+              progressIntervalRef.current = null;
             }
-          },
+          } else if (state === window.YT.PlayerState.ENDED) {
+            setIsPlaying(false);
+            if (progressIntervalRef.current) {
+              clearInterval(progressIntervalRef.current);
+              progressIntervalRef.current = null;
+            }
+            if (currentIndex < videos.length - 1) {
+              setCurrentIndex((prev) => prev + 1);
+            }
+          }
         },
-      });
-    };
-
-    createPlayer();
+      },
+    });
 
     return () => {
-      stopProgressTracking();
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+      }
     };
-  }, [apiLoaded, currentIndex, currentVideo?.youtubeVideoId, videos.length]);
+  }, [apiLoaded, currentVideo, videos.length, currentIndex]);
 
   useEffect(() => {
-    return () => {
-      stopProgressTracking();
-      if (playerRef.current) {
-        playerRef.current.destroy();
-        playerRef.current = null;
-      }
-    };
-  }, []);
-
-  const startProgressTracking = () => {
-    stopProgressTracking();
-    progressIntervalRef.current = setInterval(() => {
-      if (playerRef.current) {
-        try {
-          setCurrentTime(playerRef.current.getCurrentTime());
-          setDuration(playerRef.current.getDuration());
-        } catch {
-          stopProgressTracking();
-        }
-      }
-    }, 1000);
-  };
-
-  const stopProgressTracking = () => {
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-      progressIntervalRef.current = null;
+    if (playerRef.current && currentVideo && playerReady) {
+      playerRef.current.loadVideoById(currentVideo.youtubeVideoId);
+      setCurrentTime(0);
+      setDuration(0);
     }
-  };
+  }, [currentIndex, currentVideo, playerReady]);
 
   const play = useCallback(() => {
-    if (!playerRef.current) return;
-    try {
-      playerRef.current.playVideo();
-    } catch (e) {
-      console.error("Error playing:", e);
+    if (playerRef.current) {
+      try {
+        playerRef.current.playVideo();
+      } catch (e) {
+        console.error("Error playing:", e);
+      }
+    } else {
+      autoPlayOnReadyRef.current = true;
     }
   }, []);
 
   const pause = useCallback(() => {
-    if (!playerRef.current) return;
-    try {
-      playerRef.current.pauseVideo();
-    } catch (e) {
-      console.error("Error pausing:", e);
+    if (playerRef.current) {
+      try {
+        playerRef.current.pauseVideo();
+      } catch (e) {
+        console.error("Error pausing:", e);
+      }
     }
   }, []);
 
@@ -322,37 +343,28 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   }, [isPlaying, play, pause]);
 
   const next = useCallback(() => {
-    autoPlayOnReadyRef.current = isPlaying;
-    setIsPlaying(false);
-    setCurrentIndex(prev => (prev < videos.length - 1) ? prev + 1 : 0);
-    setCurrentTime(0);
-    setPlayerReady(false);
-    stopProgressTracking();
-  }, [isPlaying, videos.length]);
+    if (currentIndex < videos.length - 1) {
+      setCurrentIndex((prev) => prev + 1);
+    }
+  }, [currentIndex, videos.length]);
 
   const previous = useCallback(() => {
-    autoPlayOnReadyRef.current = isPlaying;
-    setIsPlaying(false);
-    setCurrentIndex(prev => (prev > 0) ? prev - 1 : videos.length - 1);
-    setCurrentTime(0);
-    setPlayerReady(false);
-    stopProgressTracking();
-  }, [isPlaying, videos.length]);
+    if (currentIndex > 0) {
+      setCurrentIndex((prev) => prev - 1);
+    }
+  }, [currentIndex]);
 
   const selectTrack = useCallback((index: number) => {
-    autoPlayOnReadyRef.current = isPlaying;
-    setIsPlaying(false);
-    setCurrentIndex(index);
-    setCurrentTime(0);
-    setPlayerReady(false);
-    stopProgressTracking();
-  }, [isPlaying]);
+    if (index >= 0 && index < videos.length) {
+      setCurrentIndex(index);
+    }
+  }, [videos.length]);
 
   const seek = useCallback((time: number) => {
-    setCurrentTime(time);
     if (playerRef.current) {
       try {
         playerRef.current.seekTo(time, true);
+        setCurrentTime(time);
       } catch (e) {
         console.error("Error seeking:", e);
       }
@@ -364,39 +376,39 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     if (playerRef.current) {
       try {
         playerRef.current.setVolume(newVolume);
-        if (newVolume === 0) {
-          setIsMuted(true);
-        } else if (isMuted) {
-          setIsMuted(false);
+      } catch (e) {
+        console.error("Error setting volume:", e);
+      }
+    }
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    if (playerRef.current) {
+      try {
+        if (isMuted) {
           playerRef.current.unMute();
+          setIsMuted(false);
+        } else {
+          playerRef.current.mute();
+          setIsMuted(true);
         }
       } catch (e) {
-        console.error("Error changing volume:", e);
+        console.error("Error toggling mute:", e);
       }
     }
   }, [isMuted]);
 
-  const toggleMute = useCallback(() => {
-    if (!playerRef.current) return;
-    try {
-      if (isMuted) {
-        playerRef.current.unMute();
-        playerRef.current.setVolume(volume);
-        setIsMuted(false);
-      } else {
-        playerRef.current.mute();
-        setIsMuted(true);
-      }
-    } catch (e) {
-      console.error("Error toggling mute:", e);
-    }
-  }, [isMuted, volume]);
-
   const dismissMiniPlayer = useCallback(() => {
-    pause();
     setMiniPlayerDismissed(true);
     setMiniPlayerActivated(false);
-  }, [pause]);
+    if (playerRef.current) {
+      try {
+        playerRef.current.pauseVideo();
+      } catch (e) {
+        console.error("Error pausing on dismiss:", e);
+      }
+    }
+  }, []);
 
   const value: WorshipPlayerContextType = {
     videos,
@@ -423,13 +435,19 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     toggleMute,
     setMainPlayerVisible,
     dismissMiniPlayer,
-    registerMainHost,
-    registerMiniHost,
+    mainPlayerRef,
   };
 
   return (
     <WorshipPlayerContext.Provider value={value}>
       {children}
+      <PlayerPortal
+        mainPlayerVisible={mainPlayerVisible}
+        showMiniPlayer={showMiniPlayer}
+        mainPlayerRef={mainPlayerRef}
+        playerContainerRef={playerContainerRef}
+        currentVideo={currentVideo}
+      />
     </WorshipPlayerContext.Provider>
   );
 }

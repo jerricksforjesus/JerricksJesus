@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Play, Pause, SkipBack, SkipForward, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,8 +5,6 @@ import { Slider } from "@/components/ui/slider";
 import { useWorshipPlayer } from "@/contexts/WorshipPlayerContext";
 
 export function MiniMusicPlayer() {
-  const videoHostRef = useRef<HTMLDivElement>(null);
-
   const {
     currentVideo,
     isPlaying,
@@ -19,15 +16,7 @@ export function MiniMusicPlayer() {
     previous,
     seek,
     dismissMiniPlayer,
-    registerMiniHost,
   } = useWorshipPlayer();
-
-  useEffect(() => {
-    registerMiniHost(videoHostRef.current);
-    return () => {
-      registerMiniHost(null);
-    };
-  }, [registerMiniHost]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
@@ -36,92 +25,93 @@ export function MiniMusicPlayer() {
   };
 
   return (
-    <>
-      <div 
-        ref={videoHostRef}
-        className="fixed -left-[9999px] w-16 h-12 overflow-hidden"
-        aria-hidden="true"
-      />
-      <AnimatePresence>
-        {showMiniPlayer && currentVideo && (
-          <motion.div
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ type: "spring", damping: 25, stiffness: 300 }}
-            className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t shadow-2xl"
-            data-testid="mini-music-player"
-          >
-            <div className="relative">
-              <Slider
-                value={[currentTime]}
-                max={duration || 100}
-                step={1}
-                onValueChange={(value) => seek(value[0])}
-                className="absolute -top-1.5 left-0 right-0 h-1.5 rounded-none [&>span:first-child]:h-1.5 [&>span:first-child]:rounded-none [&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_[role=slider]]:-top-0.5"
-                data-testid="mini-progress-slider"
-              />
-            </div>
+    <AnimatePresence>
+      {showMiniPlayer && currentVideo && (
+        <motion.div
+          initial={{ y: 100, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          exit={{ y: 100, opacity: 0 }}
+          transition={{ type: "spring", damping: 25, stiffness: 300 }}
+          className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-lg border-t shadow-2xl"
+          data-testid="mini-music-player"
+        >
+          <div className="relative">
+            <Slider
+              value={[currentTime]}
+              max={duration || 100}
+              step={1}
+              onValueChange={(value) => seek(value[0])}
+              className="absolute -top-1.5 left-0 right-0 h-1.5 rounded-none [&>span:first-child]:h-1.5 [&>span:first-child]:rounded-none [&_[role=slider]]:h-3 [&_[role=slider]]:w-3 [&_[role=slider]]:-top-0.5"
+              data-testid="mini-progress-slider"
+            />
+          </div>
 
-            <div className="container mx-auto px-4 py-3">
-              <div className="flex items-center gap-3">
-                <div className="w-16 h-12 flex-shrink-0 rounded overflow-hidden bg-black flex items-center justify-center">
+          <div className="container mx-auto px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="w-16 h-12 flex-shrink-0 rounded overflow-hidden bg-black flex items-center justify-center">
+                {currentVideo.thumbnailUrl ? (
+                  <img 
+                    src={currentVideo.thumbnailUrl} 
+                    alt={currentVideo.title}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
                   <span className="text-white/50 text-xs">♪</span>
-                </div>
+                )}
+              </div>
 
-                <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm line-clamp-1" data-testid="mini-track-title">
-                    {currentVideo.title}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {formatTime(currentTime)} / {formatTime(duration)}
-                  </p>
-                </div>
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-sm line-clamp-1" data-testid="mini-track-title">
+                  {currentVideo.title}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {formatTime(currentTime)} / {formatTime(duration)}
+                </p>
+              </div>
 
-                <div className="flex items-center gap-1">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={previous}
-                    className="h-9 w-9"
-                    data-testid="mini-button-previous"
-                  >
-                    <SkipBack className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    variant="default"
-                    size="icon"
-                    onClick={togglePlay}
-                    className="h-10 w-10 rounded-full"
-                    data-testid="mini-button-play-pause"
-                  >
-                    {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    onClick={next}
-                    className="h-9 w-9"
-                    data-testid="mini-button-next"
-                  >
-                    <SkipForward className="w-4 h-4" />
-                  </Button>
-                </div>
-
+              <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={dismissMiniPlayer}
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                  data-testid="mini-button-close"
+                  onClick={previous}
+                  className="h-9 w-9"
+                  data-testid="mini-button-previous"
                 >
-                  <X className="w-4 h-4" />
+                  <SkipBack className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="default"
+                  size="icon"
+                  onClick={togglePlay}
+                  className="h-10 w-10 rounded-full"
+                  data-testid="mini-button-play-pause"
+                >
+                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={next}
+                  className="h-9 w-9"
+                  data-testid="mini-button-next"
+                >
+                  <SkipForward className="w-4 h-4" />
                 </Button>
               </div>
+
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={dismissMiniPlayer}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                data-testid="mini-button-close"
+              >
+                <X className="w-4 h-4" />
+              </Button>
             </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </>
+          </div>
+        </motion.div>
+      )}
+    </AnimatePresence>
   );
 }
