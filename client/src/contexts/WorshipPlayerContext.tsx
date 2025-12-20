@@ -440,16 +440,20 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     mainPlayerRef,
   };
 
+  const shouldRenderPortal = miniPlayerActivated || mainPlayerVisible;
+
   return (
     <WorshipPlayerContext.Provider value={value}>
       {children}
-      <PlayerPortal
-        mainPlayerVisible={mainPlayerVisible}
-        showMiniPlayer={showMiniPlayer}
-        mainPlayerRef={mainPlayerRef}
-        playerContainerRef={playerContainerRef}
-        currentVideo={currentVideo}
-      />
+      {shouldRenderPortal && (
+        <PlayerPortal
+          mainPlayerVisible={mainPlayerVisible}
+          showMiniPlayer={showMiniPlayer}
+          mainPlayerRef={mainPlayerRef}
+          playerContainerRef={playerContainerRef}
+          currentVideo={currentVideo}
+        />
+      )}
     </WorshipPlayerContext.Provider>
   );
 }
