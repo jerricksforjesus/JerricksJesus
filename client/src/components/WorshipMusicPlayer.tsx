@@ -124,58 +124,53 @@ export function WorshipMusicPlayer() {
               </div>
             </div>
 
-            <div className="flex items-center gap-1 flex-wrap">
-              <div className="flex items-center gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={previous}
-                  disabled={currentIndex === 0}
-                  className="h-8 w-8"
-                  data-testid="button-previous"
-                >
-                  <SkipBack className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="default"
-                  size="icon"
-                  onClick={togglePlay}
-                  className="h-10 w-10 rounded-full"
-                  data-testid="button-play-pause"
-                >
-                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={next}
-                  disabled={currentIndex === videos.length - 1}
-                  className="h-8 w-8"
-                  data-testid="button-next"
-                >
-                  <SkipForward className="w-4 h-4" />
-                </Button>
-              </div>
-
-              <div className="flex items-center gap-1 ml-auto">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleMute}
-                  className="h-8 w-8"
-                  data-testid="button-mute"
-                >
-                  {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-                </Button>
-                <Slider
-                  value={[isMuted ? 0 : volume]}
-                  max={100}
-                  step={1}
-                  onValueChange={(value) => setVolume(value[0])}
-                  className="w-16"
-                  data-testid="volume-slider"
-                />
-              </div>
+            <div className="flex items-center justify-center gap-2">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={previous}
+                disabled={currentIndex === 0}
+                className="h-8 w-8"
+                data-testid="button-previous"
+              >
+                <SkipBack className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="default"
+                size="icon"
+                onClick={togglePlay}
+                className="h-10 w-10 rounded-full"
+                data-testid="button-play-pause"
+              >
+                {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={next}
+                disabled={currentIndex === videos.length - 1}
+                className="h-8 w-8"
+                data-testid="button-next"
+              >
+                <SkipForward className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleMute}
+                className="h-8 w-8"
+                data-testid="button-mute"
+              >
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </Button>
+              <Slider
+                value={[isMuted ? 0 : volume]}
+                max={100}
+                step={1}
+                onValueChange={(value) => setVolume(value[0])}
+                className="w-16"
+                data-testid="volume-slider"
+              />
             </div>
           </div>
         </div>
