@@ -97,6 +97,13 @@ export function WorshipMusicPlayer() {
             ref={mainPlayerRef as React.RefObject<HTMLDivElement>}
             className="relative w-24 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-black"
           >
+            {currentVideo?.thumbnailUrl && (
+              <img 
+                src={currentVideo.thumbnailUrl} 
+                alt={currentVideo.title}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            )}
           </div>
 
           <div className="flex-1 min-w-0 overflow-hidden">

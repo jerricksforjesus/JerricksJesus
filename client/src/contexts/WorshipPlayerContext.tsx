@@ -314,6 +314,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   }, [currentIndex, currentVideo, playerReady]);
 
   const play = useCallback(() => {
+    setMiniPlayerDismissed(false);
     if (playerRef.current) {
       try {
         playerRef.current.playVideo();
