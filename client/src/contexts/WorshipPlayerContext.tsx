@@ -177,6 +177,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const [mainPlayerVisible, setMainPlayerVisible] = useState(false);
   const [miniPlayerDismissed, setMiniPlayerDismissed] = useState(false);
   const [miniPlayerActivated, setMiniPlayerActivated] = useState(false);
+  const [playerCreated, setPlayerCreated] = useState(false);
   
   const playerRef = useRef<YTPlayer | null>(null);
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -184,7 +185,6 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const volumeRef = useRef(volume);
   const autoPlayOnReadyRef = useRef(false);
-  const userInitiatedPlayRef = useRef(false);
 
   const { data: videos = [], isLoading } = useQuery<WorshipVideo[]>({
     queryKey: ["worship-videos"],
@@ -231,6 +231,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!apiLoaded || !currentVideo || !playerContainerRef.current) return;
+    if (!playerCreated) return;
 
     if (playerRef.current) return;
 
@@ -262,9 +263,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
           const state = event.data;
           if (state === window.YT.PlayerState.PLAYING) {
             setIsPlaying(true);
-            if (userInitiatedPlayRef.current) {
-              setMiniPlayerActivated(true);
-            }
+            setMiniPlayerActivated(true);
             
             const dur = event.target.getDuration();
             if (dur) setDuration(dur);
@@ -306,7 +305,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
         clearInterval(progressIntervalRef.current);
       }
     };
-  }, [apiLoaded, currentVideo, videos.length, currentIndex]);
+  }, [apiLoaded, currentVideo, videos.length, currentIndex, playerCreated]);
 
   useEffect(() => {
     if (playerRef.current && currentVideo && playerReady) {
@@ -317,8 +316,12 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   }, [currentIndex, currentVideo, playerReady]);
 
   const play = useCallback(() => {
-    userInitiatedPlayRef.current = true;
     setMiniPlayerDismissed(false);
+    if (!playerCreated) {
+      setPlayerCreated(true);
+      autoPlayOnReadyRef.current = true;
+      return;
+    }
     if (playerRef.current) {
       try {
         playerRef.current.playVideo();
@@ -328,7 +331,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     } else {
       autoPlayOnReadyRef.current = true;
     }
-  }, []);
+  }, [playerCreated]);
 
   const pause = useCallback(() => {
     if (playerRef.current) {
