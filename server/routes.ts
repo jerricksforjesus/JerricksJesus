@@ -676,6 +676,51 @@ export async function registerRoutes(
     return null;
   }
 
+  // Get YouTube video info by ID (public endpoint for fetching video metadata)
+  app.get("/api/youtube/video/:videoId", async (req, res) => {
+    try {
+      const { videoId } = req.params;
+      
+      if (!videoId || videoId.length !== 11) {
+        return res.status(400).json({ error: "Invalid video ID" });
+      }
+
+      const apiKey = process.env.YOUTUBE_API_KEY;
+      if (!apiKey) {
+        console.error("YouTube API key not configured");
+        return res.status(500).json({ error: "YouTube API not configured", title: null, thumbnailUrl: null });
+      }
+
+      const response = await fetch(
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`
+      );
+      
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("YouTube API error:", errorData);
+        return res.status(500).json({ error: "Failed to fetch video info", title: null, thumbnailUrl: null });
+      }
+
+      const data = await response.json();
+      
+      if (!data.items || data.items.length === 0) {
+        return res.status(404).json({ error: "Video not found", title: null, thumbnailUrl: null });
+      }
+
+      const video = data.items[0];
+      const snippet = video.snippet;
+      
+      res.json({
+        title: snippet.title,
+        thumbnailUrl: snippet.thumbnails?.medium?.url || snippet.thumbnails?.default?.url || null,
+        channelTitle: snippet.channelTitle,
+      });
+    } catch (error) {
+      console.error("Error fetching YouTube video info:", error);
+      res.status(500).json({ error: "Failed to fetch video info", title: null, thumbnailUrl: null });
+    }
+  });
+
   // Get worship videos from database
   app.get("/api/worship-videos", async (req, res) => {
     try {
