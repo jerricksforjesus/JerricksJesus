@@ -55,6 +55,16 @@ export function MiniMusicPlayer() {
   } = useWorshipPlayer();
 
   const [showPlaylist, setShowPlaylist] = useState(false);
+  const currentTrackRef = useRef<HTMLButtonElement>(null);
+
+  // Scroll to current track when playlist opens
+  useEffect(() => {
+    if (showPlaylist && currentTrackRef.current) {
+      setTimeout(() => {
+        currentTrackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      }, 100);
+    }
+  }, [showPlaylist]);
 
   return (
     <AnimatePresence>
@@ -83,6 +93,7 @@ export function MiniMusicPlayer() {
                     {videos.map((video, index) => (
                       <button
                         key={video.id}
+                        ref={index === currentIndex ? currentTrackRef : null}
                         onClick={() => {
                           selectTrack(index);
                           setShowPlaylist(false);
