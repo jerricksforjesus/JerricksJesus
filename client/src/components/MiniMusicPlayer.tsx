@@ -163,9 +163,9 @@ export function MiniMusicPlayer() {
             </div>
 
             {/* Row 2: Time + All Controls - evenly spaced */}
-            <div className="flex items-center justify-between gap-2">
+            <div className="flex items-center justify-evenly">
               {/* Time Display */}
-              <div className="flex-shrink-0 text-xs text-muted-foreground tabular-nums" data-testid="mini-track-time">
+              <div className="text-xs text-muted-foreground tabular-nums" data-testid="mini-track-time">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </div>
 
@@ -253,73 +253,77 @@ export function MiniMusicPlayer() {
                 </AnimatePresence>
               </div>
 
-              {/* Playback Controls */}
-              <div className="flex items-center gap-0.5">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={previous}
-                  className="h-8 w-8"
-                  data-testid="mini-button-previous"
-                >
-                  <SkipBack className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="default"
-                  size="icon"
-                  onClick={togglePlay}
-                  className="h-10 w-10 rounded-full"
-                  data-testid="mini-button-play-pause"
-                >
-                  {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={next}
-                  className="h-8 w-8"
-                  data-testid="mini-button-next"
-                >
-                  <SkipForward className="w-4 h-4" />
-                </Button>
-              </div>
+              {/* Previous */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={previous}
+                className="h-8 w-8"
+                data-testid="mini-button-previous"
+              >
+                <SkipBack className="w-4 h-4" />
+              </Button>
 
-              {/* Right Controls: Loop, Playlist, Close */}
-              <div className="flex items-center gap-0.5">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={toggleLoop}
-                  className={cn(
-                    "h-8 w-8",
-                    isLooping && "text-primary bg-primary/10"
-                  )}
-                  data-testid="mini-button-loop"
-                >
-                  <Repeat className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowPlaylist(!showPlaylist)}
-                  className={cn(
-                    "h-8 w-8 transition-transform",
-                    showPlaylist && "rotate-180"
-                  )}
-                  data-testid="mini-button-playlist-toggle"
-                >
-                  <ChevronUp className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={dismissMiniPlayer}
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                  data-testid="mini-button-close"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
+              {/* Play/Pause */}
+              <Button
+                variant="default"
+                size="icon"
+                onClick={togglePlay}
+                className="h-10 w-10 rounded-full"
+                data-testid="mini-button-play-pause"
+              >
+                {isPlaying ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4 ml-0.5" />}
+              </Button>
+
+              {/* Next */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={next}
+                className="h-8 w-8"
+                data-testid="mini-button-next"
+              >
+                <SkipForward className="w-4 h-4" />
+              </Button>
+
+              {/* Loop */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleLoop}
+                className={cn(
+                  "h-8 w-8",
+                  isLooping && "text-primary bg-primary/10"
+                )}
+                data-testid="mini-button-loop"
+              >
+                <Repeat className="w-4 h-4" />
+              </Button>
+
+              {/* Playlist Toggle */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowPlaylist(!showPlaylist)}
+                className={cn(
+                  "h-8 w-8 transition-transform",
+                  showPlaylist && "rotate-180"
+                )}
+                data-testid="mini-button-playlist-toggle"
+              >
+                <ChevronUp className="w-4 h-4" />
+              </Button>
+
+              {/* Close */}
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={dismissMiniPlayer}
+                className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                data-testid="mini-button-close"
+              >
+                <X className="w-4 h-4" />
+              </Button>
             </div>
           </div>
         </motion.div>
