@@ -2865,7 +2865,7 @@ export async function registerRoutes(
   });
 
   // Admin: Get all questions for a book (including unapproved)
-  app.get("/api/admin/quiz/questions/:book", async (req, res) => {
+  app.get("/api/admin/quiz/questions/:book", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const { book } = req.params;
       const questions = await storage.getQuestionsByBook(book, false);
@@ -2877,7 +2877,7 @@ export async function registerRoutes(
   });
 
   // Admin: Generate questions for a book
-  app.post("/api/admin/quiz/generate/:book", async (req, res) => {
+  app.post("/api/admin/quiz/generate/:book", requireAuth, requireRole("superadmin", "admin"), async (req, res) => {
     try {
       const { book } = req.params;
       const { count = 10 } = req.body;
@@ -2902,7 +2902,7 @@ export async function registerRoutes(
   });
 
   // Admin: Bulk generate questions for all books
-  app.post("/api/admin/quiz/generate-all", async (req, res) => {
+  app.post("/api/admin/quiz/generate-all", requireAuth, requireRole("superadmin", "admin"), async (req, res) => {
     try {
       const { skipExisting = true } = req.body;
       
@@ -2966,7 +2966,7 @@ export async function registerRoutes(
   });
 
   // Admin: Approve a single question
-  app.post("/api/admin/quiz/approve/:id", async (req, res) => {
+  app.post("/api/admin/quiz/approve/:id", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.approveQuestion(id);
@@ -2978,7 +2978,7 @@ export async function registerRoutes(
   });
 
   // Admin: Approve all questions for a book
-  app.post("/api/admin/quiz/approve-book/:book", async (req, res) => {
+  app.post("/api/admin/quiz/approve-book/:book", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const { book } = req.params;
       await storage.approveQuestionsByBook(book);
@@ -2990,7 +2990,7 @@ export async function registerRoutes(
   });
 
   // Admin: Update a question
-  app.put("/api/admin/quiz/questions/:id", async (req, res) => {
+  app.put("/api/admin/quiz/questions/:id", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const parsed = insertQuizQuestionSchema.partial().safeParse(req.body);
@@ -3008,7 +3008,7 @@ export async function registerRoutes(
   });
 
   // Admin: Delete a question
-  app.delete("/api/admin/quiz/questions/:id", async (req, res) => {
+  app.delete("/api/admin/quiz/questions/:id", requireAuth, requireRole("superadmin", "admin"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteQuestion(id);
@@ -3020,7 +3020,7 @@ export async function registerRoutes(
   });
 
   // Admin: Delete all questions for a book
-  app.delete("/api/admin/quiz/questions-book/:book", async (req, res) => {
+  app.delete("/api/admin/quiz/questions-book/:book", requireAuth, requireRole("superadmin", "admin"), async (req, res) => {
     try {
       const { book } = req.params;
       await storage.deleteQuestionsByBook(book);
