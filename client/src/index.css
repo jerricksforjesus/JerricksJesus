@@ -102,8 +102,7 @@
 .equalizer-bar:nth-child(4) { animation-delay: 0.1s; }
 .equalizer-bar:nth-child(5) { animation-delay: 0.3s; }
 
-/* Flatlined state - no animation */
+/* Flatlined state - no animation, no transform (wrapper handles scale) */
 .equalizer-bar.flatlined {
-  animation: none;
-  transform: scaleY(0.25);
+  animation-play-state: paused;
 }

@@ -101,13 +101,16 @@ export function EqualizerBars({
 
   const delays = [0, 0.2, 0.4, 0.1, 0.3];
   const isFlatlined = stage === 'flatlined';
+  
+  // Calculate scale - ensure smooth transition all the way to 0.25
+  const currentScale = 0.25 + currentAmplitudeRef.current * 0.75;
 
   return (
     <div 
       ref={wrapperRef}
       className={`equalizer-wrapper gap-[2px] ${className}`}
       style={{
-        transform: `scaleY(${isFlatlined ? 0.25 : (0.25 + currentAmplitudeRef.current * 0.75)})`,
+        transform: `scaleY(${currentScale})`,
       }}
     >
       {[0, 1, 2, 3, 4].map((i) => (
