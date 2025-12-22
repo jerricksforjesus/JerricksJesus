@@ -4059,14 +4059,19 @@ export default function AdminDashboard() {
                               <div className="space-y-3">
                                 <p className="text-sm font-medium">Time slots for selected days:</p>
                                 {alternativeZoomSchedule.map(({ day }) => (
-                                  <div key={day} className="flex flex-wrap items-center gap-2 p-3 bg-white rounded-lg border">
-                                    <span className="text-sm font-medium w-24">{day}</span>
-                                    <div className="flex gap-2">
+                                  <div key={day} className="p-3 bg-white rounded-lg border">
+                                    <div className="flex items-center justify-between mb-2">
+                                      <span className="text-sm font-medium">{day}</span>
+                                      {!isSlotSelectedForDay(day, "day") && !isSlotSelectedForDay(day, "night") && (
+                                        <span className="text-xs text-muted-foreground">(all day)</span>
+                                      )}
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-2">
                                       <button
                                         type="button"
                                         onClick={() => toggleSlotForDay(day, "day")}
                                         data-testid={`button-toggle-${day.toLowerCase()}-day`}
-                                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors border ${
+                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors border ${
                                           isSlotSelectedForDay(day, "day")
                                             ? "text-white border-[#b47a5f]"
                                             : "bg-white text-gray-700 border-gray-300 hover:border-[#b47a5f]"
@@ -4079,7 +4084,7 @@ export default function AdminDashboard() {
                                         type="button"
                                         onClick={() => toggleSlotForDay(day, "night")}
                                         data-testid={`button-toggle-${day.toLowerCase()}-night`}
-                                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors border ${
+                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors border ${
                                           isSlotSelectedForDay(day, "night")
                                             ? "text-white border-[#8b5a47]"
                                             : "bg-white text-gray-700 border-gray-300 hover:border-[#b47a5f]"
@@ -4089,9 +4094,6 @@ export default function AdminDashboard() {
                                         Night
                                       </button>
                                     </div>
-                                    {!isSlotSelectedForDay(day, "day") && !isSlotSelectedForDay(day, "night") && (
-                                      <span className="text-xs text-muted-foreground">(all day)</span>
-                                    )}
                                   </div>
                                 ))}
                               </div>
