@@ -790,11 +790,11 @@ export async function registerRoutes(
     }
   });
 
-  // Player debug logs - receive logs from admin/superadmin clients
+  // Player debug logs - receive logs from superadmin only
   app.post("/api/player-logs", requireAuth, async (req, res) => {
     try {
-      // Only allow superadmin and admin to send logs
-      if (req.user!.role !== USER_ROLES.SUPERADMIN && req.user!.role !== USER_ROLES.ADMIN) {
+      // Only allow superadmin to send logs
+      if (req.user!.role !== USER_ROLES.SUPERADMIN) {
         return res.status(403).json({ error: "Not authorized" });
       }
       

@@ -20,8 +20,8 @@ export function usePlayerLogger() {
   const flushTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isFlushingRef = useRef(false);
 
-  // Only log for admin/superadmin
-  const shouldLog = user?.role === "superadmin" || user?.role === "admin";
+  // Only log for superadmin
+  const shouldLog = user?.role === "superadmin";
 
   const flush = useCallback(async () => {
     if (!shouldLog || bufferRef.current.length === 0 || isFlushingRef.current) {
