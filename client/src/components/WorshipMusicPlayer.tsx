@@ -95,12 +95,13 @@ export function WorshipMusicPlayer() {
       data-testid="worship-music-player"
     >
       <div className="p-4 lg:p-6">
-        {/* Mobile Layout - Original design */}
+        {/* Mobile Layout - Reorganized for full title visibility */}
         <div className="lg:hidden">
-          <div className="flex gap-3 mb-3">
+          {/* Row 1: Thumbnail + Track info */}
+          <div className="flex items-center gap-3 mb-2">
             <div 
               ref={mainPlayerRef as React.RefObject<HTMLDivElement>}
-              className="relative w-24 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-black"
+              className="relative w-16 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-black"
             >
               {currentVideo?.thumbnailUrl && (
                 <img 
@@ -110,29 +111,33 @@ export function WorshipMusicPlayer() {
                 />
               )}
             </div>
+            <p className="text-sm text-muted-foreground">
+              Track {currentIndex + 1} of {videos.length}
+            </p>
+          </div>
 
-            <div className="flex-1 min-w-0 overflow-hidden">
-              <h3 className="font-semibold text-base line-clamp-1" data-testid="current-track-title">
-                {currentVideo?.title || "No track selected"}
-              </h3>
-              <p className="text-xs text-muted-foreground mb-2">
-                Track {currentIndex + 1} of {videos.length}
-              </p>
-              <Slider
-                value={[currentTime]}
-                max={duration || 100}
-                step={1}
-                onValueChange={(value) => seek(value[0])}
-                className="w-full"
-                data-testid="progress-slider"
-              />
-              <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
-              </div>
+          {/* Row 2: Full title */}
+          <h3 className="font-semibold text-base mb-3" data-testid="current-track-title">
+            {currentVideo?.title || "No track selected"}
+          </h3>
+
+          {/* Row 3: Progress bar */}
+          <div className="mb-3">
+            <Slider
+              value={[currentTime]}
+              max={duration || 100}
+              step={1}
+              onValueChange={(value) => seek(value[0])}
+              className="w-full"
+              data-testid="progress-slider"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground mt-1">
+              <span>{formatTime(currentTime)}</span>
+              <span>{formatTime(duration)}</span>
             </div>
           </div>
 
+          {/* Row 4: Controls */}
           <div className="flex items-center justify-center gap-3">
             <Button
               variant="ghost"
