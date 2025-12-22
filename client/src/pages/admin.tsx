@@ -3889,7 +3889,7 @@ export default function AdminDashboard() {
                                   size="sm"
                                   disabled
                                   data-testid={`button-google-sso-${u.id}`}
-                                  className="opacity-60 cursor-not-allowed flex-1 sm:flex-none"
+                                  className="opacity-60 cursor-not-allowed w-full sm:w-[130px] justify-center"
                                 >
                                   <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24">
                                     <path
@@ -3919,7 +3919,7 @@ export default function AdminDashboard() {
                                   disabled={resetPasswordMutation.isPending}
                                   data-testid={`button-reset-password-${u.id}`}
                                   title="Reset password to Jerrick#1"
-                                  className="flex-1 sm:flex-none"
+                                  className="w-full sm:w-[130px] justify-center"
                                 >
                                   <Key className="w-4 h-4 mr-1" />
                                   Password Reset
