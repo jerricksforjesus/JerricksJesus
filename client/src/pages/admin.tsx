@@ -724,6 +724,159 @@ function WorshipPlaylistManager() {
           </div>
         )}
       </div>
+
+      <WorshipMusicRequests />
+    </div>
+  );
+}
+
+interface WorshipRequest {
+  id: number;
+  userId: string;
+  youtubeUrl: string;
+  youtubeVideoId: string | null;
+  title: string | null;
+  thumbnailUrl: string | null;
+  status: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
+  createdAt: string;
+  username?: string;
+}
+
+function WorshipMusicRequests() {
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
+
+  const { data: pendingRequests = [], isLoading } = useQuery<WorshipRequest[]>({
+    queryKey: ["worship-requests-pending"],
+    queryFn: async () => {
+      const response = await fetch("/api/worship-requests/pending", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch pending requests");
+      return response.json();
+    },
+  });
+
+  const updateStatusMutation = useMutation({
+    mutationFn: async ({ id, status }: { id: number; status: string }) => {
+      const response = await fetch(`/api/worship-requests/${id}/status`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ status }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update status");
+      }
+      return response.json();
+    },
+    onSuccess: (_, variables) => {
+      toast({
+        title: variables.status === "approved" ? "Request Approved" : "Request Rejected",
+        description: variables.status === "approved" 
+          ? "The video has been added to the worship playlist." 
+          : "The request has been rejected.",
+      });
+      queryClient.invalidateQueries({ queryKey: ["worship-requests-pending"] });
+      queryClient.invalidateQueries({ queryKey: ["worship-videos-admin"] });
+      queryClient.invalidateQueries({ queryKey: ["worship-videos"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-4">
+        <h3 className="font-medium">Pending Music Requests</h3>
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-medium">Pending Music Requests ({pendingRequests.length})</h3>
+      </div>
+
+      {pendingRequests.length === 0 ? (
+        <div className="text-center py-8 text-muted-foreground border rounded-lg bg-muted/20">
+          <Music className="h-10 w-10 mx-auto mb-3 opacity-50" />
+          <p className="text-sm">No pending music requests.</p>
+          <p className="text-xs mt-1">Member requests will appear here for review.</p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          {pendingRequests.map((request) => (
+            <div
+              key={request.id}
+              className="flex items-center gap-4 p-3 border rounded-lg bg-card hover:bg-muted/30 transition-colors"
+              data-testid={`worship-request-item-${request.id}`}
+            >
+              <div className="w-24 h-14 rounded overflow-hidden bg-muted flex-shrink-0">
+                {request.thumbnailUrl ? (
+                  <img
+                    src={request.thumbnailUrl}
+                    alt={request.title || "Video thumbnail"}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <Play className="w-6 h-6 text-muted-foreground" />
+                  </div>
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <h4 className="font-medium text-sm line-clamp-1">{request.title || "Unknown Title"}</h4>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Requested by: {request.username || "Unknown"} • {new Date(request.createdAt).toLocaleDateString()}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  asChild
+                  className="text-muted-foreground hover:text-foreground"
+                >
+                  <a
+                    href={request.youtubeUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                  >
+                    <ExternalLink className="w-4 h-4" />
+                  </a>
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => updateStatusMutation.mutate({ id: request.id, status: "approved" })}
+                  disabled={updateStatusMutation.isPending}
+                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                  data-testid={`button-approve-request-${request.id}`}
+                >
+                  <Check className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => updateStatusMutation.mutate({ id: request.id, status: "rejected" })}
+                  disabled={updateStatusMutation.isPending}
+                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  data-testid={`button-reject-request-${request.id}`}
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
