@@ -34,7 +34,7 @@ export function EqualizerBars({ isActive, className = "" }: EqualizerBarsProps) 
             { transform: 'scaleY(0.25)' }
           ],
           {
-            duration: 600,
+            duration: 10000,
             easing: 'cubic-bezier(0.4, 0, 0.2, 1)',
             fill: 'forwards'
           }
