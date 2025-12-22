@@ -692,7 +692,12 @@ export async function registerRoutes(
       }
 
       const response = await fetch(
-        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`
+        `https://www.googleapis.com/youtube/v3/videos?part=snippet&id=${videoId}&key=${apiKey}`,
+        {
+          headers: {
+            "Referer": "https://jerricksforjesus.com/"
+          }
+        }
       );
       
       if (!response.ok) {
