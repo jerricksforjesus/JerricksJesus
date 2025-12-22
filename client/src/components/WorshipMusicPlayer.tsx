@@ -117,7 +117,7 @@ export function WorshipMusicPlayer() {
           </div>
 
           {/* Row 2: Full title */}
-          <h3 className="font-semibold text-base mb-[10px]" data-testid="current-track-title">
+          <h3 className="font-semibold text-base mb-5" data-testid="current-track-title">
             {currentVideo?.title || "No track selected"}
           </h3>
 
