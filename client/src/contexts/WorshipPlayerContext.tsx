@@ -1,6 +1,7 @@
 import { createContext, useContext, useState, useRef, useEffect, useCallback, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth";
 
 interface WorshipVideo {
   id: number;
@@ -182,6 +183,7 @@ function PlayerPortal({
 }
 
 export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolumeState] = useState(80);
@@ -196,6 +198,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const [playerCreated, setPlayerCreated] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
   const [isLooping, setIsLooping] = useState(false);
+  const [lastPlayedLoaded, setLastPlayedLoaded] = useState(false);
   
   const playerRef = useRef<YTPlayer | null>(null);
   const isLoopingRef = useRef(isLooping);
@@ -216,6 +219,51 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   });
 
   const currentVideo = videos[currentIndex];
+
+  // Load last played video for logged-in users
+  useEffect(() => {
+    if (!user || videos.length === 0 || lastPlayedLoaded) return;
+    
+    const loadLastPlayed = async () => {
+      try {
+        const response = await fetch("/api/user/last-played", { credentials: "include" });
+        if (response.ok) {
+          const { videoId } = await response.json();
+          if (videoId) {
+            const index = videos.findIndex(v => v.youtubeVideoId === videoId);
+            if (index !== -1) {
+              setCurrentIndex(index);
+            }
+          }
+        }
+      } catch (error) {
+        console.error("Failed to load last played video:", error);
+      }
+      setLastPlayedLoaded(true);
+    };
+    
+    loadLastPlayed();
+  }, [user, videos, lastPlayedLoaded]);
+
+  // Save last played video when track changes (for logged-in users)
+  useEffect(() => {
+    if (!user || !currentVideo || !lastPlayedLoaded) return;
+    
+    const saveLastPlayed = async () => {
+      try {
+        await fetch("/api/user/last-played", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ videoId: currentVideo.youtubeVideoId }),
+        });
+      } catch (error) {
+        console.error("Failed to save last played video:", error);
+      }
+    };
+    
+    saveLastPlayed();
+  }, [user, currentVideo?.youtubeVideoId, lastPlayedLoaded]);
 
   useEffect(() => {
     volumeRef.current = volume;

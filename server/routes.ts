@@ -790,6 +790,32 @@ export async function registerRoutes(
     }
   });
 
+  // Get user's last played video ID
+  app.get("/api/user/last-played", requireAuth, async (req, res) => {
+    try {
+      const videoId = await storage.getLastPlayedVideoId(req.user!.id);
+      res.json({ videoId });
+    } catch (error) {
+      console.error("Error fetching last played video:", error);
+      res.status(500).json({ error: "Failed to fetch last played video" });
+    }
+  });
+
+  // Set user's last played video ID
+  app.put("/api/user/last-played", requireAuth, async (req, res) => {
+    try {
+      const { videoId } = req.body;
+      if (!videoId || typeof videoId !== "string") {
+        return res.status(400).json({ error: "Invalid video ID" });
+      }
+      await storage.setLastPlayedVideoId(req.user!.id, videoId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error setting last played video:", error);
+      res.status(500).json({ error: "Failed to set last played video" });
+    }
+  });
+
   // Add video to worship playlist (Foundational/Admin only)
   app.post("/api/worship-videos", requireAuth, requireRole(USER_ROLES.SUPERADMIN, USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
     try {

@@ -19,6 +19,8 @@ export interface IStorage {
   linkGoogleAccount(id: string, googleId: string): Promise<User | undefined>;
   updateDateOfBirth(id: string, dateOfBirth: string): Promise<User | undefined>;
   getUsersWithBirthdays(): Promise<User[]>;
+  getLastPlayedVideoId(userId: string): Promise<string | null>;
+  setLastPlayedVideoId(userId: string, videoId: string): Promise<void>;
   
   // Session methods
   createSession(session: InsertSession): Promise<Session>;
@@ -222,6 +224,15 @@ export class DbStorage implements IStorage {
     return await db.query.users.findMany({
       where: (users, { isNotNull }) => isNotNull(users.dateOfBirth),
     });
+  }
+
+  async getLastPlayedVideoId(userId: string): Promise<string | null> {
+    const user = await this.getUser(userId);
+    return user?.lastPlayedVideoId ?? null;
+  }
+
+  async setLastPlayedVideoId(userId: string, videoId: string): Promise<void> {
+    await db.update(users).set({ lastPlayedVideoId: videoId }).where(eq(users.id, userId));
   }
 
   async createSession(session: InsertSession): Promise<Session> {
