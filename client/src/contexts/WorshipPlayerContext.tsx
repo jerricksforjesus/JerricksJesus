@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useRef, useEffect, useCallback, ty
 import { createPortal } from "react-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
+import { usePlayerLogger } from "@/hooks/usePlayerLogger";
 
 interface WorshipVideo {
   id: number;
@@ -188,6 +189,7 @@ function PlayerPortal({
 
 export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
+  const { logEvent } = usePlayerLogger();
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolumeState] = useState(80);
@@ -509,17 +511,33 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
           // Track the initially loaded video ID
           loadedVideoIdRef.current = currentVideo.youtubeVideoId;
           
+          logEvent("YT_ON_READY", {
+            videoId: currentVideo.youtubeVideoId,
+            videoIndex: currentIndex,
+            payload: { hasPendingCallback: !!pendingPlayCallbackRef.current, autoPlayOnReady: autoPlayOnReadyRef.current },
+          });
+          
           // Handle pending play callback for iOS - maintains user gesture chain
           if (pendingPlayCallbackRef.current) {
+            logEvent("YT_PENDING_CALLBACK_EXEC", { videoId: currentVideo.youtubeVideoId });
             pendingPlayCallbackRef.current();
             pendingPlayCallbackRef.current = null;
           } else if (autoPlayOnReadyRef.current) {
+            logEvent("YT_AUTOPLAY_ON_READY", { videoId: currentVideo.youtubeVideoId });
             event.target.playVideo();
             autoPlayOnReadyRef.current = false;
           }
         },
         onStateChange: (event) => {
           const state = event.data;
+          const stateNames: Record<number, string> = { [-1]: "UNSTARTED", 0: "ENDED", 1: "PLAYING", 2: "PAUSED", 3: "BUFFERING", 5: "CUED" };
+          logEvent("YT_STATE_CHANGE", {
+            videoId: currentVideo.youtubeVideoId,
+            videoIndex: currentIndex,
+            playerState: state,
+            payload: { stateName: stateNames[state] || `UNKNOWN_${state}` },
+          });
+          
           if (state === window.YT.PlayerState.PLAYING) {
             setIsPlaying(true);
             setMiniPlayerActivated(true);
@@ -620,10 +638,12 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
       
       if (shouldAutoPlay) {
         // Use loadVideoById which auto-plays
+        logEvent("LOAD_VIDEO_BY_ID", { videoId: currentVideo.youtubeVideoId, videoIndex: currentIndex, payload: { autoPlay: true } });
         playerRef.current.loadVideoById(currentVideo.youtubeVideoId);
         loadedVideoIdRef.current = currentVideo.youtubeVideoId;
       } else {
         // Use cueVideoById which does NOT auto-play
+        logEvent("CUE_VIDEO_BY_ID", { videoId: currentVideo.youtubeVideoId, videoIndex: currentIndex, payload: { autoPlay: false } });
         playerRef.current.cueVideoById(currentVideo.youtubeVideoId);
         loadedVideoIdRef.current = currentVideo.youtubeVideoId;
       }
@@ -637,12 +657,20 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   }, [currentIndex, currentVideo, playerReady]);
 
   const play = useCallback(() => {
+    const videoId = videos[currentIndex]?.youtubeVideoId;
+    logEvent("PLAY_CALLED", {
+      videoId,
+      videoIndex: currentIndex,
+      payload: { playerCreated, playerReady, hasPlayerRef: !!playerRef.current, loadedVideoId: loadedVideoIdRef.current },
+    });
+    
     setMiniPlayerDismissed(false);
     setIsInitializing(true);
     
     // Reset initializing state after timeout in case playback fails
     // This prevents the button from being stuck in loading state
     const initTimeoutId = setTimeout(() => {
+      logEvent("PLAY_TIMEOUT", { videoId, videoIndex: currentIndex, payload: { reason: "5s timeout reached" } });
       setIsInitializing(false);
     }, 5000);
     
@@ -650,15 +678,20 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     const executePlay = () => {
       if (playerRef.current) {
         try {
+          logEvent("EXECUTE_PLAY_VIDEO", { videoId, videoIndex: currentIndex });
           playerRef.current.playVideo();
         } catch (e) {
+          logEvent("PLAY_ERROR", { videoId, videoIndex: currentIndex, payload: { error: String(e) } });
           console.error("Error playing:", e);
         }
+      } else {
+        logEvent("PLAY_NO_PLAYER_REF", { videoId, videoIndex: currentIndex });
       }
     };
     
     if (!playerCreated) {
       // Player not created yet - create it and queue play for when ready
+      logEvent("PLAY_CREATE_PLAYER", { videoId, videoIndex: currentIndex });
       setPlayerCreated(true);
       // Store the play action as a pending callback for iOS
       pendingPlayCallbackRef.current = executePlay;
@@ -668,17 +701,20 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     
     // If player exists and is ready, play immediately (within user gesture)
     if (playerRef.current && playerReady) {
+      logEvent("PLAY_IMMEDIATE", { videoId, videoIndex: currentIndex });
       executePlay();
       clearTimeout(initTimeoutId);
       // isInitializing will be cleared by onStateChange when PLAYING fires
     } else {
       // Player exists but not ready - queue for when ready
+      logEvent("PLAY_QUEUE_PENDING", { videoId, videoIndex: currentIndex, payload: { playerExists: !!playerRef.current, playerReady } });
       pendingPlayCallbackRef.current = executePlay;
       autoPlayOnReadyRef.current = true;
     }
-  }, [playerCreated, playerReady]);
+  }, [playerCreated, playerReady, currentIndex, videos, logEvent]);
 
   const pause = useCallback(() => {
+    logEvent("PAUSE_CALLED", { videoId: videos[currentIndex]?.youtubeVideoId, videoIndex: currentIndex });
     // Clear any pending auto-play to prevent pause from being overridden
     autoPlayOnReadyRef.current = false;
     shouldContinuePlayingRef.current = false;
@@ -687,10 +723,11 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
       try {
         playerRef.current.pauseVideo();
       } catch (e) {
+        logEvent("PAUSE_ERROR", { videoIndex: currentIndex, payload: { error: String(e) } });
         console.error("Error pausing:", e);
       }
     }
-  }, []);
+  }, [currentIndex, videos, logEvent]);
 
   const togglePlay = useCallback(() => {
     if (isPlaying) {
@@ -701,6 +738,13 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   }, [isPlaying, play, pause]);
 
   const next = useCallback(() => {
+    const newIndex = currentIndex < videos.length - 1 ? currentIndex + 1 : 0;
+    logEvent("NEXT_CALLED", {
+      videoId: videos[newIndex]?.youtubeVideoId,
+      videoIndex: newIndex,
+      payload: { fromIndex: currentIndex, isPlaying: isPlayingRef.current },
+    });
+    
     // Mark that we should continue playing if currently playing
     if (isPlayingRef.current) {
       shouldContinuePlayingRef.current = true;
@@ -712,7 +756,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
       // At end of playlist, wrap to beginning
       setCurrentIndex(0);
     }
-  }, [currentIndex, videos.length]);
+  }, [currentIndex, videos.length, videos, logEvent]);
 
   const previous = useCallback(() => {
     const now = Date.now();
@@ -748,9 +792,14 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
 
   const selectTrack = useCallback((index: number) => {
     if (index >= 0 && index < videos.length) {
+      logEvent("SELECT_TRACK", {
+        videoId: videos[index]?.youtubeVideoId,
+        videoIndex: index,
+        payload: { fromIndex: currentIndex },
+      });
       setCurrentIndex(index);
     }
-  }, [videos.length]);
+  }, [videos.length, videos, currentIndex, logEvent]);
 
   const seek = useCallback((time: number) => {
     if (playerRef.current) {

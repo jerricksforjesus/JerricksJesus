@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, type QuizQuestion, type InsertQuizQuestion, type QuizAttempt, type InsertQuizAttempt, type Session, type InsertSession, type MemberPhoto, type InsertMemberPhoto, type SiteSetting, type YoutubeAuth, type InsertYoutubeAuth, type WorshipVideo, type InsertWorshipVideo, type WorshipRequest, type InsertWorshipRequest, type Event, type InsertEvent, videos, verses, users, photos, quizQuestions, quizAttempts, sessions, memberPhotos, siteSettings, youtubeAuth, worshipVideos, worshipRequests, events } from "@shared/schema";
+import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, type QuizQuestion, type InsertQuizQuestion, type QuizAttempt, type InsertQuizAttempt, type Session, type InsertSession, type MemberPhoto, type InsertMemberPhoto, type SiteSetting, type YoutubeAuth, type InsertYoutubeAuth, type WorshipVideo, type InsertWorshipVideo, type WorshipRequest, type InsertWorshipRequest, type Event, type InsertEvent, type PlayerLog, type InsertPlayerLog, videos, verses, users, photos, quizQuestions, quizAttempts, sessions, memberPhotos, siteSettings, youtubeAuth, worshipVideos, worshipRequests, events, playerLogs } from "@shared/schema";
 import { db } from "./db";
 import { eq, asc, desc, and, sql, gt, gte } from "drizzle-orm";
 import * as schema from "@shared/schema";
@@ -119,6 +119,12 @@ export interface IStorage {
   createEvent(event: InsertEvent): Promise<Event>;
   updateEvent(id: number, data: Partial<InsertEvent>): Promise<Event | undefined>;
   deleteEvent(id: number): Promise<void>;
+  
+  // Player debug logs
+  createPlayerLogs(logs: InsertPlayerLog[]): Promise<PlayerLog[]>;
+  getPlayerLogsBySession(sessionId: string): Promise<PlayerLog[]>;
+  getRecentPlayerLogs(limit?: number): Promise<PlayerLog[]>;
+  clearOldPlayerLogs(daysOld?: number): Promise<number>;
 }
 
 export class DbStorage implements IStorage {
@@ -830,6 +836,36 @@ export class DbStorage implements IStorage {
 
   async deleteWorshipRequest(id: number): Promise<void> {
     await db.delete(worshipRequests).where(eq(worshipRequests.id, id));
+  }
+
+  // Player debug logs
+  async createPlayerLogs(logs: InsertPlayerLog[]): Promise<PlayerLog[]> {
+    if (logs.length === 0) return [];
+    const created = await db.insert(playerLogs).values(logs).returning();
+    return created;
+  }
+
+  async getPlayerLogsBySession(sessionId: string): Promise<PlayerLog[]> {
+    return await db.query.playerLogs.findMany({
+      where: (p, { eq }) => eq(p.sessionId, sessionId),
+      orderBy: (p, { asc }) => [asc(p.createdAt)],
+    });
+  }
+
+  async getRecentPlayerLogs(limit: number = 500): Promise<PlayerLog[]> {
+    return await db.query.playerLogs.findMany({
+      orderBy: (p, { desc }) => [desc(p.createdAt)],
+      limit,
+    });
+  }
+
+  async clearOldPlayerLogs(daysOld: number = 7): Promise<number> {
+    const cutoff = new Date();
+    cutoff.setDate(cutoff.getDate() - daysOld);
+    const result = await db.delete(playerLogs)
+      .where(sql`${playerLogs.createdAt} < ${cutoff}`)
+      .returning();
+    return result.length;
   }
 }
 

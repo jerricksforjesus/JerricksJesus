@@ -790,6 +790,51 @@ export async function registerRoutes(
     }
   });
 
+  // Player debug logs - receive logs from admin/superadmin clients
+  app.post("/api/player-logs", requireAuth, async (req, res) => {
+    try {
+      // Only allow superadmin and admin to send logs
+      if (req.user!.role !== USER_ROLES.SUPERADMIN && req.user!.role !== USER_ROLES.ADMIN) {
+        return res.status(403).json({ error: "Not authorized" });
+      }
+      
+      const { events, sessionId, userAgent } = req.body;
+      if (!Array.isArray(events) || events.length === 0) {
+        return res.status(400).json({ error: "Invalid events array" });
+      }
+      
+      const logs = events.map((event: { eventType: string; videoId?: string; videoIndex?: number; playerState?: number; payload?: unknown }) => ({
+        userId: req.user!.id,
+        userRole: req.user!.role,
+        eventType: event.eventType,
+        videoId: event.videoId || null,
+        videoIndex: event.videoIndex ?? null,
+        playerState: event.playerState ?? null,
+        payload: event.payload ? JSON.stringify(event.payload) : null,
+        userAgent: userAgent || req.headers["user-agent"] || null,
+        sessionId: sessionId || null,
+      }));
+      
+      await storage.createPlayerLogs(logs);
+      res.json({ success: true, count: logs.length });
+    } catch (error) {
+      console.error("Error saving player logs:", error);
+      res.status(500).json({ error: "Failed to save logs" });
+    }
+  });
+
+  // Get recent player logs (for debugging)
+  app.get("/api/player-logs", requireAuth, requireRole(USER_ROLES.SUPERADMIN), async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit as string) || 500;
+      const logs = await storage.getRecentPlayerLogs(limit);
+      res.json(logs);
+    } catch (error) {
+      console.error("Error fetching player logs:", error);
+      res.status(500).json({ error: "Failed to fetch logs" });
+    }
+  });
+
   // Get user's last played video ID
   app.get("/api/user/last-played", requireAuth, async (req, res) => {
     try {

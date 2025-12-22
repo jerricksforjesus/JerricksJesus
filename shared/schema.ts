@@ -317,3 +317,26 @@ export type WorshipRequest = typeof worshipRequests.$inferSelect;
 
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type Event = typeof events.$inferSelect;
+
+// Player debug logs for troubleshooting mobile playback issues
+export const playerLogs = pgTable("player_logs", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").references(() => users.id),
+  userRole: text("user_role"),
+  eventType: text("event_type").notNull(),
+  videoId: text("video_id"),
+  videoIndex: integer("video_index"),
+  playerState: integer("player_state"),
+  payload: text("payload"), // JSON string for additional data
+  userAgent: text("user_agent"),
+  sessionId: text("session_id"), // To group events from same page session
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+export const insertPlayerLogSchema = createInsertSchema(playerLogs).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertPlayerLog = z.infer<typeof insertPlayerLogSchema>;
+export type PlayerLog = typeof playerLogs.$inferSelect;
