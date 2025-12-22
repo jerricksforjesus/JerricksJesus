@@ -1063,6 +1063,32 @@ export async function registerRoutes(
   });
 
   // Approve/reject a worship request (admin/foundational only)
+  // Cancel/delete a worship request (user can only cancel their own pending requests)
+  app.delete("/api/worship-requests/:id", requireAuth, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const requestId = parseInt(id);
+      
+      // Get the request to verify ownership and status
+      const requests = await storage.getWorshipRequestsByUser(req.user!.id);
+      const request = requests.find(r => r.id === requestId);
+      
+      if (!request) {
+        return res.status(404).json({ error: "Request not found" });
+      }
+      
+      if (request.status !== "pending") {
+        return res.status(400).json({ error: "Can only cancel pending requests" });
+      }
+
+      await storage.deleteWorshipRequest(requestId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error canceling worship request:", error);
+      res.status(500).json({ error: "Failed to cancel request" });
+    }
+  });
+
   app.patch("/api/worship-requests/:id/status", requireAuth, requireRole(USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
     try {
       const { id } = req.params;

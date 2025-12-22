@@ -104,6 +104,7 @@ export interface IStorage {
   getWorshipRequestsByStatus(status: string): Promise<WorshipRequest[]>;
   getPendingWorshipRequests(): Promise<WorshipRequest[]>;
   updateWorshipRequestStatus(id: number, status: string, reviewedBy: string): Promise<WorshipRequest | undefined>;
+  deleteWorshipRequest(id: number): Promise<void>;
   
   // Events methods
   getAllEvents(): Promise<Event[]>;
@@ -792,6 +793,10 @@ export class DbStorage implements IStorage {
       .where(eq(worshipRequests.id, id))
       .returning();
     return updated;
+  }
+
+  async deleteWorshipRequest(id: number): Promise<void> {
+    await db.delete(worshipRequests).where(eq(worshipRequests.id, id));
   }
 }
 

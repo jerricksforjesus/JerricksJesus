@@ -263,6 +263,27 @@ export function MemberDashboard() {
     },
   });
 
+  const cancelMusicRequestMutation = useMutation({
+    mutationFn: async (requestId: number) => {
+      const response = await fetch(`/api/worship-requests/${requestId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to cancel request");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Request Cancelled", description: "Your music request has been cancelled." });
+      queryClient.invalidateQueries({ queryKey: ["worship-requests-my"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   useEffect(() => {
     const fetchSignedUrls = async () => {
       for (const photo of myPhotos) {
@@ -643,10 +664,20 @@ export function MemberDashboard() {
                               </div>
                               <div className="flex items-center gap-2">
                                 {request.status === "pending" && (
-                                  <span className="flex items-center gap-1 text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
-                                    <Clock className="w-3 h-3" />
-                                    Pending
-                                  </span>
+                                  <>
+                                    <span className="flex items-center gap-1 text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
+                                      <Clock className="w-3 h-3" />
+                                      Pending
+                                    </span>
+                                    <button
+                                      onClick={() => cancelMusicRequestMutation.mutate(request.id)}
+                                      disabled={cancelMusicRequestMutation.isPending}
+                                      className="text-xs text-red-600 hover:text-red-700 hover:underline disabled:opacity-50"
+                                      data-testid={`button-cancel-request-${request.id}`}
+                                    >
+                                      Cancel Request
+                                    </button>
+                                  </>
                                 )}
                                 {request.status === "approved" && (
                                   <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
