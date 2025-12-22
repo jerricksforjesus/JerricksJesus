@@ -461,7 +461,7 @@ export function MemberDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-muted/20">
+    <div className="min-h-screen" style={{ backgroundColor: "#EDEBE5" }}>
       <Navigation />
       
       <div className="pt-20 lg:pt-24 flex min-h-[calc(100vh-5rem)]">

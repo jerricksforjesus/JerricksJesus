@@ -15,31 +15,31 @@
   --radius-xl: 1rem;
 
   /* Colors - Based on "Stone & Paper" Palette */
-  /* Warm Alabaster (#F2F0E9) -> 44 20% 93% */
+  /* Standard Light Background: #EDEBE5 */
   /* Deep Graphite (#2A2A2A) -> 0 0% 16% */
   /* Burnt Clay (#B07D62) -> 19 36% 54% */
   /* Olive Drab (#6B705C) -> 75 10% 40% */
   /* Soft Grey (#D1D1D1) -> 0 0% 82% */
 
-  --color-background: hsl(44 20% 93%);
+  --color-background: #EDEBE5;
   --color-foreground: hsl(0 0% 16%);
 
-  --color-card: hsl(44 20% 96%);
+  --color-card: #EDEBE5;
   --color-card-foreground: hsl(0 0% 16%);
 
-  --color-popover: hsl(44 20% 96%);
+  --color-popover: #EDEBE5;
   --color-popover-foreground: hsl(0 0% 16%);
 
   --color-primary: hsl(19 36% 54%); /* Burnt Clay */
-  --color-primary-foreground: hsl(44 20% 93%);
+  --color-primary-foreground: #EDEBE5;
 
   --color-secondary: hsl(75 10% 40%); /* Olive Drab */
-  --color-secondary-foreground: hsl(44 20% 93%);
+  --color-secondary-foreground: #EDEBE5;
 
-  --color-muted: hsl(44 10% 85%);
+  --color-muted: #EDEBE5;
   --color-muted-foreground: hsl(0 0% 40%);
 
-  --color-accent: hsl(44 10% 88%);
+  --color-accent: #EDEBE5;
   --color-accent-foreground: hsl(19 36% 54%);
 
   --color-destructive: hsl(0 60% 50%);
@@ -55,11 +55,11 @@
   --color-chart-4: hsl(180 20% 40%);
   --color-chart-5: hsl(20 20% 50%);
 
-  --color-sidebar: hsl(44 20% 93%);
+  --color-sidebar: #EDEBE5;
   --color-sidebar-foreground: hsl(0 0% 16%);
   --color-sidebar-primary: hsl(19 36% 54%);
-  --color-sidebar-primary-foreground: hsl(44 20% 93%);
-  --color-sidebar-accent: hsl(44 10% 88%);
+  --color-sidebar-primary-foreground: #EDEBE5;
+  --color-sidebar-accent: #EDEBE5;
   --color-sidebar-accent-foreground: hsl(19 36% 54%);
   --color-sidebar-border: hsl(0 0% 82%);
   --color-sidebar-ring: hsl(19 36% 54%);

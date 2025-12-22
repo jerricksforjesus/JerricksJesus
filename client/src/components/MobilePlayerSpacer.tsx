@@ -1,6 +1,6 @@
 export function MobilePlayerSpacer({ variant = "light" }: { variant?: "light" | "dark" | "admin" }) {
   const colors = {
-    light: "#f1efea",
+    light: "#EDEBE5",
     admin: "#EDEBE5",
     dark: "#292929",
   };
