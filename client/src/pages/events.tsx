@@ -402,11 +402,6 @@ export default function Events() {
         )}
       </section>
 
-      {/* Footer */}
-      <footer className="mt-auto py-8 border-t border-border">
-        <div className="max-w-7xl mx-auto px-4 text-center text-muted-foreground text-sm">
-        </div>
-      </footer>
       <MobilePlayerSpacer />
     </div>
   );

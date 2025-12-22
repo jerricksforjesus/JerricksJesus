@@ -82,7 +82,7 @@ export default function Home() {
           </div>
         </div>
         <div className="max-w-7xl mx-auto mt-16 pt-8 border-t border-background/10 text-center md:text-left text-sm text-background/40" data-testid="text-footer-copyright">
-          {footer?.copyright || "© 2025 Jerricks for Jesus. All rights reserved."}
+          {footer?.copyright || `© ${new Date().getFullYear()} Jerricks for Jesus. All rights reserved.`}
         </div>
       </footer>
       <MobilePlayerSpacer variant="dark" />
