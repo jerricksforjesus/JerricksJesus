@@ -112,18 +112,18 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
-            className="mt-8"
+            className="mt-8 mb-[10px]"
           >
             <Button 
               asChild
               size="lg" 
-              className="font-bold px-8 w-[220px]"
+              className="font-bold px-8 w-[220px] justify-between"
               style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
               data-testid="button-join-zoom-hero"
             >
-              <a href={zoomData.zoomLink} target="_blank" rel="noopener noreferrer">
-                <Video className="w-5 h-5 mr-2" />
-                Join the Zoom
+              <a href={zoomData.zoomLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between w-full">
+                <span>Join the Zoom</span>
+                <Video className="w-5 h-5 ml-2" />
               </a>
             </Button>
           </motion.div>
@@ -135,18 +135,18 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
-            className="mt-4"
+            className="mb-[10px]"
           >
             <Button 
               asChild
               size="lg" 
-              className="font-bold px-8 w-[220px]"
+              className="font-bold px-8 w-[220px] justify-between"
               style={{ backgroundColor: "#ffffff", color: "#b47a5f", border: "2px solid #ffffff" }}
               data-testid="button-sign-in-hero"
             >
-              <Link href="/login">
-                <LogIn className="w-5 h-5 mr-2" />
-                Sign In
+              <Link href="/login" className="flex items-center justify-between w-full">
+                <span>Sign In</span>
+                <LogIn className="w-5 h-5 ml-2" />
               </Link>
             </Button>
           </motion.div>
