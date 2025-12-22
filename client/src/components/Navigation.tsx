@@ -54,11 +54,34 @@ export function Navigation() {
     }
   };
 
+  const handleMinistriesClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (location === "/") {
+      // Already on home page - smooth scroll to ministries
+      const element = document.getElementById("ministries");
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth" });
+      }
+    } else {
+      // Navigate to home page with hash
+      setLocation("/#ministries");
+      // After navigation, scroll to section
+      setTimeout(() => {
+        const element = document.getElementById("ministries");
+        if (element) {
+          element.scrollIntoView({ behavior: "smooth" });
+        }
+      }, 100);
+    }
+    setMobileMenuOpen(false);
+  };
+
   const navLinks = [
     { href: "/", label: "Sanctuary" },
     { href: "/live", label: "Live Stream" },
     { href: "/replays", label: "Replays" },
     { href: "/events", label: "Events" },
+    { href: "/#ministries", label: "Ministries", onClick: handleMinistriesClick },
     { href: user ? "/admin" : "/login", label: getAccountLabel() },
   ];
 
@@ -90,7 +113,7 @@ export function Navigation() {
           onMouseLeave={() => setHoveredIndex(navLinks.findIndex(link => link.href === location))}
         >
           {navLinks.map((link, index) => (
-            <Link key={link.href} href={link.href}>
+            <Link key={link.label} href={link.href} onClick={link.onClick}>
               <span
                 className="relative cursor-pointer px-5 py-1 block"
                 onMouseEnter={() => setHoveredIndex(index)}
@@ -138,18 +161,20 @@ export function Navigation() {
         <div className="absolute top-full left-0 right-0 bg-background border-b p-6 md:hidden flex flex-col gap-4 animate-in slide-in-from-top-5">
           {navLinks.map((link) => {
             const isAccountLink = link.label === getAccountLabel() && user;
+            const isMinistriesLink = link.label === "Ministries";
             let mobileLabel = link.label;
             if (link.label === "Sanctuary") mobileLabel = "Return Home";
             if (link.label === "Admin") mobileLabel = "Admin Settings";
+            if (link.label === "Ministries") mobileLabel = "Our Ministries";
             return (
               <Link 
-                key={link.href} 
+                key={link.label} 
                 href={link.href} 
-                onClick={isAccountLink ? handleMobileAccountClick : undefined}
+                onClick={isAccountLink ? handleMobileAccountClick : isMinistriesLink ? link.onClick : undefined}
               >
                 <span
                   className="cursor-pointer text-lg font-serif font-medium"
-                  onClick={() => !isAccountLink && setMobileMenuOpen(false)}
+                  onClick={() => !isAccountLink && !isMinistriesLink && setMobileMenuOpen(false)}
                 >
                   {mobileLabel}
                 </span>

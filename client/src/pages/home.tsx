@@ -46,7 +46,9 @@ export default function Home() {
       <LiveStreamSection />
       <FamilyPhotoCarousel />
       <BibleQuizSection />
-      <MinistryAccordion />
+      <div id="ministries">
+        <MinistryAccordion />
+      </div>
       <footer className="bg-foreground text-background py-16 px-6" data-testid="footer">
         <div className="max-w-7xl mx-auto grid md:grid-cols-2 gap-12">
           <div>
