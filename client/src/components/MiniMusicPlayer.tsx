@@ -198,19 +198,25 @@ export function MiniMusicPlayer() {
                       className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-card border rounded-lg shadow-lg p-3 flex flex-col items-center gap-2 z-50"
                     >
                       <div 
-                        className="relative h-24 w-3 bg-muted rounded-full overflow-hidden cursor-pointer"
-                        onClick={(e) => {
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          const clickY = e.clientY - rect.top;
-                          const percentage = 100 - (clickY / rect.height) * 100;
-                          setVolume(Math.max(0, Math.min(100, percentage)));
-                        }}
+                        className="relative h-28 w-6 flex items-center justify-center cursor-pointer"
                         data-testid="mini-volume-slider"
                       >
+                        {/* Background track */}
+                        <div className="absolute h-24 w-2 bg-muted-foreground/20 rounded-full" />
+                        
+                        {/* Filled track */}
                         <div 
-                          className="absolute bottom-0 left-0 right-0 bg-primary rounded-full transition-all"
-                          style={{ height: `${isMuted ? 0 : volume}%` }}
+                          className="absolute bottom-2 w-2 bg-primary rounded-full transition-all"
+                          style={{ height: `${(isMuted ? 0 : volume) * 0.96}px` }}
                         />
+                        
+                        {/* Knob/thumb */}
+                        <div 
+                          className="absolute w-4 h-4 bg-primary rounded-full shadow-md border-2 border-background transition-all"
+                          style={{ bottom: `${Math.max(0, (isMuted ? 0 : volume) * 0.96)}px` }}
+                        />
+                        
+                        {/* Invisible input for interaction */}
                         <input
                           type="range"
                           min="0"
