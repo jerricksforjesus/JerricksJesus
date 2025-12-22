@@ -66,7 +66,6 @@ export function Hero() {
           className="w-full h-full object-cover opacity-60"
         />
       </motion.div>
-
       {/* LIVE NOW Indicator */}
       {isLive && (
         <Link href="/live">
@@ -85,7 +84,6 @@ export function Hero() {
           </motion.div>
         </Link>
       )}
-
       {/* Content */}
       <div className="relative z-20 text-center text-white px-4 max-w-4xl mx-auto">
         <motion.div
@@ -121,7 +119,7 @@ export function Hero() {
               style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
               data-testid="button-join-zoom-hero"
             >
-              <a href={zoomData.zoomLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between w-full">
+              <a href={zoomData.zoomLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between">
                 <span>Join the Zoom</span>
                 <Video className="w-5 h-5" />
               </a>
@@ -144,8 +142,8 @@ export function Hero() {
               style={{ backgroundColor: "#ffffff", color: "#b47a5f", border: "2px solid #ffffff" }}
               data-testid="button-sign-in-hero"
             >
-              <Link href="/login" className="flex items-center justify-between w-full">
-                <span>Sign In</span>
+              <Link href="/login" className="flex items-center justify-between">
+                <span>Sign In Here</span>
                 <LogIn className="w-5 h-5" />
               </Link>
             </Button>
