@@ -221,10 +221,26 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const currentVideo = videos[currentIndex];
   const lastUserIdRef = useRef<string | null>(null);
 
-  // Reset lastPlayedLoaded when user changes (login/logout/different user)
+  // Reset state when user changes (login/logout/different user)
   useEffect(() => {
     const currentUserId = user?.id ?? null;
     if (lastUserIdRef.current !== currentUserId) {
+      // User changed - could be logout or different user login
+      if (lastUserIdRef.current !== null && currentUserId === null) {
+        // User logged out - stop music and reset to beginning
+        if (playerRef.current) {
+          try {
+            playerRef.current.pauseVideo();
+          } catch (e) {
+            // Player might not be ready
+          }
+        }
+        setIsPlaying(false);
+        setCurrentIndex(0);
+        setCurrentTime(0);
+        setMiniPlayerDismissed(true);
+        setMiniPlayerActivated(false);
+      }
       lastUserIdRef.current = currentUserId;
       setLastPlayedLoaded(false);
     }
