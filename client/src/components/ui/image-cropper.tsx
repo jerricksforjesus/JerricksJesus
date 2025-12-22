@@ -3,6 +3,18 @@
 import * as React from "react"
 import ReactCrop, { type Crop, centerCrop, makeAspectCrop } from "react-image-crop"
 import "react-image-crop/dist/ReactCrop.css"
+
+const cropperStyles = `
+  .ReactCrop__crop-selection {
+    border-color: #b47a5f !important;
+  }
+  .ReactCrop__drag-handle {
+    background-color: #b47a5f !important;
+  }
+  .ReactCrop__drag-handle::after {
+    border-color: #b47a5f !important;
+  }
+`
 import { Button } from "@/components/ui/button"
 import {
   Dialog,
@@ -131,6 +143,7 @@ export function ImageCropper({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
+      <style>{cropperStyles}</style>
       <DialogContent className="max-w-3xl max-h-[90vh] overflow-auto">
         <DialogHeader>
           <DialogTitle>{title}</DialogTitle>
