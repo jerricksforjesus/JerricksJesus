@@ -467,7 +467,7 @@ export function MemberDashboard() {
         {/* Desktop Sidebar - Always visible on large screens */}
         <aside className="hidden lg:flex w-64 flex-col bg-card border-r">
           <div className="p-6 border-b" style={{ backgroundColor: "#b47a5f" }}>
-            <h1 className="text-xl font-serif font-bold text-white">My Account</h1>
+            <h1 className="text-xl font-serif font-bold text-white">Welcome</h1>
             <p className="text-sm text-white/80 mt-1">
               {user?.username}
             </p>
@@ -556,7 +556,7 @@ export function MemberDashboard() {
                 {/* Panel Header */}
                 <div className="flex items-center justify-between p-4 border-b" style={{ backgroundColor: "#b47a5f" }}>
                   <div>
-                    <h2 className="text-lg font-serif font-bold text-white">My Account</h2>
+                    <h2 className="text-lg font-serif font-bold text-white">Welcome</h2>
                     <p className="text-sm text-white/80">{user?.username}</p>
                   </div>
                   <Button
