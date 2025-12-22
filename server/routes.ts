@@ -1283,9 +1283,14 @@ export async function registerRoutes(
         return res.status(404).json({ error: "User not found" });
       }
       
-      // Can't delete admin users
-      if (targetUser.role === USER_ROLES.ADMIN) {
-        return res.status(403).json({ error: "Cannot delete admin users" });
+      // Can't delete superadmin users
+      if (targetUser.role === USER_ROLES.SUPERADMIN) {
+        return res.status(403).json({ error: "Cannot delete superadmin users" });
+      }
+      
+      // Only superadmin can delete admin users
+      if (targetUser.role === USER_ROLES.ADMIN && currentUser.role !== USER_ROLES.SUPERADMIN) {
+        return res.status(403).json({ error: "Only superadmin can delete admin users" });
       }
       
       // Delete the user
