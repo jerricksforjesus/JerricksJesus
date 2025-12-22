@@ -456,26 +456,47 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   // Load YouTube API immediately on mount (don't wait for videos or user interaction)
   useEffect(() => {
     const loadAPI = () => {
+      logEvent("YT_API_LOAD_START", {
+        payload: {
+          hasYT: !!window.YT,
+          hasYTPlayer: !!(window.YT?.Player),
+          userAgent: navigator.userAgent,
+          isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent),
+          isSafari: /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent),
+        },
+      });
+      
       if (window.YT && window.YT.Player) {
+        logEvent("YT_API_ALREADY_LOADED", { payload: {} });
         setApiLoaded(true);
         return;
       }
 
       const existingScript = document.querySelector('script[src="https://www.youtube.com/iframe_api"]');
+      logEvent("YT_API_SCRIPT_CHECK", { payload: { existingScript: !!existingScript } });
+      
       if (!existingScript) {
         const tag = document.createElement("script");
         tag.src = "https://www.youtube.com/iframe_api";
+        tag.onerror = (e) => {
+          logEvent("YT_API_SCRIPT_ERROR", { payload: { error: String(e) } });
+        };
+        tag.onload = () => {
+          logEvent("YT_API_SCRIPT_LOADED", { payload: {} });
+        };
         const firstScriptTag = document.getElementsByTagName("script")[0];
         firstScriptTag.parentNode?.insertBefore(tag, firstScriptTag);
+        logEvent("YT_API_SCRIPT_INSERTED", { payload: {} });
       }
 
       window.onYouTubeIframeAPIReady = () => {
+        logEvent("YT_API_READY_CALLBACK", { payload: { hasYT: !!window.YT, hasPlayer: !!(window.YT?.Player) } });
         setApiLoaded(true);
       };
     };
 
     loadAPI();
-  }, []);
+  }, [logEvent]);
   
   // Pre-create player when videos load and API is ready (don't wait for user tap)
   useEffect(() => {
@@ -490,53 +511,113 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
 
     if (playerRef.current) return;
 
-    const player = new window.YT.Player(playerContainerRef.current, {
-      height: "100%",
-      width: "100%",
+    // Log player creation attempt with DOM state
+    const container = playerContainerRef.current;
+    logEvent("YT_PLAYER_CREATE_START", {
       videoId: currentVideo.youtubeVideoId,
-      playerVars: {
-        autoplay: 0,
-        controls: 0,
-        modestbranding: 1,
-        rel: 0,
-        showinfo: 0,
-        fs: 0,
-        playsinline: 1,
+      videoIndex: currentIndex,
+      payload: {
+        containerExists: !!container,
+        containerInDOM: container ? document.body.contains(container) : false,
+        containerRect: container ? {
+          width: container.offsetWidth,
+          height: container.offsetHeight,
+          top: container.offsetTop,
+          left: container.offsetLeft,
+        } : null,
+        containerStyle: container ? {
+          display: getComputedStyle(container).display,
+          visibility: getComputedStyle(container).visibility,
+          opacity: getComputedStyle(container).opacity,
+          position: getComputedStyle(container).position,
+        } : null,
+        isIOS: /iPad|iPhone|iPod/.test(navigator.userAgent),
+        isSafari: /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent),
       },
-      events: {
-        onReady: (event) => {
-          playerRef.current = event.target;
-          setPlayerReady(true);
-          event.target.setVolume(volumeRef.current);
-          // Track the initially loaded video ID
-          loadedVideoIdRef.current = currentVideo.youtubeVideoId;
-          
-          logEvent("YT_ON_READY", {
-            videoId: currentVideo.youtubeVideoId,
-            videoIndex: currentIndex,
-            payload: { hasPendingCallback: !!pendingPlayCallbackRef.current, autoPlayOnReady: autoPlayOnReadyRef.current },
-          });
-          
-          // Handle pending play callback for iOS - maintains user gesture chain
-          if (pendingPlayCallbackRef.current) {
-            logEvent("YT_PENDING_CALLBACK_EXEC", { videoId: currentVideo.youtubeVideoId });
-            pendingPlayCallbackRef.current();
-            pendingPlayCallbackRef.current = null;
-          } else if (autoPlayOnReadyRef.current) {
-            logEvent("YT_AUTOPLAY_ON_READY", { videoId: currentVideo.youtubeVideoId });
-            event.target.playVideo();
-            autoPlayOnReadyRef.current = false;
-          }
+    });
+
+    let player: YTPlayer;
+    try {
+      player = new window.YT.Player(playerContainerRef.current, {
+        height: "100%",
+        width: "100%",
+        videoId: currentVideo.youtubeVideoId,
+        playerVars: {
+          autoplay: 0,
+          controls: 0,
+          modestbranding: 1,
+          rel: 0,
+          showinfo: 0,
+          fs: 0,
+          playsinline: 1,
         },
-        onStateChange: (event) => {
-          const state = event.data;
-          const stateNames: Record<number, string> = { [-1]: "UNSTARTED", 0: "ENDED", 1: "PLAYING", 2: "PAUSED", 3: "BUFFERING", 5: "CUED" };
-          logEvent("YT_STATE_CHANGE", {
-            videoId: currentVideo.youtubeVideoId,
-            videoIndex: currentIndex,
-            playerState: state,
-            payload: { stateName: stateNames[state] || `UNKNOWN_${state}` },
-          });
+        events: {
+          onError: (event: { data: number }) => {
+            const errorCodes: Record<number, string> = {
+              2: "INVALID_PARAM",
+              5: "HTML5_ERROR",
+              100: "VIDEO_NOT_FOUND",
+              101: "EMBED_NOT_ALLOWED",
+              150: "EMBED_NOT_ALLOWED_2",
+            };
+            logEvent("YT_PLAYER_ERROR", {
+              videoId: currentVideo.youtubeVideoId,
+              videoIndex: currentIndex,
+              payload: {
+                errorCode: event.data,
+                errorName: errorCodes[event.data] || `UNKNOWN_${event.data}`,
+              },
+            });
+          },
+          onReady: (event) => {
+            playerRef.current = event.target;
+            setPlayerReady(true);
+            event.target.setVolume(volumeRef.current);
+            // Track the initially loaded video ID
+            loadedVideoIdRef.current = currentVideo.youtubeVideoId;
+            
+            // Get detailed player state for debugging
+            let playerState = -99;
+            let playerVolume = -1;
+            try {
+              playerState = event.target.getPlayerState();
+              playerVolume = event.target.getVolume();
+            } catch (e) {
+              logEvent("YT_ON_READY_GET_STATE_ERROR", { payload: { error: String(e) } });
+            }
+            
+            logEvent("YT_ON_READY", {
+              videoId: currentVideo.youtubeVideoId,
+              videoIndex: currentIndex,
+              payload: { 
+                hasPendingCallback: !!pendingPlayCallbackRef.current, 
+                autoPlayOnReady: autoPlayOnReadyRef.current,
+                playerState,
+                playerVolume,
+                loadedVideoId: loadedVideoIdRef.current,
+              },
+            });
+            
+            // Handle pending play callback for iOS - maintains user gesture chain
+            if (pendingPlayCallbackRef.current) {
+              logEvent("YT_PENDING_CALLBACK_EXEC", { videoId: currentVideo.youtubeVideoId });
+              pendingPlayCallbackRef.current();
+              pendingPlayCallbackRef.current = null;
+            } else if (autoPlayOnReadyRef.current) {
+              logEvent("YT_AUTOPLAY_ON_READY", { videoId: currentVideo.youtubeVideoId });
+              event.target.playVideo();
+              autoPlayOnReadyRef.current = false;
+            }
+          },
+          onStateChange: (event) => {
+            const state = event.data;
+            const stateNames: Record<number, string> = { [-1]: "UNSTARTED", 0: "ENDED", 1: "PLAYING", 2: "PAUSED", 3: "BUFFERING", 5: "CUED" };
+            logEvent("YT_STATE_CHANGE", {
+              videoId: currentVideo.youtubeVideoId,
+              videoIndex: currentIndex,
+              playerState: state,
+              payload: { stateName: stateNames[state] || `UNKNOWN_${state}` },
+            });
           
           if (state === window.YT.PlayerState.PLAYING) {
             setIsPlaying(true);
@@ -581,14 +662,25 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
           }
         },
       },
-    });
+      });
+      
+      logEvent("YT_PLAYER_CREATE_SUCCESS", {
+        videoId: currentVideo.youtubeVideoId,
+        payload: { playerCreated: !!player },
+      });
+    } catch (error) {
+      logEvent("YT_PLAYER_CREATE_ERROR", {
+        videoId: currentVideo.youtubeVideoId,
+        payload: { error: String(error) },
+      });
+    }
 
     return () => {
       if (progressIntervalRef.current) {
         clearInterval(progressIntervalRef.current);
       }
     };
-  }, [apiLoaded, currentVideo, videos.length, currentIndex, playerCreated]);
+  }, [apiLoaded, currentVideo, videos.length, currentIndex, playerCreated, logEvent]);
 
   // Track the previous index to detect track changes
   const prevIndexRef = useRef(currentIndex);
