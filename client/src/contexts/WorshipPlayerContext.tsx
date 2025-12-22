@@ -202,6 +202,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   
   const playerRef = useRef<YTPlayer | null>(null);
   const isLoopingRef = useRef(isLooping);
+  const isPlayingRef = useRef(isPlaying);
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const mainPlayerRef = useRef<HTMLDivElement | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -228,16 +229,30 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     
     if (previousUserId !== currentUserId) {
       // User changed - stop music for any user change (login or logout)
-      if (previousUserId !== null || currentUserId !== null) {
-        // Stop the YouTube player completely
-        if (playerRef.current) {
-          try {
-            playerRef.current.stopVideo();
-            playerRef.current.pauseVideo();
-          } catch (e) {
-            // Player might not be ready
+      // Check if music was playing using ref (not state, as state might be stale)
+      const wasPlaying = isPlayingRef.current || miniPlayerActivated;
+      
+      if (wasPlaying || previousUserId !== null || currentUserId !== null) {
+        // Stop the YouTube player completely - try multiple methods
+        const stopPlayer = () => {
+          if (playerRef.current) {
+            try {
+              const playerState = playerRef.current.getPlayerState?.();
+              // Only stop if actually playing (state 1 = playing, 3 = buffering)
+              if (playerState === 1 || playerState === 3 || playerState === undefined) {
+                playerRef.current.stopVideo();
+              }
+              playerRef.current.pauseVideo();
+            } catch (e) {
+              // Player might not be ready
+            }
           }
-        }
+        };
+        
+        // Try to stop immediately and after a short delay
+        stopPlayer();
+        setTimeout(stopPlayer, 100);
+        setTimeout(stopPlayer, 300);
         
         // Clear progress interval
         if (progressIntervalRef.current) {
@@ -259,7 +274,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
       lastUserIdRef.current = currentUserId;
       setLastPlayedLoaded(false);
     }
-  }, [user?.id]);
+  }, [user?.id, miniPlayerActivated]);
 
   // Load last played video for logged-in users
   useEffect(() => {
@@ -313,6 +328,10 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     isLoopingRef.current = isLooping;
   }, [isLooping]);
+
+  useEffect(() => {
+    isPlayingRef.current = isPlaying;
+  }, [isPlaying]);
 
   const showMiniPlayer = miniPlayerActivated && !mainPlayerVisible && !miniPlayerDismissed;
 
