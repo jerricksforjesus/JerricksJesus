@@ -197,19 +197,31 @@ export function MiniMusicPlayer() {
                       exit={{ opacity: 0, y: 10 }}
                       className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-card border rounded-lg shadow-lg p-3 flex flex-col items-center gap-2 z-50"
                     >
-                      <div className="h-24 flex items-center justify-center">
+                      <div 
+                        className="relative h-24 w-3 bg-muted rounded-full overflow-hidden cursor-pointer"
+                        onClick={(e) => {
+                          const rect = e.currentTarget.getBoundingClientRect();
+                          const clickY = e.clientY - rect.top;
+                          const percentage = 100 - (clickY / rect.height) * 100;
+                          setVolume(Math.max(0, Math.min(100, percentage)));
+                        }}
+                        data-testid="mini-volume-slider"
+                      >
+                        <div 
+                          className="absolute bottom-0 left-0 right-0 bg-primary rounded-full transition-all"
+                          style={{ height: `${isMuted ? 0 : volume}%` }}
+                        />
                         <input
                           type="range"
                           min="0"
                           max="100"
                           value={isMuted ? 0 : volume}
                           onChange={(e) => setVolume(Number(e.target.value))}
-                          className="h-24 w-2 appearance-none bg-muted rounded-full cursor-pointer accent-primary"
+                          className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                           style={{
                             writingMode: "vertical-lr",
                             direction: "rtl",
                           }}
-                          data-testid="mini-volume-slider"
                         />
                       </div>
                       <Button
