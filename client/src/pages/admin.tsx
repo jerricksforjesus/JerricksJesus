@@ -1843,7 +1843,7 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [, setLocation] = useLocation();
-  const { user, isLoading: authLoading, logout, isAdmin, isFoundational, canEdit } = useAuth();
+  const { user, isLoading: authLoading, logout, isSuperAdmin, isAdmin, isFoundational, canEdit } = useAuth();
   
   const [verse, setVerse] = useState("");
   const [reference, setReference] = useState("");
@@ -3925,7 +3925,7 @@ export default function AdminDashboard() {
                                   Password Reset
                                 </Button>
                               )}
-                              {u.role !== "admin" && u.role !== "superadmin" && isAdmin && (
+                              {u.role !== "superadmin" && (isSuperAdmin || (isAdmin && u.role !== "admin")) && (
                                 <Button
                                   variant="outline"
                                   size="sm"
