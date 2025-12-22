@@ -159,9 +159,21 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6">
-              <TabsTrigger value="login" data-testid="tab-login">Sign In</TabsTrigger>
-              <TabsTrigger value="register" data-testid="tab-register">Register</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-2 mb-6 bg-white/50">
+              <TabsTrigger 
+                value="login" 
+                data-testid="tab-login"
+                className="data-[state=active]:bg-[#b47a5f] data-[state=active]:text-white"
+              >
+                Sign In
+              </TabsTrigger>
+              <TabsTrigger 
+                value="register" 
+                data-testid="tab-register"
+                className="data-[state=active]:bg-[#b47a5f] data-[state=active]:text-white"
+              >
+                Register
+              </TabsTrigger>
             </TabsList>
             
             <TabsContent value="login">
