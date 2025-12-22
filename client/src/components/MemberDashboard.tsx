@@ -22,6 +22,7 @@ import {
   DialogTitle,
   DialogFooter,
 } from "@/components/ui/dialog";
+import { MobilePlayerSpacer } from "@/components/MobilePlayerSpacer";
 
 interface MemberPhoto {
   id: number;
@@ -1144,6 +1145,7 @@ export function MemberDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <MobilePlayerSpacer />
     </div>
   );
 }
