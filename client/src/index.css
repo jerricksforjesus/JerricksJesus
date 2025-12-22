@@ -80,6 +80,13 @@
   50% { transform: scaleY(1); }
 }
 
+/* Wrapper for amplitude envelope */
+.equalizer-wrapper {
+  transform-origin: bottom;
+  display: flex;
+  align-items: flex-end;
+}
+
 .equalizer-bar {
   width: 3px;
   height: 12px;
@@ -95,13 +102,8 @@
 .equalizer-bar:nth-child(4) { animation-delay: 0.1s; }
 .equalizer-bar:nth-child(5) { animation-delay: 0.3s; }
 
-/* Settling state - bars animating down */
-.equalizer-bar.settling {
-  animation: none;
-}
-
-/* Paused state - flatline */
-.equalizer-bar.paused {
+/* Flatlined state - no animation */
+.equalizer-bar.flatlined {
   animation: none;
   transform: scaleY(0.25);
 }
