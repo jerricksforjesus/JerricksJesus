@@ -616,8 +616,6 @@ function WorshipPlaylistManager() {
         </div>
       )}
 
-      <WorshipMusicRequests />
-
       <div className="space-y-4">
         <h3 className="font-medium">Add Video to Playlist</h3>
         <form onSubmit={handleAddVideo} className="flex flex-col sm:flex-row gap-3">
@@ -778,6 +776,8 @@ function WorshipPlaylistManager() {
           </div>
         )}
       </div>
+
+      <WorshipMusicRequests />
     </div>
   );
 }
@@ -1887,6 +1887,11 @@ export default function AdminDashboard() {
       window.history.replaceState({}, "", window.location.pathname);
     }
   }, []);
+
+  // Scroll to top when section changes
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeSection]);
 
   // Listen for custom event to open settings panel from Navigation
   // This only opens the panel - it does NOT change the current section
