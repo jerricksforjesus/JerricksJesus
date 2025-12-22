@@ -637,15 +637,17 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
       setDuration(0);
       
       if (shouldAutoPlay) {
-        // Use loadVideoById which auto-plays
+        // Use loadVideoById which auto-plays - update loadedVideoIdRef since video is actually loaded
         logEvent("LOAD_VIDEO_BY_ID", { videoId: currentVideo.youtubeVideoId, videoIndex: currentIndex, payload: { autoPlay: true } });
         playerRef.current.loadVideoById(currentVideo.youtubeVideoId);
         loadedVideoIdRef.current = currentVideo.youtubeVideoId;
       } else {
         // Use cueVideoById which does NOT auto-play
-        logEvent("CUE_VIDEO_BY_ID", { videoId: currentVideo.youtubeVideoId, videoIndex: currentIndex, payload: { autoPlay: false } });
+        // IMPORTANT: Do NOT update loadedVideoIdRef here - video is only cued, not loaded
+        // This allows play() to detect that it needs to use loadVideoById for iOS gesture chain
+        logEvent("CUE_VIDEO_BY_ID", { videoId: currentVideo.youtubeVideoId, videoIndex: currentIndex, payload: { autoPlay: false, loadedVideoIdStays: loadedVideoIdRef.current } });
         playerRef.current.cueVideoById(currentVideo.youtubeVideoId);
-        loadedVideoIdRef.current = currentVideo.youtubeVideoId;
+        // loadedVideoIdRef.current stays unchanged - will be updated when play() calls loadVideoById
       }
     }, 150);
     
@@ -658,10 +660,19 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
 
   const play = useCallback(() => {
     const videoId = videos[currentIndex]?.youtubeVideoId;
+    const loadedVideoId = loadedVideoIdRef.current;
+    const needsVideoChange = videoId && videoId !== loadedVideoId;
+    
     logEvent("PLAY_CALLED", {
       videoId,
       videoIndex: currentIndex,
-      payload: { playerCreated, playerReady, hasPlayerRef: !!playerRef.current, loadedVideoId: loadedVideoIdRef.current },
+      payload: { 
+        playerCreated, 
+        playerReady, 
+        hasPlayerRef: !!playerRef.current, 
+        loadedVideoId, 
+        needsVideoChange,
+      },
     });
     
     setMiniPlayerDismissed(false);
@@ -678,8 +689,25 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     const executePlay = () => {
       if (playerRef.current) {
         try {
-          logEvent("EXECUTE_PLAY_VIDEO", { videoId, videoIndex: currentIndex });
-          playerRef.current.playVideo();
+          // iOS FIX: Check if the video we want to play is different from what's loaded
+          // If so, use loadVideoById (which loads + plays atomically) to maintain gesture chain
+          const currentVideoId = videos[currentIndex]?.youtubeVideoId;
+          const currentlyLoadedId = loadedVideoIdRef.current;
+          
+          if (currentVideoId && currentVideoId !== currentlyLoadedId) {
+            // Different video - use loadVideoById which loads AND plays in one gesture
+            logEvent("EXECUTE_LOAD_VIDEO_BY_ID_IOS_FIX", { 
+              videoId: currentVideoId, 
+              videoIndex: currentIndex,
+              payload: { previousLoadedId: currentlyLoadedId },
+            });
+            playerRef.current.loadVideoById(currentVideoId);
+            loadedVideoIdRef.current = currentVideoId;
+          } else {
+            // Same video - just call playVideo
+            logEvent("EXECUTE_PLAY_VIDEO", { videoId: currentVideoId, videoIndex: currentIndex });
+            playerRef.current.playVideo();
+          }
         } catch (e) {
           logEvent("PLAY_ERROR", { videoId, videoIndex: currentIndex, payload: { error: String(e) } });
           console.error("Error playing:", e);
