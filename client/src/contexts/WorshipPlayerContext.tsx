@@ -219,6 +219,16 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   });
 
   const currentVideo = videos[currentIndex];
+  const lastUserIdRef = useRef<string | null>(null);
+
+  // Reset lastPlayedLoaded when user changes (login/logout/different user)
+  useEffect(() => {
+    const currentUserId = user?.id ?? null;
+    if (lastUserIdRef.current !== currentUserId) {
+      lastUserIdRef.current = currentUserId;
+      setLastPlayedLoaded(false);
+    }
+  }, [user?.id]);
 
   // Load last played video for logged-in users
   useEffect(() => {
@@ -235,11 +245,11 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
               setCurrentIndex(index);
             }
           }
+          setLastPlayedLoaded(true);
         }
       } catch (error) {
         console.error("Failed to load last played video:", error);
       }
-      setLastPlayedLoaded(true);
     };
     
     loadLastPlayed();
