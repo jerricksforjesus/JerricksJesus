@@ -115,11 +115,11 @@ export function MiniMusicPlayer() {
                         </div>
                         {index === currentIndex && (
                           <div className="flex gap-0.5 items-end h-3">
-                            <span className={cn("equalizer-bar text-primary", !isPlaying && "paused")} />
-                            <span className={cn("equalizer-bar text-primary", !isPlaying && "paused")} />
-                            <span className={cn("equalizer-bar text-primary", !isPlaying && "paused")} />
-                            <span className={cn("equalizer-bar text-primary", !isPlaying && "paused")} />
-                            <span className={cn("equalizer-bar text-primary", !isPlaying && "paused")} />
+                            <span className={cn("equalizer-bar text-primary", (!isPlaying || isMuted) && "paused")} />
+                            <span className={cn("equalizer-bar text-primary", (!isPlaying || isMuted) && "paused")} />
+                            <span className={cn("equalizer-bar text-primary", (!isPlaying || isMuted) && "paused")} />
+                            <span className={cn("equalizer-bar text-primary", (!isPlaying || isMuted) && "paused")} />
+                            <span className={cn("equalizer-bar text-primary", (!isPlaying || isMuted) && "paused")} />
                           </div>
                         )}
                       </button>
