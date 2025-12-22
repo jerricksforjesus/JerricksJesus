@@ -75,27 +75,18 @@
 }
 
 /* Mini Equalizer Animation */
-@property --energy {
-  syntax: '<number>';
-  initial-value: 1;
-  inherits: false;
-}
-
 @keyframes equalize {
   0%, 100% { transform: scaleY(0.25); }
   50% { transform: scaleY(1); }
 }
 
 .equalizer-bar {
-  --energy: 1;
   width: 3px;
   height: 12px;
   background-color: currentColor;
   border-radius: 1px;
   transform-origin: bottom;
-  transform: scaleY(calc(0.25 + var(--energy) * 0.75));
   animation: equalize 0.8s ease-in-out infinite;
-  transition: --energy 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .equalizer-bar:nth-child(1) { animation-delay: 0s; }
@@ -104,9 +95,13 @@
 .equalizer-bar:nth-child(4) { animation-delay: 0.1s; }
 .equalizer-bar:nth-child(5) { animation-delay: 0.3s; }
 
-/* Paused state - smooth transition to flatline */
+/* Settling state - bars animating down */
+.equalizer-bar.settling {
+  animation: none;
+}
+
+/* Paused state - flatline */
 .equalizer-bar.paused {
-  --energy: 0;
-  animation-play-state: paused;
+  animation: none;
   transform: scaleY(0.25);
 }

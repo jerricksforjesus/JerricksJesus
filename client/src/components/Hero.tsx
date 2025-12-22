@@ -4,6 +4,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Radio, Video, LogIn, Music, Square, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
+import { EqualizerBars } from "@/components/EqualizerBars";
 import { useAuth } from "@/lib/auth";
 import { useWorshipPlayer } from "@/contexts/WorshipPlayerContext";
 import heroBg from "@assets/generated_images/sunlight_through_stained_glass_in_modern_church.png";
@@ -185,13 +186,7 @@ export function Hero() {
               ) : showMiniPlayer ? (
                 <>
                   <span>Stop Music</span>
-                  <div className="flex items-end gap-[2px] h-4 mx-2">
-                    <div className={`equalizer-bar ${(!isPlaying || isMuted) ? 'paused' : ''}`} />
-                    <div className={`equalizer-bar ${(!isPlaying || isMuted) ? 'paused' : ''}`} />
-                    <div className={`equalizer-bar ${(!isPlaying || isMuted) ? 'paused' : ''}`} />
-                    <div className={`equalizer-bar ${(!isPlaying || isMuted) ? 'paused' : ''}`} />
-                    <div className={`equalizer-bar ${(!isPlaying || isMuted) ? 'paused' : ''}`} />
-                  </div>
+                  <EqualizerBars isActive={isPlaying && !isMuted} className="h-4 mx-2" />
                   <Square className="w-5 h-5" />
                 </>
               ) : (

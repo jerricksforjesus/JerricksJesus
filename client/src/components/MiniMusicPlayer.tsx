@@ -4,6 +4,7 @@ import { Play, Pause, SkipBack, SkipForward, X, Volume2, VolumeX, Volume1, Repea
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { EqualizerBars } from "@/components/EqualizerBars";
 import { useWorshipPlayer } from "@/contexts/WorshipPlayerContext";
 import { cn } from "@/lib/utils";
 
@@ -114,13 +115,7 @@ export function MiniMusicPlayer() {
                           </p>
                         </div>
                         {index === currentIndex && (
-                          <div className="flex gap-0.5 items-end h-3">
-                            <span className={cn("equalizer-bar text-primary", (!isPlaying || isMuted) && "paused")} />
-                            <span className={cn("equalizer-bar text-primary", (!isPlaying || isMuted) && "paused")} />
-                            <span className={cn("equalizer-bar text-primary", (!isPlaying || isMuted) && "paused")} />
-                            <span className={cn("equalizer-bar text-primary", (!isPlaying || isMuted) && "paused")} />
-                            <span className={cn("equalizer-bar text-primary", (!isPlaying || isMuted) && "paused")} />
-                          </div>
+                          <EqualizerBars isActive={isPlaying && !isMuted} className="h-3 text-primary" />
                         )}
                       </button>
                     ))}
