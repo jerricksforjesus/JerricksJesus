@@ -622,7 +622,7 @@ function WorshipPlaylistManager() {
         </div>
       )}
 
-      <Accordion type="multiple" defaultValue={["add-video"]} className="space-y-4">
+      <Accordion type="multiple" defaultValue={["add-video", "pending-requests"]} className="space-y-4">
         <AccordionItem value="add-video" className="border rounded-lg overflow-hidden">
           <AccordionTrigger className="px-4 py-3 hover:no-underline bg-muted/30" data-testid="accordion-add-video">
             <div className="flex items-center gap-2">
