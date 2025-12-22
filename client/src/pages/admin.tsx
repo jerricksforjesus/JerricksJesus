@@ -614,9 +614,11 @@ function WorshipPlaylistManager() {
         </div>
       )}
 
+      <WorshipMusicRequests />
+
       <div className="space-y-4">
         <h3 className="font-medium">Add Video to Playlist</h3>
-        <form onSubmit={handleAddVideo} className="flex gap-3">
+        <form onSubmit={handleAddVideo} className="flex flex-col sm:flex-row gap-3">
           <div className="flex-1">
             <Input
               value={youtubeUrl}
@@ -724,8 +726,6 @@ function WorshipPlaylistManager() {
           </div>
         )}
       </div>
-
-      <WorshipMusicRequests />
     </div>
   );
 }
@@ -815,36 +815,40 @@ function WorshipMusicRequests() {
           {pendingRequests.map((request) => (
             <div
               key={request.id}
-              className="flex items-center gap-4 p-3 border rounded-lg bg-card hover:bg-muted/30 transition-colors"
+              className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 border rounded-lg bg-card hover:bg-muted/30 transition-colors"
               data-testid={`worship-request-item-${request.id}`}
             >
-              <div className="w-24 h-14 rounded overflow-hidden bg-muted flex-shrink-0">
-                {request.thumbnailUrl ? (
-                  <img
-                    src={request.thumbnailUrl}
-                    alt={request.title || "Video thumbnail"}
-                    className="w-full h-full object-cover"
-                  />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <Play className="w-6 h-6 text-muted-foreground" />
-                  </div>
-                )}
+              {/* Thumbnail and Info */}
+              <div className="flex items-center gap-3 flex-1 min-w-0">
+                <div className="w-20 h-12 sm:w-24 sm:h-14 rounded overflow-hidden bg-muted flex-shrink-0">
+                  {request.thumbnailUrl ? (
+                    <img
+                      src={request.thumbnailUrl}
+                      alt={request.title || "Video thumbnail"}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Play className="w-6 h-6 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="font-medium text-sm line-clamp-1">
+                    {request.title && !request.title.startsWith("YouTube Video ") 
+                      ? request.title 
+                      : "Untitled Video"}
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Requested by: {request.username || "Unknown"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {new Date(request.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-sm line-clamp-1">
-                  {request.title && !request.title.startsWith("YouTube Video ") 
-                    ? request.title 
-                    : "Untitled Video"}
-                </h4>
-                <p className="text-xs text-muted-foreground line-clamp-1">
-                  {request.youtubeUrl}
-                </p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  Requested by: {request.username || "Unknown"} • {new Date(request.createdAt).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
+              {/* Actions */}
+              <div className="flex items-center justify-end gap-2">
                 <Button
                   variant="ghost"
                   size="sm"
