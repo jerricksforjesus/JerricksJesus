@@ -949,13 +949,13 @@ export function MemberDashboard() {
                     Account Information
                   </h3>
                   <div className="grid gap-2 text-sm">
-                    <div className="flex justify-between items-center py-2 border-b border-border/50">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-border/50 gap-1">
                       <span className="text-muted-foreground">Username:</span>
-                      <span className="font-medium" data-testid="text-profile-username">{user?.username || "N/A"}</span>
+                      <span className="font-medium break-all" data-testid="text-profile-username">{user?.username || "N/A"}</span>
                     </div>
-                    <div className="flex justify-between items-center py-2">
+                    <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 gap-1">
                       <span className="text-muted-foreground">Email:</span>
-                      <span className="font-medium" data-testid="text-profile-email">{user?.email || "Not set"}</span>
+                      <span className="font-medium break-all" data-testid="text-profile-email">{user?.email || "Not set"}</span>
                     </div>
                   </div>
                 </div>
@@ -998,7 +998,7 @@ export function MemberDashboard() {
                   <p className="text-sm text-muted-foreground mb-4">
                     Add your birthday to automatically create a birthday event for you each year.
                   </p>
-                  <div className="flex gap-3 items-center max-w-md">
+                  <div className="flex flex-col sm:flex-row gap-3 sm:items-center max-w-md">
                     <DatePicker
                       value={profileDateOfBirth}
                       onChange={(value) => setProfileDateOfBirth(value)}
@@ -1011,6 +1011,7 @@ export function MemberDashboard() {
                       disabled={updateDateOfBirthMutation.isPending || !profileDateOfBirth || profileDateOfBirth === dobData?.dateOfBirth}
                       style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
                       data-testid="button-save-birthday"
+                      className="w-full sm:w-auto"
                     >
                       {updateDateOfBirthMutation.isPending ? (
                         <Loader2 className="w-4 h-4 animate-spin mr-2" />
