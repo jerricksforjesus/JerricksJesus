@@ -2772,11 +2772,12 @@ export async function registerRoutes(
       const limit = parseInt(req.query.limit as string) || 10;
       const leaderboard = await storage.getLeaderboard(Math.min(limit, 50));
       
-      // Hide admin accounts from non-admin users
-      const isAdmin = req.user?.role === USER_ROLES.ADMIN;
-      const filteredLeaderboard = isAdmin 
+      // Hide admin/superadmin accounts from non-admin users
+      const isAdminOrSuperadmin = req.user?.role === USER_ROLES.ADMIN || req.user?.role === USER_ROLES.SUPERADMIN;
+      const adminRoles = [USER_ROLES.ADMIN, USER_ROLES.SUPERADMIN];
+      const filteredLeaderboard = isAdminOrSuperadmin 
         ? leaderboard 
-        : leaderboard.filter(entry => entry.role !== USER_ROLES.ADMIN);
+        : leaderboard.filter(entry => !adminRoles.includes(entry.role as any));
       
       // Remove role from response (internal use only)
       const response = filteredLeaderboard.map(({ role, ...rest }) => rest);
