@@ -101,7 +101,7 @@ export default function LiveStream() {
                     <a href={zoomLink} target="_blank" rel="noopener noreferrer">
                       <Button 
                         size="lg" 
-                        className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold px-6 md:px-8 w-full min-w-[200px]"
+                        className="bg-[#2563eb] hover:bg-[#1d4ed8] text-white font-bold px-6 w-[240px]"
                         data-testid="button-join-zoom-live"
                       >
                         Join the Zoom Link
@@ -112,7 +112,7 @@ export default function LiveStream() {
                     <Link href="/login" className="md:hidden">
                       <Button 
                         size="lg" 
-                        className="bg-[#b47a5f] hover:bg-[#a06b52] text-white font-bold px-6 w-full min-w-[200px]"
+                        className="bg-[#b47a5f] hover:bg-[#a06b52] text-white font-bold px-6 w-[240px]"
                         data-testid="button-login-live"
                       >
                         <User className="w-4 h-4 mr-2" />
