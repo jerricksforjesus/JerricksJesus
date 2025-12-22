@@ -5,15 +5,15 @@ import { BibleQuizSection } from "@/components/BibleQuizSection";
 import { ObjectUploader } from "@/components/ObjectUploader";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
-import { useLocation } from "wouter";
-import { BookOpen, Camera, ClipboardList, LogOut, Loader2, Trash2, Clock, CheckCircle, XCircle, Upload, Key, Settings, Save, User as UserIcon, Music, Plus, ExternalLink, Cake } from "lucide-react";
+import { useLocation, Link } from "wouter";
+import { BookOpen, Camera, ClipboardList, LogOut, Loader2, Trash2, Clock, CheckCircle, XCircle, Upload, Key, Settings, Save, User as UserIcon, Music, Plus, ExternalLink, Cake, Menu, ChevronRight, X, Home } from "lucide-react";
 import { DatePicker } from "@/components/ui/date-picker";
 import type { UploadResult } from "@uppy/core";
+import { motion, AnimatePresence } from "framer-motion";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +52,10 @@ export function MemberDashboard() {
   const { user, logout } = useAuth();
   const [photoCaption, setPhotoCaption] = useState("");
   const [photoSignedUrls, setPhotoSignedUrls] = useState<Record<number, string>>({});
+  
+  // Navigation state
+  const [activeSection, setActiveSection] = useState("quiz");
+  const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
   
   // Force password change state
   const [forceNewPassword, setForceNewPassword] = useState("");
@@ -213,6 +217,16 @@ export function MemberDashboard() {
       toast({ title: "Error", description: "Failed to log out.", variant: "destructive" });
     }
   };
+
+  // Navigation items for regular members
+  const navItems: Array<{ id: string; label: string; icon: typeof BookOpen; action?: () => void | Promise<void> }> = [
+    { id: "quiz", label: "Bible Quiz", icon: BookOpen },
+    { id: "photos", label: "Family Photos", icon: Camera },
+    { id: "music", label: "Request Music", icon: Music },
+    { id: "questionnaire", label: "Questionnaire", icon: ClipboardList },
+    { id: "settings", label: "Settings", icon: Settings },
+    { id: "logout", label: "Log Out", icon: LogOut, action: handleLogout },
+  ];
 
   const { data: myPhotos = [], isLoading: loadingPhotos } = useQuery<MemberPhoto[]>({
     queryKey: ["my-member-photos"],
@@ -449,67 +463,187 @@ export function MemberDashboard() {
     <div className="min-h-screen bg-muted/20">
       <Navigation />
       
-      <div className="pt-32 pb-12 px-6 max-w-5xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-serif font-bold">My Account</h1>
-          <p className="text-muted-foreground">
-            Welcome, <span className="font-medium">{user?.username}</span>
-          </p>
+      <div className="pt-20 lg:pt-24 flex min-h-[calc(100vh-5rem)]">
+        {/* Desktop Sidebar - Always visible on large screens */}
+        <aside className="hidden lg:flex w-64 flex-col bg-card border-r">
+          <div className="p-6 border-b" style={{ backgroundColor: "#b47a5f" }}>
+            <h1 className="text-xl font-serif font-bold text-white">My Account</h1>
+            <p className="text-sm text-white/80 mt-1">
+              {user?.username}
+            </p>
+          </div>
+          
+          <nav className="flex-1 p-3 overflow-y-auto">
+            <div className="space-y-1">
+              {/* Return to Site */}
+              <Link href="/">
+                <button
+                  className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
+                  data-testid="button-return-to-site"
+                >
+                  <Home className="w-4 h-4 flex-shrink-0" />
+                  Return to Site
+                </button>
+              </Link>
+              
+              <div className="my-2 border-t" />
+              
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isLogout = item.id === "logout";
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => item.action ? item.action() : setActiveSection(item.id)}
+                    data-testid={`tab-${item.id}`}
+                    className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
+                      isLogout
+                        ? "text-red-600 hover:bg-muted"
+                        : activeSection === item.id
+                        ? "bg-[#b47a5f] text-white font-medium"
+                        : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                    }`}
+                  >
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    {item.label}
+                  </button>
+                );
+              })}
+            </div>
+          </nav>
+        </aside>
+
+        {/* Mobile Navigation Bar */}
+        <div className="lg:hidden fixed top-14 left-0 right-0 z-30" style={{ backgroundColor: "#EDEBE5" }}>
+          <div className="p-3">
+            <Button 
+              variant="outline" 
+              className="w-full justify-between"
+              onClick={() => setIsMobileSettingsOpen(true)}
+              data-testid="button-open-mobile-settings"
+            >
+              <span className="flex items-center gap-2">
+                <Menu className="h-4 w-4" />
+                {navItems.find(item => item.id === activeSection)?.label || "Select Section"}
+              </span>
+              <ChevronRight className="h-4 w-4" />
+            </Button>
+          </div>
         </div>
 
-        <Tabs defaultValue="quiz" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
-            <TabsTrigger value="quiz" data-testid="tab-quiz" className="flex items-center gap-2">
-              <BookOpen className="h-4 w-4" />
-              <span className="hidden sm:inline">Bible Quiz</span>
-              <span className="sm:hidden">Quiz</span>
-            </TabsTrigger>
-            <TabsTrigger value="photos" data-testid="tab-photos" className="flex items-center gap-2">
-              <Camera className="h-4 w-4" />
-              <span className="hidden sm:inline">Family Photos</span>
-              <span className="sm:hidden">Photos</span>
-            </TabsTrigger>
-            <TabsTrigger value="music" data-testid="tab-music" className="flex items-center gap-2">
-              <Music className="h-4 w-4" />
-              <span className="hidden sm:inline">Request Music</span>
-              <span className="sm:hidden">Music</span>
-            </TabsTrigger>
-            <TabsTrigger value="questionnaire" data-testid="tab-questionnaire" className="flex items-center gap-2">
-              <ClipboardList className="h-4 w-4" />
-              <span className="hidden sm:inline">Questionnaire</span>
-              <span className="sm:hidden">Survey</span>
-            </TabsTrigger>
-            <TabsTrigger value="settings" data-testid="tab-settings" className="flex items-center gap-2">
-              <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">Settings</span>
-              <span className="sm:hidden">Settings</span>
-            </TabsTrigger>
-            <button
-              onClick={handleLogout}
-              data-testid="tab-logout"
-              className="flex items-center justify-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-muted rounded-md transition-colors"
-            >
-              <LogOut className="h-4 w-4" />
-              <span className="hidden sm:inline">Log Out</span>
-              <span className="sm:hidden">Exit</span>
-            </button>
-          </TabsList>
+        {/* Mobile Full-Page Settings Panel */}
+        <AnimatePresence>
+          {isMobileSettingsOpen && (
+            <>
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.2 }}
+                className="lg:hidden fixed inset-0 bg-black/50 z-40"
+                onClick={() => setIsMobileSettingsOpen(false)}
+              />
+              
+              {/* Slide-in Panel */}
+              <motion.div
+                initial={{ x: "-100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "-100%" }}
+                transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                className="lg:hidden fixed inset-y-0 left-0 w-full max-w-sm bg-card z-50 shadow-xl flex flex-col"
+              >
+                {/* Panel Header */}
+                <div className="flex items-center justify-between p-4 border-b" style={{ backgroundColor: "#b47a5f" }}>
+                  <div>
+                    <h2 className="text-lg font-serif font-bold text-white">My Account</h2>
+                    <p className="text-sm text-white/80">{user?.username}</p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    onClick={() => setIsMobileSettingsOpen(false)}
+                    className="text-white hover:bg-white/20"
+                    data-testid="button-close-mobile-settings"
+                  >
+                    <X className="h-5 w-5" />
+                  </Button>
+                </div>
 
-          <TabsContent value="quiz" className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="font-serif">Bible Quiz</CardTitle>
-                <CardDescription>
-                  Test your knowledge of the Scriptures with our interactive quizzes
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <BibleQuizSection />
-              </CardContent>
-            </Card>
-          </TabsContent>
+                {/* Navigation Items */}
+                <nav className="flex-1 overflow-y-auto p-4">
+                  <div className="space-y-1">
+                    {/* Return to Site */}
+                    <Link href="/" onClick={() => setIsMobileSettingsOpen(false)}>
+                      <button
+                        className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left text-sm transition-colors text-muted-foreground hover:bg-muted hover:text-foreground"
+                        data-testid="button-return-to-site-mobile"
+                      >
+                        <Home className="w-4 h-4 flex-shrink-0" />
+                        Return to Site
+                      </button>
+                    </Link>
+                    
+                    <div className="my-2 border-t" />
+                    
+                    {navItems.map((item) => {
+                      const Icon = item.icon;
+                      const isLogout = item.id === "logout";
+                      return (
+                        <button
+                          key={item.id}
+                          onClick={() => {
+                            if (item.action) {
+                              item.action();
+                            } else {
+                              setActiveSection(item.id);
+                              setIsMobileSettingsOpen(false);
+                            }
+                          }}
+                          data-testid={`tab-${item.id}-mobile`}
+                          className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left text-sm transition-colors ${
+                            isLogout
+                              ? "text-red-600 hover:bg-muted"
+                              : activeSection === item.id
+                              ? "bg-[#b47a5f] text-white font-medium"
+                              : "text-muted-foreground hover:bg-muted hover:text-foreground"
+                          }`}
+                        >
+                          <Icon className="w-4 h-4 flex-shrink-0" />
+                          {item.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                </nav>
+              </motion.div>
+            </>
+          )}
+        </AnimatePresence>
 
-          <TabsContent value="photos" className="space-y-6">
+        {/* Main Content */}
+        <main className="flex-1 overflow-y-auto pt-16 lg:pt-0">
+          <div className="p-6 max-w-4xl">
+            {/* Quiz Section */}
+            {activeSection === "quiz" && (
+              <div className="space-y-6">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="font-serif">Bible Quiz</CardTitle>
+                    <CardDescription>
+                      Test your knowledge of the Scriptures with our interactive quizzes
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <BibleQuizSection />
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Photos Section */}
+            {activeSection === "photos" && (
+              <div className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="font-serif">Upload Family Photos</CardTitle>
@@ -600,9 +734,12 @@ export function MemberDashboard() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+              </div>
+            )}
 
-          <TabsContent value="music" className="space-y-6">
+            {/* Music Section */}
+            {activeSection === "music" && (
+              <div className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="font-serif">Request Worship Music</CardTitle>
@@ -762,9 +899,12 @@ export function MemberDashboard() {
                 )}
               </CardContent>
             </Card>
-          </TabsContent>
+              </div>
+            )}
 
-          <TabsContent value="questionnaire" className="space-y-6">
+            {/* Questionnaire Section */}
+            {activeSection === "questionnaire" && (
+              <div className="space-y-6">
             <Card>
               <CardHeader>
                 <CardTitle className="font-serif">Family Questionnaire</CardTitle>
@@ -785,9 +925,12 @@ export function MemberDashboard() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
+              </div>
+            )}
 
-          <TabsContent value="settings" className="space-y-6">
+            {/* Settings Section */}
+            {activeSection === "settings" && (
+              <div className="space-y-6">
             <Card>
               <CardHeader>
                 <div className="flex items-center gap-3">
@@ -944,8 +1087,10 @@ export function MemberDashboard() {
                 </div>
               </CardContent>
             </Card>
-          </TabsContent>
-        </Tabs>
+              </div>
+            )}
+          </div>
+        </main>
       </div>
 
       <Dialog open={user?.mustChangePassword === 1}>
