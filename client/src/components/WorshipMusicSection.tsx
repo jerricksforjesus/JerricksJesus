@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Music, Plus } from "lucide-react";
+import { Music, Plus, LogIn } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorshipMusicPlayer } from "./WorshipMusicPlayer";
 import { WorshipRequestForm } from "./WorshipRequestForm";
@@ -83,6 +83,20 @@ export function WorshipMusicSection() {
         )}
         {user && !canEdit && (
           <WorshipRequestForm />
+        )}
+        {!user && (
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="gap-2 text-muted-foreground hover:text-foreground"
+            data-testid="button-login-request-music"
+          >
+            <Link href="/login">
+              <LogIn className="w-4 h-4" />
+              Log in to request new music
+            </Link>
+          </Button>
         )}
       </div>
     </div>
