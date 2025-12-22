@@ -112,18 +112,18 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.6 }}
-            className="mt-8 mb-[10px]"
+            className="mt-8 mb-[20px]"
           >
             <Button 
               asChild
               size="lg" 
-              className="font-bold px-8 w-[220px]"
+              className="font-bold px-8 w-[220px] justify-between"
               style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
               data-testid="button-join-zoom-hero"
             >
-              <a href={zoomData.zoomLink} target="_blank" rel="noopener noreferrer">
-                <Video className="w-5 h-5 mr-2" />
-                Join the Zoom
+              <a href={zoomData.zoomLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between w-full">
+                <span>Join the Zoom</span>
+                <Video className="w-5 h-5" />
               </a>
             </Button>
           </motion.div>
@@ -135,18 +135,18 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 0.8 }}
-            className="mt-4 mb-[10px]"
+            className="mt-0 mb-[20px]"
           >
             <Button 
               asChild
               size="lg" 
-              className="font-bold px-8 w-[220px]"
+              className="font-bold px-8 w-[220px] justify-between"
               style={{ backgroundColor: "#ffffff", color: "#b47a5f", border: "2px solid #ffffff" }}
               data-testid="button-sign-in-hero"
             >
-              <Link href="/login">
-                <LogIn className="w-5 h-5 mr-2" />
-                Sign In
+              <Link href="/login" className="flex items-center justify-between w-full">
+                <span>Sign In</span>
+                <LogIn className="w-5 h-5" />
               </Link>
             </Button>
           </motion.div>
@@ -158,11 +158,11 @@ export function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8, delay: 1.0 }}
-            className="mt-4 mb-[10px]"
+            className="mt-0 mb-[20px]"
           >
             <Button 
               size="lg" 
-              className="font-bold px-8 w-[220px]"
+              className="font-bold px-8 w-[220px] justify-between"
               style={{ 
                 backgroundColor: showMiniPlayer ? "#292929" : "#ffffff", 
                 color: showMiniPlayer ? "#ffffff" : "#b47a5f", 
@@ -181,18 +181,18 @@ export function Hero() {
             >
               {isInitializing ? (
                 <>
-                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Loading...
+                  <span>Loading...</span>
+                  <Loader2 className="w-5 h-5 animate-spin" />
                 </>
               ) : showMiniPlayer ? (
                 <>
-                  <Square className="w-5 h-5 mr-2" />
-                  Stop Music
+                  <span>Stop Music</span>
+                  <Square className="w-5 h-5" />
                 </>
               ) : (
                 <>
-                  <Music className="w-5 h-5 mr-2" />
-                  Play Worship Music
+                  <span>Play Worship Music</span>
+                  <Music className="w-5 h-5" />
                 </>
               )}
             </Button>
