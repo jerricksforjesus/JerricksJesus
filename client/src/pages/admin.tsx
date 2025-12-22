@@ -673,53 +673,103 @@ function WorshipPlaylistManager() {
             {videos.map((video) => (
               <div
                 key={video.id}
-                className="flex items-center gap-4 p-3 border rounded-lg bg-card hover:bg-muted/30 transition-colors"
+                className="p-3 border rounded-lg bg-card hover:bg-muted/30 transition-colors"
                 data-testid={`worship-video-item-${video.id}`}
               >
-                <div className="w-24 h-14 rounded overflow-hidden bg-muted flex-shrink-0">
-                  {video.thumbnailUrl ? (
-                    <img
-                      src={video.thumbnailUrl}
-                      alt={video.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center">
-                      <Play className="w-6 h-6 text-muted-foreground" />
-                    </div>
-                  )}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-medium text-sm line-clamp-1">{video.title}</h4>
-                  <p className="text-xs text-muted-foreground mt-0.5">
+                {/* Mobile Layout: Stacked */}
+                <div className="sm:hidden space-y-2">
+                  <div className="w-full aspect-video rounded overflow-hidden bg-muted">
+                    {video.thumbnailUrl ? (
+                      <img
+                        src={video.thumbnailUrl}
+                        alt={video.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Play className="w-8 h-8 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <h4 className="font-medium text-sm">{video.title}</h4>
+                  <p className="text-xs text-muted-foreground">
                     ID: {video.youtubeVideoId}
                   </p>
-                </div>
-                <div className="flex items-center gap-2">
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    asChild
-                    className="text-muted-foreground hover:text-foreground"
-                  >
-                    <a
-                      href={`https://youtube.com/watch?v=${video.youtubeVideoId}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      asChild
+                      className="flex-1"
                     >
-                      <ExternalLink className="w-4 h-4" />
-                    </a>
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => deleteVideoMutation.mutate(video.id)}
-                    disabled={deleteVideoMutation.isPending}
-                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                    data-testid={`button-delete-video-${video.id}`}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                      <a
+                        href={`https://youtube.com/watch?v=${video.youtubeVideoId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="w-4 h-4 mr-2" />
+                        View
+                      </a>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => deleteVideoMutation.mutate(video.id)}
+                      disabled={deleteVideoMutation.isPending}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      data-testid={`button-delete-video-${video.id}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </div>
+                {/* Desktop Layout: Horizontal */}
+                <div className="hidden sm:flex items-center gap-4">
+                  <div className="w-24 h-14 rounded overflow-hidden bg-muted flex-shrink-0">
+                    {video.thumbnailUrl ? (
+                      <img
+                        src={video.thumbnailUrl}
+                        alt={video.title}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <div className="w-full h-full flex items-center justify-center">
+                        <Play className="w-6 h-6 text-muted-foreground" />
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="font-medium text-sm line-clamp-1">{video.title}</h4>
+                    <p className="text-xs text-muted-foreground mt-0.5">
+                      ID: {video.youtubeVideoId}
+                    </p>
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      asChild
+                      className="text-muted-foreground hover:text-foreground"
+                    >
+                      <a
+                        href={`https://youtube.com/watch?v=${video.youtubeVideoId}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        <ExternalLink className="w-4 h-4" />
+                      </a>
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteVideoMutation.mutate(video.id)}
+                      disabled={deleteVideoMutation.isPending}
+                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                      data-testid={`button-delete-video-${video.id}`}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  </div>
                 </div>
               </div>
             ))}
@@ -815,12 +865,76 @@ function WorshipMusicRequests() {
           {pendingRequests.map((request) => (
             <div
               key={request.id}
-              className="flex flex-col sm:flex-row sm:items-center gap-3 p-3 border rounded-lg bg-card hover:bg-muted/30 transition-colors"
+              className="p-3 border rounded-lg bg-card hover:bg-muted/30 transition-colors"
               data-testid={`worship-request-item-${request.id}`}
             >
-              {/* Thumbnail and Info */}
-              <div className="flex items-center gap-3 flex-1 min-w-0">
-                <div className="w-20 h-12 sm:w-24 sm:h-14 rounded overflow-hidden bg-muted flex-shrink-0">
+              {/* Mobile Layout: Stacked */}
+              <div className="sm:hidden space-y-2">
+                <div className="w-full aspect-video rounded overflow-hidden bg-muted">
+                  {request.thumbnailUrl ? (
+                    <img
+                      src={request.thumbnailUrl}
+                      alt={request.title || "Video thumbnail"}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center">
+                      <Play className="w-8 h-8 text-muted-foreground" />
+                    </div>
+                  )}
+                </div>
+                <h4 className="font-medium text-sm">
+                  {request.title && !request.title.startsWith("YouTube Video ") 
+                    ? request.title 
+                    : "Untitled Video"}
+                </h4>
+                <p className="text-xs text-muted-foreground">
+                  Requested by: {request.username || "Unknown"}
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  {new Date(request.createdAt).toLocaleDateString()}
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    asChild
+                    className="flex-1"
+                  >
+                    <a
+                      href={request.youtubeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="w-4 h-4 mr-2" />
+                      View
+                    </a>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateStatusMutation.mutate({ id: request.id, status: "approved" })}
+                    disabled={updateStatusMutation.isPending}
+                    className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                    data-testid={`button-approve-request-${request.id}`}
+                  >
+                    <Check className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateStatusMutation.mutate({ id: request.id, status: "rejected" })}
+                    disabled={updateStatusMutation.isPending}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    data-testid={`button-reject-request-${request.id}`}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+              {/* Desktop Layout: Horizontal */}
+              <div className="hidden sm:flex items-center gap-4">
+                <div className="w-24 h-14 rounded overflow-hidden bg-muted flex-shrink-0">
                   {request.thumbnailUrl ? (
                     <img
                       src={request.thumbnailUrl}
@@ -846,43 +960,42 @@ function WorshipMusicRequests() {
                     {new Date(request.createdAt).toLocaleDateString()}
                   </p>
                 </div>
-              </div>
-              {/* Actions */}
-              <div className="flex items-center justify-end gap-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  asChild
-                  className="text-muted-foreground hover:text-foreground"
-                >
-                  <a
-                    href={request.youtubeUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    asChild
+                    className="text-muted-foreground hover:text-foreground"
                   >
-                    <ExternalLink className="w-4 h-4" />
-                  </a>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => updateStatusMutation.mutate({ id: request.id, status: "approved" })}
-                  disabled={updateStatusMutation.isPending}
-                  className="text-green-600 hover:text-green-700 hover:bg-green-50"
-                  data-testid={`button-approve-request-${request.id}`}
-                >
-                  <Check className="w-4 h-4" />
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => updateStatusMutation.mutate({ id: request.id, status: "rejected" })}
-                  disabled={updateStatusMutation.isPending}
-                  className="text-red-600 hover:text-red-700 hover:bg-red-50"
-                  data-testid={`button-reject-request-${request.id}`}
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+                    <a
+                      href={request.youtubeUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      <ExternalLink className="w-4 h-4" />
+                    </a>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateStatusMutation.mutate({ id: request.id, status: "approved" })}
+                    disabled={updateStatusMutation.isPending}
+                    className="text-green-600 hover:text-green-700 hover:bg-green-50"
+                    data-testid={`button-approve-request-${request.id}`}
+                  >
+                    <Check className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => updateStatusMutation.mutate({ id: request.id, status: "rejected" })}
+                    disabled={updateStatusMutation.isPending}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                    data-testid={`button-reject-request-${request.id}`}
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             </div>
           ))}
