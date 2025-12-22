@@ -212,6 +212,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const volumeRef = useRef(volume);
   const autoPlayOnReadyRef = useRef(false);
   const lastBackPressRef = useRef<number>(0);
+  const shouldContinuePlayingRef = useRef(false);
 
   const { data: videos = [], isLoading } = useQuery<WorshipVideo[]>({
     queryKey: ["worship-videos"],
@@ -534,6 +535,8 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
               event.target.seekTo(0, true);
               event.target.playVideo();
             } else if (currentIndex < videos.length - 1) {
+              // Mark that we should continue playing when track changes
+              shouldContinuePlayingRef.current = true;
               setCurrentIndex((prev) => prev + 1);
             }
           }
@@ -561,12 +564,13 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
       setCurrentTime(0);
       setDuration(0);
       
-      // If this was a track change (next/prev/select), auto-play the new track
-      // Also auto-play if mini player is active (user was listening)
-      if (isTrackChange && miniPlayerActivated) {
+      // Only auto-play on track change if we were actually playing (not just mini player shown)
+      // Use shouldContinuePlayingRef which is set when song ends or isPlayingRef if user initiated
+      if (isTrackChange && (shouldContinuePlayingRef.current || isPlayingRef.current)) {
+        shouldContinuePlayingRef.current = false; // Reset the flag
         // Small delay to let the video load before playing
         setTimeout(() => {
-          if (playerRef.current) {
+          if (playerRef.current && playerReady) {
             try {
               playerRef.current.playVideo();
             } catch (e) {
@@ -576,7 +580,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
         }, 100);
       }
     }
-  }, [currentIndex, currentVideo, playerReady, miniPlayerActivated]);
+  }, [currentIndex, currentVideo, playerReady]);
 
   const play = useCallback(() => {
     setMiniPlayerDismissed(false);
@@ -599,6 +603,9 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   }, [playerCreated, playerReady]);
 
   const pause = useCallback(() => {
+    // Clear any pending auto-play to prevent pause from being overridden
+    autoPlayOnReadyRef.current = false;
+    shouldContinuePlayingRef.current = false;
     if (playerRef.current) {
       try {
         playerRef.current.pauseVideo();
