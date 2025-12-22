@@ -200,6 +200,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const [isLooping, setIsLooping] = useState(false);
   const [lastPlayedLoaded, setLastPlayedLoaded] = useState(false);
   const [loopingPreferenceLoaded, setLoopingPreferenceLoaded] = useState(false);
+  const [volumePreferenceLoaded, setVolumePreferenceLoaded] = useState(false);
   
   const playerRef = useRef<YTPlayer | null>(null);
   const isLoopingRef = useRef(isLooping);
@@ -268,6 +269,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
         setMiniPlayerDismissed(true);
         setMiniPlayerActivated(false);
         setIsLooping(false);
+        setVolumeState(80);
         
         // Only reset to beginning on logout
         if (currentUserId === null) {
@@ -277,6 +279,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
       lastUserIdRef.current = currentUserId;
       setLastPlayedLoaded(false);
       setLoopingPreferenceLoaded(false);
+      setVolumePreferenceLoaded(false);
     }
   }, [user?.id, miniPlayerActivated]);
 
@@ -366,6 +369,56 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     
     saveLoopingPreference();
   }, [user, isLooping, loopingPreferenceLoaded]);
+
+  // Load volume preference for logged-in users
+  useEffect(() => {
+    if (!user || !lastPlayedLoaded || volumePreferenceLoaded) return;
+    
+    const loadVolumePreference = async () => {
+      try {
+        const response = await fetch("/api/user/volume-preference", { credentials: "include" });
+        if (response.ok) {
+          const { volume: savedVolume } = await response.json();
+          setVolumeState(savedVolume);
+          // Also update the player if ready
+          if (playerRef.current) {
+            try {
+              playerRef.current.setVolume(savedVolume);
+            } catch (e) {
+              // Player might not be ready
+            }
+          }
+        }
+        setVolumePreferenceLoaded(true);
+      } catch (error) {
+        console.error("Failed to load volume preference:", error);
+        setVolumePreferenceLoaded(true);
+      }
+    };
+    
+    loadVolumePreference();
+  }, [user, lastPlayedLoaded, volumePreferenceLoaded]);
+
+  // Save volume preference when it changes (for logged-in users)
+  useEffect(() => {
+    // Only save after initial load is complete to avoid overwriting with stale value
+    if (!user || !volumePreferenceLoaded) return;
+    
+    const saveVolumePreference = async () => {
+      try {
+        await fetch("/api/user/volume-preference", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ volume }),
+        });
+      } catch (error) {
+        console.error("Failed to save volume preference:", error);
+      }
+    };
+    
+    saveVolumePreference();
+  }, [user, volume, volumePreferenceLoaded]);
 
   useEffect(() => {
     volumeRef.current = volume;

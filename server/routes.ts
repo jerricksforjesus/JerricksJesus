@@ -842,6 +842,32 @@ export async function registerRoutes(
     }
   });
 
+  // Get user's volume preference
+  app.get("/api/user/volume-preference", requireAuth, async (req, res) => {
+    try {
+      const volume = await storage.getVolumePreference(req.user!.id);
+      res.json({ volume });
+    } catch (error) {
+      console.error("Error fetching volume preference:", error);
+      res.status(500).json({ error: "Failed to fetch volume preference" });
+    }
+  });
+
+  // Set user's volume preference
+  app.put("/api/user/volume-preference", requireAuth, async (req, res) => {
+    try {
+      const { volume } = req.body;
+      if (typeof volume !== "number" || volume < 0 || volume > 100) {
+        return res.status(400).json({ error: "Invalid volume value" });
+      }
+      await storage.setVolumePreference(req.user!.id, volume);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error setting volume preference:", error);
+      res.status(500).json({ error: "Failed to set volume preference" });
+    }
+  });
+
   // Add video to worship playlist (Foundational/Admin only)
   app.post("/api/worship-videos", requireAuth, requireRole(USER_ROLES.SUPERADMIN, USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
     try {

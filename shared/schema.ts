@@ -47,6 +47,7 @@ export const users = pgTable("users", {
   dateOfBirth: text("date_of_birth"),
   lastPlayedVideoId: text("last_played_video_id"),
   loopingPreference: integer("looping_preference").default(0).notNull(),
+  volumePreference: integer("volume_preference").default(80).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

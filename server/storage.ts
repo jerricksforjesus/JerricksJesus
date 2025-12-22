@@ -23,6 +23,8 @@ export interface IStorage {
   setLastPlayedVideoId(userId: string, videoId: string): Promise<void>;
   getLoopingPreference(userId: string): Promise<boolean>;
   setLoopingPreference(userId: string, looping: boolean): Promise<void>;
+  getVolumePreference(userId: string): Promise<number>;
+  setVolumePreference(userId: string, volume: number): Promise<void>;
   
   // Session methods
   createSession(session: InsertSession): Promise<Session>;
@@ -244,6 +246,15 @@ export class DbStorage implements IStorage {
 
   async setLoopingPreference(userId: string, looping: boolean): Promise<void> {
     await db.update(users).set({ loopingPreference: looping ? 1 : 0 }).where(eq(users.id, userId));
+  }
+
+  async getVolumePreference(userId: string): Promise<number> {
+    const user = await this.getUser(userId);
+    return user?.volumePreference ?? 80;
+  }
+
+  async setVolumePreference(userId: string, volume: number): Promise<void> {
+    await db.update(users).set({ volumePreference: volume }).where(eq(users.id, userId));
   }
 
   async createSession(session: InsertSession): Promise<Session> {
