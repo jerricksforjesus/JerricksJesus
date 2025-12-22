@@ -4153,8 +4153,8 @@ export default function AdminDashboard() {
                   </div>
 
                   <div className="space-y-6">
-                    <div className="space-y-4">
-                      <h4 className="font-medium">Update Username</h4>
+                    <div>
+                      <h4 className="font-medium mb-4">Update Username</h4>
                       <div className="flex flex-col sm:flex-row gap-3 max-w-md">
                         <Input
                           id="profile-username"
@@ -4181,9 +4181,9 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    <div className="border-t pt-6 space-y-4">
-                      <h4 className="font-medium">Date of Birth</h4>
-                      <p className="text-sm text-muted-foreground">
+                    <div className="border-t pt-6">
+                      <h4 className="font-medium mb-3">Date of Birth</h4>
+                      <p className="text-sm text-muted-foreground mb-4">
                         Add your birthday and we'll create an event in the Family Events section to celebrate with you!
                       </p>
                       <div className="flex flex-col sm:flex-row gap-3">
@@ -4212,8 +4212,8 @@ export default function AdminDashboard() {
                       </div>
                     </div>
 
-                    <div className="border-t pt-6 space-y-4">
-                      <h4 className="font-medium">Change Password</h4>
+                    <div className="border-t pt-6">
+                      <h4 className="font-medium mb-4">Change Password</h4>
                       {user?.googleId ? (
                         <div className="bg-muted/50 rounded-lg p-4 text-muted-foreground">
                           <p className="flex items-center gap-2">

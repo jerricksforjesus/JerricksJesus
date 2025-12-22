@@ -951,7 +951,7 @@ export function MemberDashboard() {
                   </div>
                 </div>
 
-                <div className="border-t pt-6 space-y-4">
+                <div className="border-t pt-6">
                   <div className="flex items-center gap-3 mb-4">
                     <UserIcon className="w-5 h-5" style={{ color: "#b47a5f" }} />
                     <h3 className="font-medium text-lg">Update Username</h3>
@@ -982,8 +982,8 @@ export function MemberDashboard() {
                   </div>
                 </div>
 
-                <div className="border-t pt-6 space-y-4">
-                  <div className="flex items-center gap-3 mb-4">
+                <div className="border-t pt-6">
+                  <div className="flex items-center gap-3 mb-3">
                     <Cake className="w-5 h-5" style={{ color: "#b47a5f" }} />
                     <h3 className="font-medium text-lg">Date of Birth</h3>
                   </div>
@@ -1015,7 +1015,7 @@ export function MemberDashboard() {
                   </div>
                 </div>
 
-                <div className="border-t pt-6 space-y-4">
+                <div className="border-t pt-6">
                   <div className="flex items-center gap-3 mb-4">
                     <Key className="w-5 h-5" style={{ color: "#b47a5f" }} />
                     <h3 className="font-medium text-lg">Change Password</h3>
