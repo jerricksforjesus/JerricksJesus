@@ -326,7 +326,7 @@ export function MemberDashboard() {
             <button
               onClick={handleLogout}
               data-testid="tab-logout"
-              className="flex items-center justify-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors"
+              className="flex items-center justify-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-muted rounded-md transition-colors"
             >
               <LogOut className="h-4 w-4" />
               <span className="hidden sm:inline">Log Out</span>

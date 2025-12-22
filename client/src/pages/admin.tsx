@@ -2770,7 +2770,7 @@ export default function AdminDashboard() {
                     data-testid={`tab-${item.id}`}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
                       isLogout
-                        ? "text-red-600 hover:bg-red-50"
+                        ? "text-red-600 hover:bg-muted"
                         : activeSection === item.id
                         ? "bg-[#b47a5f] text-white font-medium"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground"
@@ -2892,7 +2892,7 @@ export default function AdminDashboard() {
                           data-testid={`mobile-nav-${item.id}`}
                           className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left text-sm transition-colors ${
                             isLogout
-                              ? "text-red-600 hover:bg-red-50"
+                              ? "text-red-600 hover:bg-muted"
                               : activeSection === item.id
                               ? "bg-[#b47a5f] text-white font-medium"
                               : "text-muted-foreground hover:bg-muted hover:text-foreground"
