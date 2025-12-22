@@ -816,6 +816,32 @@ export async function registerRoutes(
     }
   });
 
+  // Get user's looping preference
+  app.get("/api/user/looping-preference", requireAuth, async (req, res) => {
+    try {
+      const looping = await storage.getLoopingPreference(req.user!.id);
+      res.json({ looping });
+    } catch (error) {
+      console.error("Error fetching looping preference:", error);
+      res.status(500).json({ error: "Failed to fetch looping preference" });
+    }
+  });
+
+  // Set user's looping preference
+  app.put("/api/user/looping-preference", requireAuth, async (req, res) => {
+    try {
+      const { looping } = req.body;
+      if (typeof looping !== "boolean") {
+        return res.status(400).json({ error: "Invalid looping value" });
+      }
+      await storage.setLoopingPreference(req.user!.id, looping);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error setting looping preference:", error);
+      res.status(500).json({ error: "Failed to set looping preference" });
+    }
+  });
+
   // Add video to worship playlist (Foundational/Admin only)
   app.post("/api/worship-videos", requireAuth, requireRole(USER_ROLES.SUPERADMIN, USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
     try {

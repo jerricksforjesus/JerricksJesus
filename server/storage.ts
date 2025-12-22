@@ -21,6 +21,8 @@ export interface IStorage {
   getUsersWithBirthdays(): Promise<User[]>;
   getLastPlayedVideoId(userId: string): Promise<string | null>;
   setLastPlayedVideoId(userId: string, videoId: string): Promise<void>;
+  getLoopingPreference(userId: string): Promise<boolean>;
+  setLoopingPreference(userId: string, looping: boolean): Promise<void>;
   
   // Session methods
   createSession(session: InsertSession): Promise<Session>;
@@ -233,6 +235,15 @@ export class DbStorage implements IStorage {
 
   async setLastPlayedVideoId(userId: string, videoId: string): Promise<void> {
     await db.update(users).set({ lastPlayedVideoId: videoId }).where(eq(users.id, userId));
+  }
+
+  async getLoopingPreference(userId: string): Promise<boolean> {
+    const user = await this.getUser(userId);
+    return user?.loopingPreference === 1;
+  }
+
+  async setLoopingPreference(userId: string, looping: boolean): Promise<void> {
+    await db.update(users).set({ loopingPreference: looping ? 1 : 0 }).where(eq(users.id, userId));
   }
 
   async createSession(session: InsertSession): Promise<Session> {

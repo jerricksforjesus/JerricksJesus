@@ -46,6 +46,7 @@ export const users = pgTable("users", {
   mustChangePassword: integer("must_change_password").default(0).notNull(),
   dateOfBirth: text("date_of_birth"),
   lastPlayedVideoId: text("last_played_video_id"),
+  loopingPreference: integer("looping_preference").default(0).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

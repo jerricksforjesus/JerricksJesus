@@ -199,6 +199,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const [isInitializing, setIsInitializing] = useState(false);
   const [isLooping, setIsLooping] = useState(false);
   const [lastPlayedLoaded, setLastPlayedLoaded] = useState(false);
+  const [loopingPreferenceLoaded, setLoopingPreferenceLoaded] = useState(false);
   
   const playerRef = useRef<YTPlayer | null>(null);
   const isLoopingRef = useRef(isLooping);
@@ -266,6 +267,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
         setDuration(0);
         setMiniPlayerDismissed(true);
         setMiniPlayerActivated(false);
+        setIsLooping(false);
         
         // Only reset to beginning on logout
         if (currentUserId === null) {
@@ -274,6 +276,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
       }
       lastUserIdRef.current = currentUserId;
       setLastPlayedLoaded(false);
+      setLoopingPreferenceLoaded(false);
     }
   }, [user?.id, miniPlayerActivated]);
 
@@ -321,6 +324,48 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     
     saveLastPlayed();
   }, [user, currentVideo?.youtubeVideoId, lastPlayedLoaded]);
+
+  // Load looping preference for logged-in users
+  useEffect(() => {
+    if (!user || !lastPlayedLoaded || loopingPreferenceLoaded) return;
+    
+    const loadLoopingPreference = async () => {
+      try {
+        const response = await fetch("/api/user/looping-preference", { credentials: "include" });
+        if (response.ok) {
+          const { looping } = await response.json();
+          setIsLooping(looping);
+        }
+        setLoopingPreferenceLoaded(true);
+      } catch (error) {
+        console.error("Failed to load looping preference:", error);
+        setLoopingPreferenceLoaded(true);
+      }
+    };
+    
+    loadLoopingPreference();
+  }, [user, lastPlayedLoaded, loopingPreferenceLoaded]);
+
+  // Save looping preference when it changes (for logged-in users)
+  useEffect(() => {
+    // Only save after initial load is complete to avoid overwriting with stale value
+    if (!user || !loopingPreferenceLoaded) return;
+    
+    const saveLoopingPreference = async () => {
+      try {
+        await fetch("/api/user/looping-preference", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify({ looping: isLooping }),
+        });
+      } catch (error) {
+        console.error("Failed to save looping preference:", error);
+      }
+    };
+    
+    saveLoopingPreference();
+  }, [user, isLooping, loopingPreferenceLoaded]);
 
   useEffect(() => {
     volumeRef.current = volume;
