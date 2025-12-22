@@ -4032,43 +4032,43 @@ export default function AdminDashboard() {
                               className="flex-1"
                             />
                           </div>
-                          <div className="bg-muted/30 rounded-lg p-4 border">
+                          <div className="border rounded-lg p-4 bg-muted/30">
                             <p className="text-sm font-medium mb-2">Configure alternative link schedule:</p>
                             <p className="text-xs text-muted-foreground mb-4">
                               Click a day to enable it, then select Day (6 AM - 5:59 PM) or Night (6 PM - 5:59 AM) for that day.
                             </p>
-                            <div className="grid grid-cols-1 gap-2">
+                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-7 gap-2 mb-4">
                               {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day) => (
-                                <div 
-                                  key={day} 
-                                  className={`flex items-center gap-2 p-3 rounded-lg border transition-colors ${
-                                    isDaySelected(day) 
-                                      ? "border-[#b47a5f] bg-white" 
-                                      : "border-border bg-white hover:border-[#b47a5f]/50"
+                                <button
+                                  key={day}
+                                  type="button"
+                                  onClick={() => toggleDayInSchedule(day)}
+                                  data-testid={`button-toggle-day-${day.toLowerCase()}`}
+                                  className={`px-3 py-2 rounded-md text-sm font-medium transition-colors border ${
+                                    isDaySelected(day)
+                                      ? "text-white border-[#b47a5f]"
+                                      : "bg-white text-gray-700 border-gray-300 hover:border-[#b47a5f]"
                                   }`}
+                                  style={isDaySelected(day) ? { backgroundColor: "#b47a5f" } : {}}
                                 >
-                                  <button
-                                    type="button"
-                                    onClick={() => toggleDayInSchedule(day)}
-                                    data-testid={`button-toggle-day-${day.toLowerCase()}`}
-                                    className={`flex-1 sm:flex-none sm:w-24 px-3 py-2 rounded-md text-sm font-medium transition-colors border ${
-                                      isDaySelected(day)
-                                        ? "text-white border-transparent"
-                                        : "bg-white text-gray-700 border-gray-300 hover:border-[#b47a5f]"
-                                    }`}
-                                    style={isDaySelected(day) ? { backgroundColor: "#b47a5f" } : {}}
-                                  >
-                                    {day}
-                                  </button>
-                                  {isDaySelected(day) && (
-                                    <div className="flex gap-2 flex-1 justify-end">
+                                  {day.slice(0, 3)}
+                                </button>
+                              ))}
+                            </div>
+                            {alternativeZoomSchedule.length > 0 && (
+                              <div className="space-y-3">
+                                <p className="text-sm font-medium">Time slots for selected days:</p>
+                                {alternativeZoomSchedule.map(({ day }) => (
+                                  <div key={day} className="flex flex-wrap items-center gap-2 p-3 bg-white rounded-lg border">
+                                    <span className="text-sm font-medium w-24">{day}</span>
+                                    <div className="flex gap-2">
                                       <button
                                         type="button"
                                         onClick={() => toggleSlotForDay(day, "day")}
                                         data-testid={`button-toggle-${day.toLowerCase()}-day`}
-                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors border ${
+                                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors border ${
                                           isSlotSelectedForDay(day, "day")
-                                            ? "text-white border-transparent"
+                                            ? "text-white border-[#b47a5f]"
                                             : "bg-white text-gray-700 border-gray-300 hover:border-[#b47a5f]"
                                         }`}
                                         style={isSlotSelectedForDay(day, "day") ? { backgroundColor: "#b47a5f" } : {}}
@@ -4079,9 +4079,9 @@ export default function AdminDashboard() {
                                         type="button"
                                         onClick={() => toggleSlotForDay(day, "night")}
                                         data-testid={`button-toggle-${day.toLowerCase()}-night`}
-                                        className={`px-4 py-2 rounded-md text-sm font-medium transition-colors border ${
+                                        className={`px-4 py-1.5 rounded-md text-sm font-medium transition-colors border ${
                                           isSlotSelectedForDay(day, "night")
-                                            ? "text-white border-transparent"
+                                            ? "text-white border-[#8b5a47]"
                                             : "bg-white text-gray-700 border-gray-300 hover:border-[#b47a5f]"
                                         }`}
                                         style={isSlotSelectedForDay(day, "night") ? { backgroundColor: "#8b5a47" } : {}}
@@ -4089,24 +4089,11 @@ export default function AdminDashboard() {
                                         Night
                                       </button>
                                     </div>
-                                  )}
-                                  {isDaySelected(day) && !isSlotSelectedForDay(day, "day") && !isSlotSelectedForDay(day, "night") && (
-                                    <span className="text-xs text-muted-foreground">(all day)</span>
-                                  )}
-                                </div>
-                              ))}
-                            </div>
-                            {alternativeZoomSchedule.length > 0 && (
-                              <div className="mt-4 p-3 bg-white rounded-lg border text-sm">
-                                <p className="font-medium mb-2">Summary:</p>
-                                <ul className="space-y-1 text-muted-foreground">
-                                  {alternativeZoomSchedule.map(s => (
-                                    <li key={s.day} className="flex items-center gap-2">
-                                      <span className="w-2 h-2 rounded-full" style={{ backgroundColor: "#b47a5f" }} />
-                                      <span>{s.day}: {s.slots.length === 0 ? "All day" : s.slots.map(slot => slot === "day" ? "Day (6 AM - 5:59 PM)" : "Night (6 PM - 5:59 AM)").join(", ")}</span>
-                                    </li>
-                                  ))}
-                                </ul>
+                                    {!isSlotSelectedForDay(day, "day") && !isSlotSelectedForDay(day, "night") && (
+                                      <span className="text-xs text-muted-foreground">(all day)</span>
+                                    )}
+                                  </div>
+                                ))}
                               </div>
                             )}
                           </div>
