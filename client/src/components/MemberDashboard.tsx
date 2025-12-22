@@ -632,7 +632,10 @@ export function MemberDashboard() {
                                 <p className="font-medium text-sm line-clamp-1">
                                   {request.title && !request.title.startsWith("YouTube Video ") 
                                     ? request.title 
-                                    : request.youtubeUrl}
+                                    : "Untitled Video"}
+                                </p>
+                                <p className="text-xs text-muted-foreground line-clamp-1">
+                                  {request.youtubeUrl}
                                 </p>
                                 <p className="text-xs text-muted-foreground">
                                   {new Date(request.createdAt).toLocaleDateString()}
