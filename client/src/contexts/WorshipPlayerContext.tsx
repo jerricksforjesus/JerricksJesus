@@ -145,26 +145,32 @@ function PlayerPortal({
 
   if (!currentVideo) return null;
 
-  const hasValidMainPosition = mainPlayerVisible && position.width > 0 && position.height > 0 && position.top >= 0;
+  const hasValidMainPosition = mainPlayerVisible && 
+    position.width > 50 && 
+    position.height > 30 && 
+    position.top > 100 && 
+    position.left > 50;
   const isMainMode = hasValidMainPosition;
   const isMiniMode = showMiniPlayer && !mainPlayerVisible;
+  const shouldHide = !isMainMode && !isMiniMode;
 
   return createPortal(
     <div
       ref={playerContainerRef}
       data-testid="global-video-player"
       style={{
-        position: isMainMode ? 'absolute' : 'fixed',
-        top: isMainMode ? position.top : (isMiniMode ? 'auto' : '-9999px'),
-        left: isMainMode ? position.left : (isMiniMode ? '-9999px' : '-9999px'),
-        bottom: isMiniMode ? '0' : 'auto',
-        width: isMainMode ? position.width : (isMiniMode ? '64px' : '1px'),
-        height: isMainMode ? position.height : (isMiniMode ? '48px' : '1px'),
-        zIndex: isMainMode ? 50 : (isMiniMode ? 60 : -1),
+        position: isMiniMode ? 'fixed' : 'absolute',
+        top: isMainMode ? position.top : '-9999px',
+        left: isMainMode ? position.left : '-9999px',
+        bottom: 'auto',
+        width: isMainMode ? position.width : '1px',
+        height: isMainMode ? position.height : '1px',
+        zIndex: isMainMode ? 50 : -1,
         overflow: 'hidden',
-        borderRadius: isMainMode ? '8px' : '4px',
-        pointerEvents: (isMainMode || isMiniMode) ? 'auto' : 'none',
-        opacity: (isMainMode || isMiniMode) ? 1 : 0,
+        borderRadius: '8px',
+        pointerEvents: shouldHide ? 'none' : 'auto',
+        opacity: shouldHide ? 0 : 1,
+        visibility: shouldHide ? 'hidden' : 'visible',
         transition: 'none',
       }}
     />,
