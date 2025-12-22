@@ -243,7 +243,7 @@ export function BibleQuizSection() {
           <p className="text-muted-foreground text-base max-w-2xl mx-auto">
             Test your knowledge of Scripture.<br />
             Choose a book of the Bible<br className="md:hidden" /> and answer 10 questions.
-            <span className="hidden md:inline"><br />Login to add your progress to the leaderboard.</span>
+            {!user && <span className="hidden md:inline"><br />Login to add your progress to the leaderboard.</span>}
           </p>
         </motion.div>
 
@@ -295,10 +295,12 @@ export function BibleQuizSection() {
                   )}
                 </div>
 
-                {/* Mobile only: Login to add progress text - between cards */}
-                <p className="md:hidden text-center text-base text-muted-foreground col-span-full">
-                  Login to add your progress<br /> to the leaderboard.
-                </p>
+                {/* Mobile only: Login to add progress text - between cards (only when not logged in) */}
+                {!user && (
+                  <p className="md:hidden text-center text-base text-muted-foreground col-span-full">
+                    Login to add your progress<br /> to the leaderboard.
+                  </p>
+                )}
 
                 {/* Leaderboard Card */}
                 <div className="bg-white rounded-xl shadow-sm border p-6">
