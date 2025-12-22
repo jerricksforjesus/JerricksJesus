@@ -15,8 +15,9 @@ export function EqualizerBars({
   riseDuration = 800,
   decayDuration = 2000 
 }: EqualizerBarsProps) {
-  const wrapperRef = useRef<HTMLDivElement>(null);
+  const barsRef = useRef<(HTMLDivElement | null)[]>([]);
   const [stage, setStage] = useState<Stage>(isActive ? 'playing' : 'flatlined');
+  const [amplitude, setAmplitude] = useState(isActive ? 1 : 0);
   const animationFrameRef = useRef<number | null>(null);
   const startTimeRef = useRef<number>(0);
   const startAmplitudeRef = useRef<number>(isActive ? 1 : 0);
@@ -24,14 +25,14 @@ export function EqualizerBars({
   const currentAmplitudeRef = useRef<number>(isActive ? 1 : 0);
   const durationRef = useRef<number>(0);
 
-  const updateEnvelope = useCallback((amplitude: number) => {
-    currentAmplitudeRef.current = amplitude;
-    if (wrapperRef.current) {
-      // Scale the wrapper to create amplitude envelope
-      // At amplitude 0: scaleY(0.25), at amplitude 1: scaleY(1)
-      const scale = 0.25 + amplitude * 0.75;
-      wrapperRef.current.style.transform = `scaleY(${scale})`;
-    }
+  const updateBars = useCallback((amp: number) => {
+    currentAmplitudeRef.current = amp;
+    setAmplitude(amp);
+    barsRef.current.forEach(bar => {
+      if (bar) {
+        bar.style.setProperty('--amplitude', String(amp));
+      }
+    });
   }, []);
 
   const animate = useCallback((currentTime: number) => {
@@ -43,7 +44,7 @@ export function EqualizerBars({
     const newAmplitude = startAmplitudeRef.current + 
       (targetAmplitudeRef.current - startAmplitudeRef.current) * eased;
     
-    updateEnvelope(newAmplitude);
+    updateBars(newAmplitude);
 
     if (progress < 1) {
       animationFrameRef.current = requestAnimationFrame(animate);
@@ -56,7 +57,7 @@ export function EqualizerBars({
         setStage('flatlined');
       }
     }
-  }, [updateEnvelope]);
+  }, [updateBars]);
 
   const startAnimation = useCallback((
     toAmplitude: number,
@@ -100,26 +101,18 @@ export function EqualizerBars({
   }, []);
 
   const delays = [0, 0.2, 0.4, 0.1, 0.3];
-  const isFlatlined = stage === 'flatlined';
-  
-  // Calculate scale - ensure smooth transition all the way to 0.25
-  const currentScale = 0.25 + currentAmplitudeRef.current * 0.75;
 
   return (
-    <div 
-      ref={wrapperRef}
-      className={`equalizer-wrapper gap-[2px] ${className}`}
-      style={{
-        transform: `scaleY(${currentScale})`,
-      }}
-    >
+    <div className={`flex items-end gap-[2px] ${className}`}>
       {[0, 1, 2, 3, 4].map((i) => (
         <div
           key={i}
-          className={`equalizer-bar ${isFlatlined ? 'flatlined' : ''}`}
+          ref={(el) => { barsRef.current[i] = el; }}
+          className="equalizer-bar"
           style={{
+            '--amplitude': amplitude,
             animationDelay: `${delays[i]}s`,
-          }}
+          } as React.CSSProperties}
         />
       ))}
     </div>
