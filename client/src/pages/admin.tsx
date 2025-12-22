@@ -3983,7 +3983,7 @@ export default function AdminDashboard() {
                         <p className="text-sm text-muted-foreground mb-4">
                           This link will be displayed on the Live Stream page for members to join the Zoom meeting.
                         </p>
-                        <div className="flex gap-3">
+                        <div className="flex flex-col sm:flex-row gap-3">
                           <Input
                             id="zoom-link"
                             data-testid="input-zoom-link"
@@ -3997,6 +3997,7 @@ export default function AdminDashboard() {
                             disabled={updateZoomLinkMutation.isPending || !zoomLinkInput}
                             style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
                             data-testid="button-save-zoom-link"
+                            className="w-full sm:w-auto"
                           >
                             {updateZoomLinkMutation.isPending ? (
                               <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -4107,6 +4108,7 @@ export default function AdminDashboard() {
                             disabled={updateAlternativeZoomMutation.isPending}
                             style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
                             data-testid="button-save-alternative-zoom"
+                            className="w-full sm:w-auto"
                           >
                             {updateAlternativeZoomMutation.isPending ? (
                               <Loader2 className="w-4 h-4 animate-spin mr-2" />
@@ -4160,6 +4162,7 @@ export default function AdminDashboard() {
                         }}
                         variant="outline"
                         data-testid="button-refresh-playlist"
+                        className="w-full sm:w-auto"
                       >
                         <RefreshCw className="w-4 h-4 mr-2" />
                         Refresh Playlist
@@ -4349,6 +4352,7 @@ export default function AdminDashboard() {
                             disabled={changePasswordMutation.isPending || !profileCurrentPassword || !profileNewPassword || !profileConfirmPassword}
                             style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
                             data-testid="button-change-password"
+                            className="w-full sm:w-auto"
                           >
                             {changePasswordMutation.isPending ? (
                               <Loader2 className="w-4 h-4 animate-spin mr-2" />
