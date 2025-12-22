@@ -405,7 +405,6 @@ export default function Events() {
       {/* Footer */}
       <footer className="mt-auto py-8 border-t border-border">
         <div className="max-w-7xl mx-auto px-4 text-center text-muted-foreground text-sm">
-          <p>&copy; {new Date().getFullYear()} Jerricks for Jesus. All rights reserved.</p>
         </div>
       </footer>
       <MobilePlayerSpacer />
