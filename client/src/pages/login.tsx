@@ -160,18 +160,25 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-2 mb-6 border border-border bg-transparent">
+            <TabsList className="relative grid w-full grid-cols-2 mb-6 border border-border bg-transparent p-1 h-11">
+              <motion.div
+                className="absolute top-1 bottom-1 rounded-md"
+                style={{ backgroundColor: "#b47a5f", width: "calc(50% - 4px)" }}
+                initial={false}
+                animate={{ x: activeTab === "login" ? 0 : "calc(100% + 4px)" }}
+                transition={{ type: "spring", stiffness: 300, damping: 30 }}
+              />
               <TabsTrigger 
                 value="login" 
                 data-testid="tab-login"
-                className="data-[state=active]:bg-[#b47a5f] data-[state=active]:text-white data-[state=inactive]:bg-transparent"
+                className="relative z-10 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=inactive]:bg-transparent data-[state=active]:shadow-none"
               >
                 Sign In
               </TabsTrigger>
               <TabsTrigger 
                 value="register" 
                 data-testid="tab-register"
-                className="data-[state=active]:bg-[#b47a5f] data-[state=active]:text-white data-[state=inactive]:bg-transparent"
+                className="relative z-10 data-[state=active]:text-white data-[state=active]:bg-transparent data-[state=inactive]:bg-transparent data-[state=active]:shadow-none"
               >
                 Register
               </TabsTrigger>
