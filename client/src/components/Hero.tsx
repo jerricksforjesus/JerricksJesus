@@ -117,13 +117,13 @@ export function Hero() {
             <Button 
               asChild
               size="lg" 
-              className="font-bold px-8 w-[220px] justify-between"
+              className="font-bold w-[220px]"
               style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
               data-testid="button-join-zoom-hero"
             >
-              <a href={zoomData.zoomLink} target="_blank" rel="noopener noreferrer" className="flex items-center justify-between w-full">
-                <span>Join the Zoom</span>
-                <Video className="w-5 h-5" />
+              <a href={zoomData.zoomLink} target="_blank" rel="noopener noreferrer" className="!w-full flex items-center justify-between">
+                <span className="text-left">Join the Zoom</span>
+                <Video className="w-5 h-5 flex-shrink-0" />
               </a>
             </Button>
           </motion.div>
@@ -140,13 +140,13 @@ export function Hero() {
             <Button 
               asChild
               size="lg" 
-              className="font-bold px-8 w-[220px] justify-between"
+              className="font-bold w-[220px]"
               style={{ backgroundColor: "#ffffff", color: "#b47a5f", border: "2px solid #ffffff" }}
               data-testid="button-sign-in-hero"
             >
-              <Link href="/login" className="flex items-center justify-between w-full">
-                <span>Sign In</span>
-                <LogIn className="w-5 h-5" />
+              <Link href="/login" className="!w-full flex items-center justify-between">
+                <span className="text-left">Sign In</span>
+                <LogIn className="w-5 h-5 flex-shrink-0" />
               </Link>
             </Button>
           </motion.div>
@@ -162,7 +162,7 @@ export function Hero() {
           >
             <Button 
               size="lg" 
-              className="font-bold px-8 w-[220px] justify-between"
+              className="font-bold w-[220px]"
               style={{ 
                 backgroundColor: showMiniPlayer ? "#292929" : "#ffffff", 
                 color: showMiniPlayer ? "#ffffff" : "#b47a5f", 
@@ -179,22 +179,24 @@ export function Hero() {
               }}
               data-testid="button-worship-music-hero"
             >
-              {isInitializing ? (
-                <>
-                  <span>Loading...</span>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                </>
-              ) : showMiniPlayer ? (
-                <>
-                  <span>Stop Music</span>
-                  <Square className="w-5 h-5" />
-                </>
-              ) : (
-                <>
-                  <span>Play Worship Music</span>
-                  <Music className="w-5 h-5" />
-                </>
-              )}
+              <span className="inline-flex items-center justify-between w-full">
+                {isInitializing ? (
+                  <>
+                    <span>Loading...</span>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                  </>
+                ) : showMiniPlayer ? (
+                  <>
+                    <span>Stop Music</span>
+                    <Square className="w-5 h-5" />
+                  </>
+                ) : (
+                  <>
+                    <span>Play Worship Music</span>
+                    <Music className="w-5 h-5" />
+                  </>
+                )}
+              </span>
             </Button>
           </motion.div>
         )}
