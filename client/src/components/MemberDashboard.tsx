@@ -629,7 +629,11 @@ export function MemberDashboard() {
                                 )}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm line-clamp-1">{request.title || "Unknown Title"}</p>
+                                <p className="font-medium text-sm line-clamp-1">
+                                  {request.title && !request.title.startsWith("YouTube Video ") 
+                                    ? request.title 
+                                    : request.youtubeUrl}
+                                </p>
                                 <p className="text-xs text-muted-foreground">
                                   {new Date(request.createdAt).toLocaleDateString()}
                                 </p>

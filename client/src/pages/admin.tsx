@@ -832,7 +832,11 @@ function WorshipMusicRequests() {
                 )}
               </div>
               <div className="flex-1 min-w-0">
-                <h4 className="font-medium text-sm line-clamp-1">{request.title || "Unknown Title"}</h4>
+                <h4 className="font-medium text-sm line-clamp-1">
+                  {request.title && !request.title.startsWith("YouTube Video ") 
+                    ? request.title 
+                    : request.youtubeUrl}
+                </h4>
                 <p className="text-xs text-muted-foreground mt-0.5">
                   Requested by: {request.username || "Unknown"} • {new Date(request.createdAt).toLocaleDateString()}
                 </p>
