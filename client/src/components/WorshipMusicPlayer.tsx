@@ -9,7 +9,8 @@ import {
   VolumeX,
   Music,
   ChevronDown,
-  ChevronUp
+  ChevronUp,
+  Repeat
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -39,6 +40,8 @@ export function WorshipMusicPlayer() {
     toggleMute,
     setMainPlayerVisible,
     mainPlayerRef,
+    isLooping,
+    toggleLooping,
   } = useWorshipPlayer();
 
   useEffect(() => {
@@ -135,7 +138,6 @@ export function WorshipMusicPlayer() {
               variant="ghost"
               size="icon"
               onClick={previous}
-              disabled={currentIndex === 0}
               className="h-9 w-9"
               data-testid="button-previous"
             >
@@ -154,11 +156,19 @@ export function WorshipMusicPlayer() {
               variant="ghost"
               size="icon"
               onClick={next}
-              disabled={currentIndex === videos.length - 1}
               className="h-9 w-9"
               data-testid="button-next"
             >
               <SkipForward className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleLooping}
+              className={`h-9 w-9 ${isLooping ? "text-primary bg-primary/10" : ""}`}
+              data-testid="button-loop"
+            >
+              <Repeat className="w-4 h-4" />
             </Button>
             <Button
               variant="ghost"
@@ -229,7 +239,6 @@ export function WorshipMusicPlayer() {
                 variant="ghost"
                 size="icon"
                 onClick={previous}
-                disabled={currentIndex === 0}
                 className="h-9 w-9"
                 data-testid="button-previous-desktop"
               >
@@ -248,11 +257,19 @@ export function WorshipMusicPlayer() {
                 variant="ghost"
                 size="icon"
                 onClick={next}
-                disabled={currentIndex === videos.length - 1}
                 className="h-9 w-9"
                 data-testid="button-next-desktop"
               >
                 <SkipForward className="w-4 h-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleLooping}
+                className={`h-9 w-9 ${isLooping ? "text-primary bg-primary/10" : ""}`}
+                data-testid="button-loop-desktop"
+              >
+                <Repeat className="w-4 h-4" />
               </Button>
             </div>
 
