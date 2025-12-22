@@ -1069,6 +1069,7 @@ export function MemberDashboard() {
                         disabled={changePasswordMutation.isPending || !profileCurrentPassword || !profileNewPassword || !profileConfirmPassword}
                         style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
                         data-testid="button-change-password"
+                        className="w-full sm:w-auto"
                       >
                         {changePasswordMutation.isPending ? (
                           <Loader2 className="w-4 h-4 animate-spin mr-2" />
