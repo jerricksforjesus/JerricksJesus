@@ -437,7 +437,7 @@ export async function registerRoutes(
   const YOUTUBE_PLAYLIST_ID = "PLkDsdLHKY8laSsy8xYfILnVzFMedR0Rgy";
   
   // Check YouTube connection status
-  app.get("/api/youtube/connection-status", requireAuth, requireRole(USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
+  app.get("/api/youtube/connection-status", requireAuth, requireRole(USER_ROLES.SUPERADMIN, USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
     try {
       const auth = await storage.getYoutubeAuth();
       if (!auth) {
@@ -738,7 +738,7 @@ export async function registerRoutes(
   });
 
   // Add video to worship playlist (Foundational/Admin only)
-  app.post("/api/worship-videos", requireAuth, requireRole(USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
+  app.post("/api/worship-videos", requireAuth, requireRole(USER_ROLES.SUPERADMIN, USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
     try {
       const { youtubeUrl } = req.body;
       
@@ -836,7 +836,7 @@ export async function registerRoutes(
   });
 
   // Remove video from worship playlist (Foundational/Admin only)
-  app.delete("/api/worship-videos/:id", requireAuth, requireRole(USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
+  app.delete("/api/worship-videos/:id", requireAuth, requireRole(USER_ROLES.SUPERADMIN, USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const video = await storage.getWorshipVideo(id);
@@ -960,7 +960,7 @@ export async function registerRoutes(
   }
 
   // Sync worship videos from YouTube playlist (Admin/Foundational only)
-  app.post("/api/worship-videos/sync", requireAuth, requireRole(USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
+  app.post("/api/worship-videos/sync", requireAuth, requireRole(USER_ROLES.SUPERADMIN, USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
     try {
       // Check rate limit - only allow sync once per 5 minutes
       const lastSync = await storage.getSetting("youtube_last_sync");
@@ -994,7 +994,7 @@ export async function registerRoutes(
   });
 
   // Get sync status
-  app.get("/api/worship-videos/sync-status", requireAuth, requireRole(USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
+  app.get("/api/worship-videos/sync-status", requireAuth, requireRole(USER_ROLES.SUPERADMIN, USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
     try {
       const lastSync = await storage.getSetting("youtube_last_sync");
       const auth = await storage.getYoutubeAuth();
@@ -1049,7 +1049,7 @@ export async function registerRoutes(
   });
 
   // Get pending worship requests (admin/foundational only)
-  app.get("/api/worship-requests/pending", requireAuth, requireRole(USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
+  app.get("/api/worship-requests/pending", requireAuth, requireRole(USER_ROLES.SUPERADMIN, USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
     try {
       const requests = await storage.getPendingWorshipRequests();
       // Get user info for each request
@@ -1094,7 +1094,7 @@ export async function registerRoutes(
     }
   });
 
-  app.patch("/api/worship-requests/:id/status", requireAuth, requireRole(USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
+  app.patch("/api/worship-requests/:id/status", requireAuth, requireRole(USER_ROLES.SUPERADMIN, USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
     try {
       const { id } = req.params;
       const { status } = req.body;
