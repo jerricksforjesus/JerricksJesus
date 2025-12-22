@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, type QuizQuestion, type InsertQuizQuestion, type QuizAttempt, type InsertQuizAttempt, type Session, type InsertSession, type MemberPhoto, type InsertMemberPhoto, type SiteSetting, type YoutubeAuth, type InsertYoutubeAuth, type WorshipVideo, type InsertWorshipVideo, type Event, type InsertEvent, videos, verses, users, photos, quizQuestions, quizAttempts, sessions, memberPhotos, siteSettings, youtubeAuth, worshipVideos, events } from "@shared/schema";
+import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, type QuizQuestion, type InsertQuizQuestion, type QuizAttempt, type InsertQuizAttempt, type Session, type InsertSession, type MemberPhoto, type InsertMemberPhoto, type SiteSetting, type YoutubeAuth, type InsertYoutubeAuth, type WorshipVideo, type InsertWorshipVideo, type WorshipRequest, type InsertWorshipRequest, type Event, type InsertEvent, videos, verses, users, photos, quizQuestions, quizAttempts, sessions, memberPhotos, siteSettings, youtubeAuth, worshipVideos, worshipRequests, events } from "@shared/schema";
 import { db } from "./db";
 import { eq, asc, desc, and, sql, gt, gte } from "drizzle-orm";
 import * as schema from "@shared/schema";
@@ -97,6 +97,13 @@ export interface IStorage {
   deleteWorshipVideo(id: number): Promise<void>;
   updateWorshipVideoPosition(id: number, position: number): Promise<WorshipVideo | undefined>;
   syncWorshipVideosFromPlaylist(videos: InsertWorshipVideo[]): Promise<{ created: number; updated: number; deleted: number }>;
+  
+  // Worship request methods
+  createWorshipRequest(request: InsertWorshipRequest): Promise<WorshipRequest>;
+  getWorshipRequestsByUser(userId: string): Promise<WorshipRequest[]>;
+  getWorshipRequestsByStatus(status: string): Promise<WorshipRequest[]>;
+  getPendingWorshipRequests(): Promise<WorshipRequest[]>;
+  updateWorshipRequestStatus(id: number, status: string, reviewedBy: string): Promise<WorshipRequest | undefined>;
   
   // Events methods
   getAllEvents(): Promise<Event[]>;
@@ -750,6 +757,41 @@ export class DbStorage implements IStorage {
 
   async deleteEvent(id: number): Promise<void> {
     await db.delete(events).where(eq(events.id, id));
+  }
+
+  // Worship request methods
+  async createWorshipRequest(request: InsertWorshipRequest): Promise<WorshipRequest> {
+    const [created] = await db.insert(worshipRequests).values(request).returning();
+    return created;
+  }
+
+  async getWorshipRequestsByUser(userId: string): Promise<WorshipRequest[]> {
+    return await db.query.worshipRequests.findMany({
+      where: (r, { eq }) => eq(r.userId, userId),
+      orderBy: (r, { desc }) => [desc(r.createdAt)],
+    });
+  }
+
+  async getWorshipRequestsByStatus(status: string): Promise<WorshipRequest[]> {
+    return await db.query.worshipRequests.findMany({
+      where: (r, { eq }) => eq(r.status, status),
+      orderBy: (r, { desc }) => [desc(r.createdAt)],
+    });
+  }
+
+  async getPendingWorshipRequests(): Promise<WorshipRequest[]> {
+    return await db.query.worshipRequests.findMany({
+      where: (r, { eq }) => eq(r.status, "pending"),
+      orderBy: (r, { desc }) => [desc(r.createdAt)],
+    });
+  }
+
+  async updateWorshipRequestStatus(id: number, status: string, reviewedBy: string): Promise<WorshipRequest | undefined> {
+    const [updated] = await db.update(worshipRequests)
+      .set({ status, reviewedBy, reviewedAt: new Date() })
+      .where(eq(worshipRequests.id, id))
+      .returning();
+    return updated;
   }
 }
 
