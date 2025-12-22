@@ -54,7 +54,7 @@ export function MemberDashboard() {
   const [photoSignedUrls, setPhotoSignedUrls] = useState<Record<number, string>>({});
   
   // Navigation state
-  const [activeSection, setActiveSection] = useState("quiz");
+  const [activeSection, setActiveSection] = useState("settings");
   const [isMobileSettingsOpen, setIsMobileSettingsOpen] = useState(false);
   
   // Force password change state
