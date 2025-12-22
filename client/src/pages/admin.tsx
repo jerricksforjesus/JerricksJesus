@@ -59,6 +59,7 @@ import {
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Shuffle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { MobilePlayerSpacer } from "@/components/MobilePlayerSpacer";
 
 const fallbackImages = [thumb1, thumb2, thumb3];
 
@@ -4680,6 +4681,7 @@ export default function AdminDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <MobilePlayerSpacer />
     </div>
   );
 }

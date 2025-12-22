@@ -5,6 +5,7 @@ import { Video, Heart, Calendar, Clock, Radio, User } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { useAuth } from "@/lib/auth";
 import { Link } from "wouter";
+import { MobilePlayerSpacer } from "@/components/MobilePlayerSpacer";
 
 interface LiveStatus {
   isLive: boolean;
@@ -197,6 +198,7 @@ export default function LiveStream() {
           </div>
         </div>
       </div>
+      <MobilePlayerSpacer />
     </div>
   );
 }

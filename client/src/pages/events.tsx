@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { useNavTheme } from "@/lib/navThemeContext";
 import { EventsCalendar } from "@/components/EventsCalendar";
+import { MobilePlayerSpacer } from "@/components/MobilePlayerSpacer";
 import type { Event, Photo } from "@shared/schema";
 
 function formatEventDate(dateString: string): string {
@@ -407,6 +408,7 @@ export default function Events() {
           <p>&copy; {new Date().getFullYear()} Jerricks for Jesus. All rights reserved.</p>
         </div>
       </footer>
+      <MobilePlayerSpacer />
     </div>
   );
 }

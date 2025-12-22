@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Home, Eye, EyeOff } from "lucide-react";
+import { MobilePlayerSpacer } from "@/components/MobilePlayerSpacer";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
@@ -406,6 +407,7 @@ export default function LoginPage() {
           </div>
         </CardContent>
       </Card>
+      <MobilePlayerSpacer />
     </div>
   );
 }

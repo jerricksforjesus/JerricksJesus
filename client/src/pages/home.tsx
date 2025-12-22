@@ -8,6 +8,7 @@ import { FamilyPhotoCarousel } from "@/components/FamilyPhotoCarousel";
 import { BibleQuizSection } from "@/components/BibleQuizSection";
 import { FamilyEventsSection } from "@/components/FamilyEventsSection";
 import { MinistryAccordion } from "@/components/MinistryAccordion";
+import { MobilePlayerSpacer } from "@/components/MobilePlayerSpacer";
 import { useQuery } from "@tanstack/react-query";
 
 interface FooterInfo {
@@ -84,6 +85,7 @@ export default function Home() {
           {footer?.copyright || "© 2024 Jerricks for Jesus. All rights reserved."}
         </div>
       </footer>
+      <MobilePlayerSpacer variant="dark" />
     </div>
   );
 }

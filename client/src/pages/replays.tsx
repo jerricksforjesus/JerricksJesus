@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Navigation } from "@/components/Navigation";
 import { VideoPlayerModal } from "@/components/VideoPlayerModal";
+import { MobilePlayerSpacer } from "@/components/MobilePlayerSpacer";
 import { useQuery } from "@tanstack/react-query";
 import type { Video } from "@shared/schema";
 import thumb1 from "@assets/generated_images/preacher_at_podium.png";
@@ -101,6 +102,7 @@ export default function Replays() {
           setSelectedVideo(null);
         }} 
       />
+      <MobilePlayerSpacer />
     </div>
   );
 }
