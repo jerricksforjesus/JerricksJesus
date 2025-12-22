@@ -350,7 +350,7 @@ export function BibleQuizSection() {
                       <span className="text-lg font-serif font-bold">Old Testament</span>
                     </AccordionTrigger>
                     <AccordionContent className="px-4 pb-4">
-                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 pt-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pt-2">
                         {oldTestamentBooks.map((book) => {
                           const isCompleted = completedBooks.has(book.name);
                           return (
@@ -385,7 +385,7 @@ export function BibleQuizSection() {
                       <span className="text-lg font-serif font-bold">New Testament</span>
                     </AccordionTrigger>
                     <AccordionContent className="px-4 pb-4">
-                      <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-2 pt-2">
+                      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2 pt-2">
                         {newTestamentBooks.map((book) => {
                           const isCompleted = completedBooks.has(book.name);
                           return (

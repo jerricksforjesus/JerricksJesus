@@ -965,20 +965,21 @@ export function MemberDashboard() {
                     <UserIcon className="w-5 h-5" style={{ color: "#b47a5f" }} />
                     <h3 className="font-medium text-lg">Update Username</h3>
                   </div>
-                  <div className="flex gap-3">
+                  <div className="flex flex-col sm:flex-row gap-3 max-w-md">
                     <Input
                       id="profile-username"
                       data-testid="input-profile-username"
                       value={profileUsername}
                       onChange={(e) => setProfileUsername(e.target.value)}
                       placeholder="Enter new username"
-                      className="flex-1 max-w-md"
+                      className="flex-1"
                     />
                     <Button
                       onClick={() => updateUsernameMutation.mutate(profileUsername)}
                       disabled={updateUsernameMutation.isPending || !profileUsername || profileUsername === user?.username}
                       style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
                       data-testid="button-update-username"
+                      className="w-full sm:w-auto"
                     >
                       {updateUsernameMutation.isPending ? (
                         <Loader2 className="w-4 h-4 animate-spin mr-2" />
