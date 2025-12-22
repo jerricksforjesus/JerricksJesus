@@ -1345,6 +1345,7 @@ function EventsManagementTab() {
               allowedFileTypes={["image/*"]}
               maxFileSize={10 * 1024 * 1024}
               maxNumberOfFiles={1}
+              buttonClassName="w-full sm:w-auto"
             >
               <Upload className="w-4 h-4 mr-2" /> Upload Hero Image
             </ObjectUploader>
@@ -1694,6 +1695,7 @@ function EventsManagementTab() {
                 allowedFileTypes={["image/*"]}
                 maxFileSize={10 * 1024 * 1024}
                 maxNumberOfFiles={1}
+                buttonClassName="w-full sm:w-auto"
               >
                 <Image className="w-4 h-4 mr-2" /> Upload
               </ObjectUploader>
