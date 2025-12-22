@@ -31,6 +31,8 @@ interface ImageCropperProps {
   onOpenChange: (open: boolean) => void
   imageSrc: string
   onCropComplete: (croppedBlob: Blob) => void
+  onRemoveCrop?: () => void
+  showRemoveCrop?: boolean
   aspectRatio?: number
   title?: string
   description?: string
@@ -61,6 +63,8 @@ export function ImageCropper({
   onOpenChange,
   imageSrc,
   onCropComplete,
+  onRemoveCrop,
+  showRemoveCrop = false,
   aspectRatio = 16 / 9,
   title = "Crop Image",
   description = "Adjust the crop area to fit a landscape orientation for the carousel.",
@@ -178,7 +182,7 @@ export function ImageCropper({
             </ReactCrop>
           </div>
         </div>
-        <DialogFooter className="gap-2 sm:gap-0">
+        <DialogFooter className="flex flex-col sm:flex-row gap-2 sm:gap-2">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
@@ -186,6 +190,19 @@ export function ImageCropper({
           >
             Cancel
           </Button>
+          {showRemoveCrop && onRemoveCrop && (
+            <Button
+              variant="outline"
+              onClick={() => {
+                onRemoveCrop()
+                onOpenChange(false)
+              }}
+              disabled={isProcessing}
+              className="text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+            >
+              Remove Crop
+            </Button>
+          )}
           <Button
             onClick={handleCropConfirm}
             disabled={!completedCrop || isProcessing || !isImageLoaded}

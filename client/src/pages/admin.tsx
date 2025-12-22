@@ -1858,6 +1858,7 @@ export default function AdminDashboard() {
   const [cropImageSrc, setCropImageSrc] = useState("");
   const [pendingPhotoFile, setPendingPhotoFile] = useState<File | null>(null);
   const [photoCropId, setPhotoCropId] = useState<number | null>(null);
+  const [photoCropWasCropped, setPhotoCropWasCropped] = useState(false);
   const [selectedQuizBook, setSelectedQuizBook] = useState<string | null>(null);
   const [isGenerating, setIsGenerating] = useState(false);
   const [addMoreCount, setAddMoreCount] = useState<string>("1");
@@ -2969,8 +2970,43 @@ export default function AdminDashboard() {
     const url = getPhotoUrl(photo);
     if (url) {
       setPhotoCropId(photo.id);
+      setPhotoCropWasCropped(photo.wasCropped === 1);
       setCropImageSrc(url);
       setIsCropperOpen(true);
+    }
+  };
+
+  const handleRemoveCrop = async () => {
+    if (!photoCropId) return;
+
+    try {
+      const updateResponse = await fetch(`/api/photos/${photoCropId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          wasCropped: 0,
+          needsCropping: 0,
+        }),
+      });
+
+      if (!updateResponse.ok) throw new Error("Failed to update photo");
+
+      queryClient.invalidateQueries({ queryKey: ["photos"] });
+      toast({
+        title: "Crop Removed",
+        description: "The crop status has been reset.",
+      });
+      setPhotoCropId(null);
+      setPhotoCropWasCropped(false);
+      setCropImageSrc("");
+    } catch (error) {
+      console.error("Remove crop error:", error);
+      toast({
+        title: "Error",
+        description: "Failed to remove crop status.",
+        variant: "destructive",
+      });
     }
   };
 
@@ -4356,6 +4392,8 @@ export default function AdminDashboard() {
         onOpenChange={setIsCropperOpen}
         imageSrc={cropImageSrc}
         onCropComplete={handleCropComplete}
+        onRemoveCrop={handleRemoveCrop}
+        showRemoveCrop={photoCropWasCropped}
         aspectRatio={16 / 9}
         title="Adjust Photo for Carousel"
         description="Portrait photos may get cropped in the carousel. Adjust the crop area to select which part of the image to display."
