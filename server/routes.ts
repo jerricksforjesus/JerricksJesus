@@ -480,7 +480,7 @@ export async function registerRoutes(
       // Redirect to home page
       res.redirect("/");
     } catch (error) {
-      console.error("Google OAuth callback error:", error);
+      console.error("Google OAuth callback error");
       res.redirect("/login?error=auth_failed");
     }
   });
@@ -509,7 +509,7 @@ export async function registerRoutes(
         connectedAt: auth.createdAt,
       });
     } catch (error) {
-      console.error("Error checking YouTube connection:", error);
+      console.error("Error checking YouTube connection");
       res.status(500).json({ error: "Failed to check connection status" });
     }
   });
@@ -544,7 +544,7 @@ export async function registerRoutes(
 
       res.json({ authUrl: authUrl.toString() });
     } catch (error) {
-      console.error("YouTube OAuth initiation error:", error);
+      console.error("YouTube OAuth initiation error");
       res.status(500).json({ error: "Failed to initiate YouTube connection" });
     }
   });
@@ -664,7 +664,7 @@ export async function registerRoutes(
       
       res.redirect("/admin?youtube_connected=true&sync_started=true");
     } catch (error) {
-      console.error("YouTube OAuth callback error:", error);
+      console.error("YouTube OAuth callback error");
       res.redirect("/admin?youtube_error=auth_failed");
     }
   });
@@ -1269,7 +1269,7 @@ export async function registerRoutes(
       
       return res.status(403).json({ error: "Access denied" });
     } catch (error) {
-      console.error("Error updating user role:", error);
+      console.error("Error updating user role");
       res.status(500).json({ error: "Failed to update user role" });
     }
   });
@@ -1314,7 +1314,7 @@ export async function registerRoutes(
         message: "Password has been reset. User must change password on next login."
       });
     } catch (error) {
-      console.error("Error resetting user password:", error);
+      console.error("Error resetting user password");
       res.status(500).json({ error: "Failed to reset password" });
     }
   });
@@ -1354,7 +1354,7 @@ export async function registerRoutes(
         message: "User has been deleted."
       });
     } catch (error) {
-      console.error("Error deleting user:", error);
+      console.error("Error deleting user");
       res.status(500).json({ error: "Failed to delete user" });
     }
   });
@@ -1394,7 +1394,7 @@ export async function registerRoutes(
         }
       });
     } catch (error) {
-      console.error("Error updating username:", error);
+      console.error("Error updating username");
       res.status(500).json({ error: "Failed to update username" });
     }
   });

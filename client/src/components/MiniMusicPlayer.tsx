@@ -7,6 +7,13 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useWorshipPlayer } from "@/contexts/WorshipPlayerContext";
 import { cn } from "@/lib/utils";
 
+function formatTime(seconds: number): string {
+  if (!seconds || isNaN(seconds)) return "0:00";
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, '0')}`;
+}
+
 export function MiniMusicPlayer() {
   const {
     videos,
@@ -118,7 +125,7 @@ export function MiniMusicPlayer() {
           </div>
 
           <div className="container mx-auto px-4 py-3">
-            {/* Row 1: Thumbnail and Full Title */}
+            {/* Row 1: Thumbnail and Title */}
             <div className="flex items-center gap-3 mb-3">
               <div className="w-14 h-10 flex-shrink-0 rounded overflow-hidden bg-black flex items-center justify-center">
                 {currentVideo.thumbnailUrl ? (
@@ -139,8 +146,13 @@ export function MiniMusicPlayer() {
               </div>
             </div>
 
-            {/* Row 2: All Controls - evenly spaced */}
+            {/* Row 2: Time + All Controls - evenly spaced */}
             <div className="flex items-center justify-between">
+              {/* Time Display */}
+              <div className="flex-shrink-0 text-xs text-muted-foreground tabular-nums min-w-[70px]" data-testid="mini-track-time">
+                {formatTime(currentTime)} / {formatTime(duration)}
+              </div>
+
               {/* Volume Controls */}
               <div className="flex items-center gap-1 flex-shrink-0">
                 <Button
