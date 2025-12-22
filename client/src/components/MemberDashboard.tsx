@@ -626,18 +626,8 @@ export function MemberDashboard() {
           <div className="p-6 max-w-4xl">
             {/* Quiz Section */}
             {activeSection === "quiz" && (
-              <div className="space-y-6">
-                <Card>
-                  <CardHeader>
-                    <CardTitle className="font-serif">Bible Quiz</CardTitle>
-                    <CardDescription>
-                      Test your knowledge of the Scriptures with our interactive quizzes
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent>
-                    <BibleQuizSection />
-                  </CardContent>
-                </Card>
+              <div className="-mx-6">
+                <BibleQuizSection />
               </div>
             )}
 
