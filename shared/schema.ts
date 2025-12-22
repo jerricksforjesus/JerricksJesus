@@ -187,6 +187,20 @@ export const worshipVideos = pgTable("worship_videos", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Worship music requests from members (requires approval)
+export const worshipRequests = pgTable("worship_requests", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id").notNull().references(() => users.id),
+  youtubeUrl: text("youtube_url").notNull(),
+  youtubeVideoId: text("youtube_video_id"),
+  title: text("title"),
+  thumbnailUrl: text("thumbnail_url"),
+  status: text("status").notNull().default("pending"), // pending, approved, rejected
+  reviewedBy: varchar("reviewed_by").references(() => users.id),
+  reviewedAt: timestamp("reviewed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const insertUserSchema = createInsertSchema(users).pick({
   username: true,
   password: true,
@@ -249,6 +263,13 @@ export const insertWorshipVideoSchema = createInsertSchema(worshipVideos).omit({
   createdAt: true,
 });
 
+export const insertWorshipRequestSchema = createInsertSchema(worshipRequests).omit({
+  id: true,
+  reviewedBy: true,
+  reviewedAt: true,
+  createdAt: true,
+});
+
 export const insertEventSchema = createInsertSchema(events).omit({
   id: true,
   createdAt: true,
@@ -286,6 +307,9 @@ export type YoutubeAuth = typeof youtubeAuth.$inferSelect;
 
 export type InsertWorshipVideo = z.infer<typeof insertWorshipVideoSchema>;
 export type WorshipVideo = typeof worshipVideos.$inferSelect;
+
+export type InsertWorshipRequest = z.infer<typeof insertWorshipRequestSchema>;
+export type WorshipRequest = typeof worshipRequests.$inferSelect;
 
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type Event = typeof events.$inferSelect;
