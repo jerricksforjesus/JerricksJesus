@@ -73,8 +73,34 @@ export function WorshipMusicPlayer() {
   };
 
   const handleSelectTrack = (index: number) => {
+    logEvent("UI_TAP_PLAYLIST_TRACK", { videoId: videos[index]?.youtubeVideoId, videoIndex: index, payload: { component: "WorshipMusicPlayer" } });
     contextSelectTrack(index);
     setShowPlaylist(false);
+  };
+
+  const handlePlayPause = () => {
+    logEvent("UI_TAP_PLAY_PAUSE", { videoId: currentVideo?.youtubeVideoId, videoIndex: currentIndex, payload: { isPlaying, component: "WorshipMusicPlayer" } });
+    togglePlay();
+  };
+
+  const handleNext = () => {
+    logEvent("UI_TAP_NEXT", { videoId: currentVideo?.youtubeVideoId, videoIndex: currentIndex, payload: { component: "WorshipMusicPlayer" } });
+    next();
+  };
+
+  const handlePrevious = () => {
+    logEvent("UI_TAP_PREVIOUS", { videoId: currentVideo?.youtubeVideoId, videoIndex: currentIndex, payload: { component: "WorshipMusicPlayer" } });
+    previous();
+  };
+
+  const handleToggleLoop = () => {
+    logEvent("UI_TAP_LOOP", { payload: { isLooping, component: "WorshipMusicPlayer" } });
+    toggleLooping();
+  };
+
+  const handleToggleMute = () => {
+    logEvent("UI_TAP_MUTE", { payload: { isMuted, component: "WorshipMusicPlayer" } });
+    toggleMute();
   };
 
   if (isLoading) {
@@ -144,7 +170,7 @@ export function WorshipMusicPlayer() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={previous}
+              onClick={handlePrevious}
               className="h-9 w-9"
               data-testid="button-previous"
             >
@@ -153,7 +179,7 @@ export function WorshipMusicPlayer() {
             <Button
               variant="default"
               size="icon"
-              onClick={togglePlay}
+              onClick={handlePlayPause}
               className="h-11 w-11 rounded-full"
               data-testid="button-play-pause"
             >
@@ -162,7 +188,7 @@ export function WorshipMusicPlayer() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={next}
+              onClick={handleNext}
               className="h-9 w-9"
               data-testid="button-next"
             >
@@ -171,7 +197,7 @@ export function WorshipMusicPlayer() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={toggleLooping}
+              onClick={handleToggleLoop}
               className={`h-9 w-9 ${isLooping ? "text-primary bg-primary/10" : ""}`}
               data-testid="button-loop"
             >
@@ -180,7 +206,7 @@ export function WorshipMusicPlayer() {
             <Button
               variant="ghost"
               size="icon"
-              onClick={toggleMute}
+              onClick={handleToggleMute}
               className="h-9 w-9"
               data-testid="button-mute"
             >
@@ -245,7 +271,7 @@ export function WorshipMusicPlayer() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={previous}
+                onClick={handlePrevious}
                 className="h-9 w-9"
                 data-testid="button-previous-desktop"
               >
@@ -254,7 +280,7 @@ export function WorshipMusicPlayer() {
               <Button
                 variant="default"
                 size="icon"
-                onClick={togglePlay}
+                onClick={handlePlayPause}
                 className="h-12 w-12 rounded-full shadow-sm"
                 data-testid="button-play-pause-desktop"
               >
@@ -263,7 +289,7 @@ export function WorshipMusicPlayer() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={next}
+                onClick={handleNext}
                 className="h-9 w-9"
                 data-testid="button-next-desktop"
               >
@@ -272,7 +298,7 @@ export function WorshipMusicPlayer() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={toggleLooping}
+                onClick={handleToggleLoop}
                 className={`h-9 w-9 ${isLooping ? "text-primary bg-primary/10" : ""}`}
                 data-testid="button-loop-desktop"
               >
@@ -288,7 +314,7 @@ export function WorshipMusicPlayer() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={toggleMute}
+                onClick={handleToggleMute}
                 className="h-9 w-9"
                 data-testid="button-mute-desktop"
               >

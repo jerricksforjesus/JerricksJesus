@@ -60,6 +60,48 @@ export function MiniMusicPlayer() {
   const currentTrackRef = useRef<HTMLButtonElement>(null);
   const prevIndexRef = useRef(currentIndex);
 
+  // Logging handlers for user interactions
+  const handlePlayPause = () => {
+    logEvent("UI_TAP_PLAY_PAUSE", { videoId: currentVideo?.youtubeVideoId, videoIndex: currentIndex, payload: { isPlaying, component: "MiniMusicPlayer" } });
+    togglePlay();
+  };
+
+  const handleNext = () => {
+    logEvent("UI_TAP_NEXT", { videoId: currentVideo?.youtubeVideoId, videoIndex: currentIndex, payload: { component: "MiniMusicPlayer" } });
+    next();
+  };
+
+  const handlePrevious = () => {
+    logEvent("UI_TAP_PREVIOUS", { videoId: currentVideo?.youtubeVideoId, videoIndex: currentIndex, payload: { component: "MiniMusicPlayer" } });
+    previous();
+  };
+
+  const handleSelectTrack = (index: number) => {
+    logEvent("UI_TAP_PLAYLIST_TRACK", { videoId: videos[index]?.youtubeVideoId, videoIndex: index, payload: { component: "MiniMusicPlayer" } });
+    selectTrack(index);
+    setShowPlaylist(false);
+  };
+
+  const handleToggleLoop = () => {
+    logEvent("UI_TAP_LOOP", { payload: { isLooping, component: "MiniMusicPlayer" } });
+    toggleLoop();
+  };
+
+  const handleToggleMute = () => {
+    logEvent("UI_TAP_MUTE", { payload: { isMuted, component: "MiniMusicPlayer" } });
+    toggleMute();
+  };
+
+  const handleDismiss = () => {
+    logEvent("UI_TAP_DISMISS", { videoId: currentVideo?.youtubeVideoId, videoIndex: currentIndex, payload: { component: "MiniMusicPlayer" } });
+    dismissMiniPlayer();
+  };
+
+  const handleTogglePlaylist = () => {
+    logEvent("UI_TAP_TOGGLE_PLAYLIST", { payload: { showPlaylist: !showPlaylist, component: "MiniMusicPlayer" } });
+    setShowPlaylist(!showPlaylist);
+  };
+
   // Scroll to current track when playlist opens or when track changes while playlist is visible
   useEffect(() => {
     const prevIndex = prevIndexRef.current;
