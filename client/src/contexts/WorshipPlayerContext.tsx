@@ -73,6 +73,8 @@ interface WorshipPlayerContextType {
   mainPlayerVisible: boolean;
   miniPlayerDismissed: boolean;
   showMiniPlayer: boolean;
+  isIOS: boolean;
+  iOSNeedsTap: boolean;
   play: () => void;
   pause: () => void;
   togglePlay: () => void;
@@ -85,6 +87,7 @@ interface WorshipPlayerContextType {
   toggleLoop: () => void;
   setMainPlayerVisible: (visible: boolean) => void;
   dismissMiniPlayer: () => void;
+  scrollToMainPlayer: () => void;
   mainPlayerRef: React.RefObject<HTMLDivElement | null>;
 }
 
@@ -207,6 +210,10 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const [lastPlayedLoaded, setLastPlayedLoaded] = useState(false);
   const [loopingPreferenceLoaded, setLoopingPreferenceLoaded] = useState(false);
   const [volumePreferenceLoaded, setVolumePreferenceLoaded] = useState(false);
+  
+  // iOS detection and first-tap tracking
+  const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const [iOSFirstPlayDone, setIOSFirstPlayDone] = useState(false);
   
   const playerRef = useRef<YTPlayer | null>(null);
   const isLoopingRef = useRef(isLooping);
@@ -536,6 +543,9 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
       },
     });
 
+    // Detect iOS for controls configuration
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+    
     let player: YTPlayer;
     try {
       player = new window.YT.Player(playerContainerRef.current, {
@@ -544,7 +554,9 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
         videoId: currentVideo.youtubeVideoId,
         playerVars: {
           autoplay: 0,
-          controls: 0,
+          // Enable controls on iOS so user can tap directly on the iframe
+          // iOS requires direct user gesture on the iframe to start playback
+          controls: isIOS ? 1 : 0,
           modestbranding: 1,
           rel: 0,
           showinfo: 0,
@@ -623,6 +635,8 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
             setIsPlaying(true);
             setMiniPlayerActivated(true);
             setIsInitializing(false);
+            // Mark iOS first play as done - subsequent programmatic controls will work
+            setIOSFirstPlayDone(true);
             
             const dur = event.target.getDuration();
             if (dur) setDuration(dur);
@@ -976,6 +990,19 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  // Scroll to the main player section (for iOS first-tap requirement)
+  const scrollToMainPlayer = useCallback(() => {
+    logEvent("SCROLL_TO_MAIN_PLAYER", { payload: { isIOS, iOSFirstPlayDone } });
+    // Find the worship-music section and scroll to it
+    const section = document.getElementById("worship-music");
+    if (section) {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+  }, [logEvent, isIOS, iOSFirstPlayDone]);
+
+  // iOS needs a direct tap on the player if first play hasn't been done yet
+  const iOSNeedsTap = isIOS && !iOSFirstPlayDone;
+
   const value: WorshipPlayerContextType = {
     videos,
     isLoading,
@@ -992,6 +1019,8 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     mainPlayerVisible,
     miniPlayerDismissed,
     showMiniPlayer,
+    isIOS,
+    iOSNeedsTap,
     play,
     pause,
     togglePlay,
@@ -1004,6 +1033,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     toggleLoop,
     setMainPlayerVisible,
     dismissMiniPlayer,
+    scrollToMainPlayer,
     mainPlayerRef,
   };
 
