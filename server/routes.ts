@@ -210,9 +210,9 @@ export async function registerRoutes(
       // Determine role
       let userRole = USER_ROLES.MEMBER;
       
-      // Only admins can create foundational members or other admins
+      // Only super admins and admins can create foundational members or other admins
       if (role === USER_ROLES.FOUNDATIONAL || role === USER_ROLES.ADMIN) {
-        if (!req.user || req.user.role !== USER_ROLES.ADMIN) {
+        if (!req.user || (req.user.role !== USER_ROLES.ADMIN && req.user.role !== USER_ROLES.SUPERADMIN)) {
           return res.status(403).json({ error: "Only admins can create elevated accounts" });
         }
         userRole = role;
@@ -1133,8 +1133,8 @@ export async function registerRoutes(
   // Admin/Foundational: Get all users
   app.get("/api/admin/users", requireAuth, async (req, res) => {
     try {
-      // Only admin and foundational members can view users
-      if (req.user!.role !== USER_ROLES.ADMIN && req.user!.role !== USER_ROLES.FOUNDATIONAL) {
+      // Only super admin, admin and foundational members can view users
+      if (req.user!.role !== USER_ROLES.SUPERADMIN && req.user!.role !== USER_ROLES.ADMIN && req.user!.role !== USER_ROLES.FOUNDATIONAL) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -1177,8 +1177,18 @@ export async function registerRoutes(
         return res.status(403).json({ error: "Cannot change your own role" });
       }
       
-      // Admin can set any role
-      if (currentUser.role === USER_ROLES.ADMIN) {
+      // Cannot modify superadmin role
+      if (targetUser.role === USER_ROLES.SUPERADMIN) {
+        return res.status(403).json({ error: "Cannot modify super admin role" });
+      }
+      
+      // Cannot set anyone to superadmin
+      if (role === USER_ROLES.SUPERADMIN) {
+        return res.status(403).json({ error: "Cannot assign super admin role" });
+      }
+      
+      // Super admin and admin can set any role (except superadmin)
+      if (currentUser.role === USER_ROLES.SUPERADMIN || currentUser.role === USER_ROLES.ADMIN) {
         const updated = await storage.updateUserRole(id, role);
         return res.json({ 
           id: updated!.id, 
@@ -1212,7 +1222,7 @@ export async function registerRoutes(
   });
 
   // Admin: Reset user password
-  app.post("/api/admin/users/:id/reset-password", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+  app.post("/api/admin/users/:id/reset-password", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const { id } = req.params;
       const currentUser = req.user!;
@@ -1228,9 +1238,16 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Cannot reset password for Google SSO users" });
       }
       
-      // Only admin can reset admin passwords
-      if (targetUser.role === USER_ROLES.ADMIN && currentUser.role !== USER_ROLES.ADMIN) {
-        return res.status(403).json({ error: "Only admins can reset admin passwords" });
+      // Super admin password cannot be reset by anyone
+      if (targetUser.role === USER_ROLES.SUPERADMIN) {
+        return res.status(403).json({ error: "Super admin password cannot be reset" });
+      }
+      
+      // Only super admin or admin can reset admin passwords
+      if (targetUser.role === USER_ROLES.ADMIN && 
+          currentUser.role !== USER_ROLES.SUPERADMIN && 
+          currentUser.role !== USER_ROLES.ADMIN) {
+        return res.status(403).json({ error: "Only super admin or admins can reset admin passwords" });
       }
       
       // Hash the default password "Jerrick#1"
@@ -1250,7 +1267,7 @@ export async function registerRoutes(
   });
 
   // Admin: Delete user
-  app.delete("/api/admin/users/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  app.delete("/api/admin/users/:id", requireAuth, requireRole("superadmin", "admin"), async (req, res) => {
     try {
       const { id } = req.params;
       const currentUser = req.user!;
@@ -1594,7 +1611,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/videos/:id", requireAuth, requireRole("admin"), async (req, res) => {
+  app.delete("/api/videos/:id", requireAuth, requireRole("superadmin", "admin"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deleteVideo(id);
@@ -1745,7 +1762,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/settings/zoom-link", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+  app.put("/api/settings/zoom-link", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const { zoomLink } = req.body;
       if (typeof zoomLink !== "string") {
@@ -1777,7 +1794,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/settings/alternative-zoom", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+  app.put("/api/settings/alternative-zoom", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const { alternativeLink, schedule } = req.body;
       if (typeof alternativeLink !== "string") {
@@ -1861,7 +1878,7 @@ export async function registerRoutes(
   });
 
   // Service Times - PUT (Admin/Foundational only)
-  app.put("/api/settings/service-times", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+  app.put("/api/settings/service-times", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const { serviceTimes } = req.body;
       if (!Array.isArray(serviceTimes)) {
@@ -1920,7 +1937,7 @@ export async function registerRoutes(
   });
 
   // Footer Info - PUT (Admin/Foundational only)
-  app.put("/api/settings/footer", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+  app.put("/api/settings/footer", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const { footer } = req.body;
       if (!footer || typeof footer !== "object") {
@@ -1956,7 +1973,7 @@ export async function registerRoutes(
   });
 
   // Church Info - PUT (Admin/Foundational only)
-  app.put("/api/settings/church-info", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+  app.put("/api/settings/church-info", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const { churchInfo } = req.body;
       if (!churchInfo || typeof churchInfo !== "object") {
@@ -2082,7 +2099,7 @@ export async function registerRoutes(
   });
 
   // Ministries - PUT (Admin/Foundational only)
-  app.put("/api/settings/ministries", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+  app.put("/api/settings/ministries", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const { ministries } = req.body;
       if (!Array.isArray(ministries)) {
@@ -2127,7 +2144,7 @@ export async function registerRoutes(
   });
 
   // Bulk reorder photos (must be before /api/photos/:id to avoid route conflict)
-  app.patch("/api/photos/reorder", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+  app.patch("/api/photos/reorder", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const { orderedIds } = req.body;
       if (!Array.isArray(orderedIds) || orderedIds.some(id => typeof id !== "number")) {
@@ -2141,7 +2158,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/photos/:id", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+  app.put("/api/photos/:id", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { caption, displayOrder, imagePath, imageWidth, imageHeight, needsCropping, wasCropped } = req.body;
@@ -2169,7 +2186,7 @@ export async function registerRoutes(
   });
 
   // PATCH endpoint for partial photo updates (used by cropper)
-  app.patch("/api/photos/:id", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+  app.patch("/api/photos/:id", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       const { caption, displayOrder, imagePath, imageWidth, imageHeight, needsCropping, wasCropped } = req.body;
@@ -2196,7 +2213,7 @@ export async function registerRoutes(
     }
   });
 
-  app.delete("/api/photos/:id", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+  app.delete("/api/photos/:id", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       await storage.deletePhoto(id);
@@ -2218,7 +2235,7 @@ export async function registerRoutes(
     }
   });
 
-  app.put("/api/settings/carousel-randomize", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+  app.put("/api/settings/carousel-randomize", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const { randomize } = req.body;
       await storage.setSetting("carousel_randomize", String(randomize));
@@ -2273,7 +2290,7 @@ export async function registerRoutes(
   // Get all pending photos (admin/foundational only)
   app.get("/api/member-photos/pending", requireAuth, async (req, res) => {
     try {
-      if (req.user!.role !== USER_ROLES.ADMIN && req.user!.role !== USER_ROLES.FOUNDATIONAL) {
+      if (req.user!.role !== USER_ROLES.SUPERADMIN && req.user!.role !== USER_ROLES.ADMIN && req.user!.role !== USER_ROLES.FOUNDATIONAL) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -2288,7 +2305,7 @@ export async function registerRoutes(
   // Get all member photos (admin/foundational only)
   app.get("/api/member-photos/all", requireAuth, async (req, res) => {
     try {
-      if (req.user!.role !== USER_ROLES.ADMIN && req.user!.role !== USER_ROLES.FOUNDATIONAL) {
+      if (req.user!.role !== USER_ROLES.SUPERADMIN && req.user!.role !== USER_ROLES.ADMIN && req.user!.role !== USER_ROLES.FOUNDATIONAL) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -2314,7 +2331,7 @@ export async function registerRoutes(
   // Approve or reject a photo (admin/foundational only)
   app.patch("/api/member-photos/:id/status", requireAuth, async (req, res) => {
     try {
-      if (req.user!.role !== USER_ROLES.ADMIN && req.user!.role !== USER_ROLES.FOUNDATIONAL) {
+      if (req.user!.role !== USER_ROLES.SUPERADMIN && req.user!.role !== USER_ROLES.ADMIN && req.user!.role !== USER_ROLES.FOUNDATIONAL) {
         return res.status(403).json({ error: "Access denied" });
       }
       
@@ -2500,7 +2517,7 @@ export async function registerRoutes(
   }
 
   // Manual Refresh Playlist Cache (Foundational/Admin only)
-  app.post("/api/youtube/playlist/:playlistId/refresh", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+  app.post("/api/youtube/playlist/:playlistId/refresh", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const { playlistId } = req.params;
       const apiKey = process.env.YOUTUBE_API_KEY;
@@ -2948,7 +2965,7 @@ export async function registerRoutes(
   });
 
   // Admin: Reset quiz results for a specific book
-  app.delete("/api/admin/quiz/results/:book", requireAuth, requireRole("admin"), async (req, res) => {
+  app.delete("/api/admin/quiz/results/:book", requireAuth, requireRole("superadmin", "admin"), async (req, res) => {
     try {
       const { book } = req.params;
       const deletedCount = await storage.resetQuizAttemptsByBook(book);
@@ -2973,7 +2990,7 @@ export async function registerRoutes(
   });
 
   // Get all events including past (admin)
-  app.get("/api/events/all", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+  app.get("/api/events/all", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const events = await storage.getAllEvents();
       res.json(events);
@@ -3002,7 +3019,7 @@ export async function registerRoutes(
   });
 
   // Create event (admin/foundational only)
-  app.post("/api/events", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+  app.post("/api/events", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const parseResult = insertEventSchema.safeParse({
         ...req.body,
@@ -3025,7 +3042,7 @@ export async function registerRoutes(
   });
 
   // Update event (admin/foundational only)
-  app.put("/api/events/:id", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+  app.put("/api/events/:id", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -3072,7 +3089,7 @@ export async function registerRoutes(
   });
 
   // Delete event (admin/foundational only)
-  app.delete("/api/events/:id", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+  app.delete("/api/events/:id", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const id = parseInt(req.params.id);
       if (isNaN(id)) {
@@ -3104,7 +3121,7 @@ export async function registerRoutes(
   });
 
   // Update events hero image setting (admin/foundational only)
-  app.put("/api/settings/events-hero", requireAuth, requireRole("admin", "foundational"), async (req, res) => {
+  app.put("/api/settings/events-hero", requireAuth, requireRole("superadmin", "admin", "foundational"), async (req, res) => {
     try {
       const { heroImage } = req.body;
       if (heroImage) {

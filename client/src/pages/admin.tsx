@@ -3814,15 +3814,16 @@ export default function AdminDashboard() {
                               <p className="text-sm text-muted-foreground truncate">{u.email}</p>
                             )}
                             <p className="text-sm text-muted-foreground flex items-center gap-1">
+                              {u.role === "superadmin" && <Shield className="w-3 h-3 text-amber-600" />}
                               {u.role === "admin" && <Shield className="w-3 h-3" />}
                               {u.role === "foundational" && <UserCheck className="w-3 h-3" />}
-                              {u.role}
+                              {u.role === "superadmin" ? "super admin" : u.role}
                             </p>
                           </div>
                         </div>
                         
-                        {/* Show controls only if not viewing yourself AND (you're admin OR the target user is not an admin) */}
-                        {user?.id !== u.id && (isAdmin || u.role !== "admin") && (
+                        {/* Show controls only if not viewing yourself AND target is not superadmin AND (you're admin OR the target user is not an admin) */}
+                        {user?.id !== u.id && u.role !== "superadmin" && (isAdmin || u.role !== "admin") && (
                           <div className="flex flex-col sm:flex-row sm:flex-nowrap gap-2 w-full sm:w-auto">
                             <Select
                               value={u.role}
@@ -3885,7 +3886,7 @@ export default function AdminDashboard() {
                                   Password Reset
                                 </Button>
                               )}
-                              {u.role !== "admin" && isAdmin && (
+                              {u.role !== "admin" && u.role !== "superadmin" && isAdmin && (
                                 <Button
                                   variant="outline"
                                   size="sm"

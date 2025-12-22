@@ -28,6 +28,7 @@ export const BIBLE_BOOKS = {
 export const ALL_BIBLE_BOOKS = [...BIBLE_BOOKS.oldTestament, ...BIBLE_BOOKS.newTestament];
 
 export const USER_ROLES = {
+  SUPERADMIN: "superadmin",
   ADMIN: "admin",
   FOUNDATIONAL: "foundational",
   MEMBER: "member",

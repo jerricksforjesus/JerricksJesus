@@ -5,7 +5,7 @@ interface User {
   id: string;
   username: string;
   email?: string | null;
-  role: "admin" | "foundational" | "member";
+  role: "superadmin" | "admin" | "foundational" | "member";
   googleId?: string | null;
   mustChangePassword?: number;
 }
@@ -16,6 +16,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   register: (username: string, email: string, password: string) => Promise<void>;
+  isSuperAdmin: boolean;
   isAdmin: boolean;
   isFoundational: boolean;
   canEdit: boolean;
@@ -107,12 +108,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await registerMutation.mutateAsync({ username, email, password });
   };
 
-  const isAdmin = user?.role === "admin";
+  const isSuperAdmin = user?.role === "superadmin";
+  const isAdmin = user?.role === "admin" || user?.role === "superadmin";
   const isFoundational = user?.role === "foundational";
   const canEdit = isAdmin || isFoundational;
 
   return (
-    <AuthContext.Provider value={{ user, isLoading, login, logout, register, isAdmin, isFoundational, canEdit }}>
+    <AuthContext.Provider value={{ user, isLoading, login, logout, register, isSuperAdmin, isAdmin, isFoundational, canEdit }}>
       {children}
     </AuthContext.Provider>
   );
