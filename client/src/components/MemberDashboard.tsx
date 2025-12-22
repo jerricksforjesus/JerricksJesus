@@ -294,26 +294,15 @@ export function MemberDashboard() {
       <Navigation />
       
       <div className="pt-32 pb-12 px-6 max-w-5xl mx-auto">
-        <div className="mb-8 flex items-start justify-between">
-          <div>
-            <h1 className="text-3xl font-serif font-bold">My Account</h1>
-            <p className="text-muted-foreground">
-              Welcome, <span className="font-medium">{user?.username}</span>
-            </p>
-          </div>
-          <Button 
-            variant="outline" 
-            size="sm" 
-            onClick={handleLogout}
-            data-testid="button-logout"
-          >
-            <LogOut className="h-4 w-4 mr-2" />
-            Log Out
-          </Button>
+        <div className="mb-8">
+          <h1 className="text-3xl font-serif font-bold">My Account</h1>
+          <p className="text-muted-foreground">
+            Welcome, <span className="font-medium">{user?.username}</span>
+          </p>
         </div>
 
         <Tabs defaultValue="quiz" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-4 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
             <TabsTrigger value="quiz" data-testid="tab-quiz" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
               <span className="hidden sm:inline">Bible Quiz</span>
@@ -334,6 +323,15 @@ export function MemberDashboard() {
               <span className="hidden sm:inline">Settings</span>
               <span className="sm:hidden">Settings</span>
             </TabsTrigger>
+            <button
+              onClick={handleLogout}
+              data-testid="tab-logout"
+              className="flex items-center justify-center gap-2 px-3 py-1.5 text-sm font-medium text-red-600 hover:bg-red-50 rounded-md transition-colors"
+            >
+              <LogOut className="h-4 w-4" />
+              <span className="hidden sm:inline">Log Out</span>
+              <span className="sm:hidden">Exit</span>
+            </button>
           </TabsList>
 
           <TabsContent value="quiz" className="space-y-6">

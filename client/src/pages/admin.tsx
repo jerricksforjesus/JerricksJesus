@@ -2730,7 +2730,7 @@ export default function AdminDashboard() {
     return <MemberDashboard />;
   }
 
-  const navItems = [
+  const navItems: Array<{ id: string; label: string; icon: typeof BookOpen; action?: () => void | Promise<void> }> = [
     { id: "verse", label: "Daily Verse", icon: BookOpen },
     { id: "replays", label: "Sermon Replays", icon: Play },
     { id: "photos", label: "Family Photos", icon: Image },
@@ -2741,6 +2741,7 @@ export default function AdminDashboard() {
     { id: "worship", label: "Worship Playlist", icon: Music },
     { id: "users", label: "Users", icon: Users },
     { id: "settings", label: "Settings", icon: Settings },
+    { id: "logout", label: "Log Out", icon: LogOut, action: handleLogout },
   ];
 
   return (
@@ -2761,13 +2762,16 @@ export default function AdminDashboard() {
             <div className="space-y-1">
               {navItems.map((item) => {
                 const Icon = item.icon;
+                const isLogout = item.id === "logout";
                 return (
                   <button
                     key={item.id}
-                    onClick={() => setActiveSection(item.id)}
+                    onClick={() => item.action ? item.action() : setActiveSection(item.id)}
                     data-testid={`tab-${item.id}`}
                     className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-sm transition-colors ${
-                      activeSection === item.id
+                      isLogout
+                        ? "text-red-600 hover:bg-red-50"
+                        : activeSection === item.id
                         ? "bg-[#b47a5f] text-white font-medium"
                         : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     }`}
@@ -2780,8 +2784,8 @@ export default function AdminDashboard() {
             </div>
           </nav>
           
-          <div className="p-3 border-t space-y-2">
-            {isAdmin && (
+          {isAdmin && (
+            <div className="p-3 border-t">
               <Button 
                 size="sm"
                 className="w-full"
@@ -2792,18 +2796,8 @@ export default function AdminDashboard() {
                 <UserPlus className="h-4 w-4 mr-2" />
                 Add User
               </Button>
-            )}
-            <Button 
-              variant="outline" 
-              size="sm" 
-              className="w-full"
-              onClick={handleLogout}
-              data-testid="button-logout"
-            >
-              <LogOut className="h-4 w-4 mr-2" />
-              Log Out
-            </Button>
-          </div>
+            </div>
+          )}
         </aside>
 
         {/* Mobile Navigation Bar */}
@@ -2882,16 +2876,24 @@ export default function AdminDashboard() {
                     {/* Section Navigation */}
                     {navItems.map((item) => {
                       const Icon = item.icon;
+                      const isLogout = item.id === "logout";
                       return (
                         <button
                           key={item.id}
                           onClick={() => {
-                            setActiveSection(item.id);
-                            setIsMobileSettingsOpen(false);
+                            if (item.action) {
+                              setIsMobileSettingsOpen(false);
+                              item.action();
+                            } else {
+                              setActiveSection(item.id);
+                              setIsMobileSettingsOpen(false);
+                            }
                           }}
                           data-testid={`mobile-nav-${item.id}`}
                           className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left text-sm transition-colors ${
-                            activeSection === item.id
+                            isLogout
+                              ? "text-red-600 hover:bg-red-50"
+                              : activeSection === item.id
                               ? "bg-[#b47a5f] text-white font-medium"
                               : "text-muted-foreground hover:bg-muted hover:text-foreground"
                           }`}
@@ -2919,21 +2921,6 @@ export default function AdminDashboard() {
                         </button>
                       </>
                     )}
-
-                    <div className="border-t my-3" />
-
-                    {/* Log Out - Part of the list */}
-                    <button
-                      onClick={() => {
-                        setIsMobileSettingsOpen(false);
-                        handleLogout();
-                      }}
-                      className="w-full flex items-center gap-3 px-4 py-2.5 rounded-lg text-left text-sm transition-colors text-red-600 hover:bg-red-50"
-                      data-testid="button-logout-mobile"
-                    >
-                      <LogOut className="w-4 h-4 flex-shrink-0" />
-                      Log Out
-                    </button>
                   </div>
                 </nav>
               </motion.div>
