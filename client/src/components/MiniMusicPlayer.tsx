@@ -6,6 +6,7 @@ import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EqualizerBars } from "@/components/EqualizerBars";
 import { useWorshipPlayer } from "@/contexts/WorshipPlayerContext";
+import { usePlayerLogger } from "@/hooks/usePlayerLogger";
 import { cn } from "@/lib/utils";
 
 function formatTime(seconds: number): string {
@@ -18,6 +19,7 @@ function formatTime(seconds: number): string {
 export function MiniMusicPlayer() {
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
   const volumeRef = useRef<HTMLDivElement>(null);
+  const { logEvent } = usePlayerLogger();
 
   // Close volume slider when clicking outside
   useEffect(() => {

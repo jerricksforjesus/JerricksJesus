@@ -16,10 +16,12 @@ import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { useState } from "react";
 import { useWorshipPlayer } from "@/contexts/WorshipPlayerContext";
+import { usePlayerLogger } from "@/hooks/usePlayerLogger";
 
 export function WorshipMusicPlayer() {
   const [showPlaylist, setShowPlaylist] = useState(false);
   const observerRef = useRef<HTMLDivElement>(null);
+  const { logEvent } = usePlayerLogger();
   
   const {
     videos,
