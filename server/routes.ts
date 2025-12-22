@@ -1,6 +1,7 @@
 // Referenced from blueprint: javascript_object_storage (public file uploading pattern)
 import type { Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
+import rateLimit from "express-rate-limit";
 import { storage } from "./storage";
 import { ObjectStorageService, ObjectNotFoundError, getSignedDownloadURL } from "./objectStorage";
 import { insertVideoSchema, insertVerseSchema, insertPhotoSchema, insertQuizQuestionSchema, insertQuizAttemptSchema, insertEventSchema, ALL_BIBLE_BOOKS, USER_ROLES, type User } from "@shared/schema";
@@ -9,6 +10,36 @@ import { generateQuestionsForBook } from "./quizGenerator";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import { OAuth2Client } from "google-auth-library";
+
+// Rate limiter for authentication endpoints (5 attempts per 15 minutes)
+const authRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 5, // 5 attempts
+  message: { error: "Too many attempts. Please try again after 15 minutes." },
+  standardHeaders: true,
+  legacyHeaders: false,
+  validate: { xForwardedForHeader: false },
+});
+
+// Password validation helper
+function validatePassword(password: string): { valid: boolean; error?: string } {
+  if (password.length < 8) {
+    return { valid: false, error: "Password must be at least 8 characters long" };
+  }
+  if (!/[A-Z]/.test(password)) {
+    return { valid: false, error: "Password must contain at least one uppercase letter" };
+  }
+  if (!/[a-z]/.test(password)) {
+    return { valid: false, error: "Password must contain at least one lowercase letter" };
+  }
+  if (!/[0-9]/.test(password)) {
+    return { valid: false, error: "Password must contain at least one number" };
+  }
+  if (!/[!@#$%^&*(),.?":{}|<>]/.test(password)) {
+    return { valid: false, error: "Password must contain at least one special character (!@#$%^&*(),.?\":{}|<>)" };
+  }
+  return { valid: true };
+}
 
 // Helper to get cookie domain for production (allows www and apex domain to share session)
 function getCookieDomain(): string | undefined {
@@ -36,13 +67,22 @@ async function authMiddleware(req: Request, res: Response, next: NextFunction) {
   try {
     const session = await storage.getSessionByToken(token);
     if (session) {
+      // Check if session has expired
+      if (session.expiresAt && new Date(session.expiresAt) < new Date()) {
+        // Session expired - delete it and continue without auth
+        await storage.deleteSession(token);
+        res.clearCookie("sessionToken", { domain: getCookieDomain() });
+        return next();
+      }
+      
       const user = await storage.getUser(session.userId);
       if (user) {
         req.user = user;
       }
     }
   } catch (error) {
-    console.error("Auth middleware error:", error);
+    // Log without exposing sensitive data
+    console.error("Auth middleware error");
   }
   
   next();
@@ -79,8 +119,8 @@ export async function registerRoutes(
   
   // ==================== AUTH ROUTES ====================
   
-  // Login
-  app.post("/api/auth/login", async (req, res) => {
+  // Login (with rate limiting)
+  app.post("/api/auth/login", authRateLimiter, async (req, res) => {
     try {
       const { username, password } = req.body;
       
@@ -132,7 +172,7 @@ export async function registerRoutes(
         } 
       });
     } catch (error) {
-      console.error("Login error:", error);
+      console.error("Login error");
       res.status(500).json({ error: "Login failed" });
     }
   });
@@ -147,7 +187,7 @@ export async function registerRoutes(
       res.clearCookie("sessionToken", { domain: getCookieDomain() });
       res.json({ success: true });
     } catch (error) {
-      console.error("Logout error:", error);
+      console.error("Logout error");
       res.status(500).json({ error: "Logout failed" });
     }
   });
@@ -169,13 +209,21 @@ export async function registerRoutes(
     });
   });
   
-  // Register new user (admin can create foundational members, anyone can register as member)
-  app.post("/api/auth/register", async (req, res) => {
+  // Register new user (with rate limiting, admin can create foundational members, anyone can register as member)
+  app.post("/api/auth/register", authRateLimiter, async (req, res) => {
     try {
       const { username, email, password, role } = req.body;
       
       if (!username || !password) {
         return res.status(400).json({ error: "Username and password are required" });
+      }
+      
+      // Validate password complexity (skip for admin-created accounts with temporary passwords)
+      if (!role || role === USER_ROLES.MEMBER) {
+        const passwordValidation = validatePassword(password);
+        if (!passwordValidation.valid) {
+          return res.status(400).json({ error: passwordValidation.error });
+        }
       }
       
       // Normalize username and email to lowercase for case-insensitive matching
@@ -237,7 +285,7 @@ export async function registerRoutes(
         } 
       });
     } catch (error) {
-      console.error("Registration error:", error);
+      console.error("Registration error");
       res.status(500).json({ error: "Registration failed" });
     }
   });
@@ -259,8 +307,13 @@ export async function registerRoutes(
     return `${protocol}://${host}/api/auth/google/callback`;
   }
 
-  // Debug endpoint to check OAuth redirect URI (temporary)
+  // Debug endpoint to check OAuth redirect URI (development only)
   app.get("/api/auth/google/debug", (req, res) => {
+    // Only allow in development mode
+    if (process.env.NODE_ENV === "production") {
+      return res.status(404).json({ error: "Not found" });
+    }
+    
     const redirectUri = getOAuthRedirectUri(req);
     const publicAppUrl = process.env.PUBLIC_APP_URL;
     const host = req.get("host") || "";
@@ -1361,8 +1414,10 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Current password and new password are required" });
       }
       
-      if (newPassword.length < 6) {
-        return res.status(400).json({ error: "New password must be at least 6 characters" });
+      // Validate password complexity
+      const passwordValidation = validatePassword(newPassword);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ error: passwordValidation.error });
       }
       
       // Verify current password
@@ -1389,7 +1444,7 @@ export async function registerRoutes(
         message: "Password updated successfully"
       });
     } catch (error) {
-      console.error("Error changing password:", error);
+      console.error("Error changing password");
       res.status(500).json({ error: "Failed to change password" });
     }
   });
@@ -1405,8 +1460,14 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Password change not required" });
       }
       
-      if (!newPassword || newPassword.length < 6) {
-        return res.status(400).json({ error: "New password must be at least 6 characters" });
+      if (!newPassword) {
+        return res.status(400).json({ error: "New password is required" });
+      }
+      
+      // Validate password complexity
+      const passwordValidation = validatePassword(newPassword);
+      if (!passwordValidation.valid) {
+        return res.status(400).json({ error: passwordValidation.error });
       }
       
       // Hash and update new password
@@ -1429,7 +1490,7 @@ export async function registerRoutes(
         }
       });
     } catch (error) {
-      console.error("Error force changing password:", error);
+      console.error("Error force changing password");
       res.status(500).json({ error: "Failed to change password" });
     }
   });

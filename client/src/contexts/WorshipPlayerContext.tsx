@@ -63,6 +63,7 @@ interface WorshipPlayerContextType {
   isInitializing: boolean;
   volume: number;
   isMuted: boolean;
+  isLooping: boolean;
   currentTime: number;
   duration: number;
   playerReady: boolean;
@@ -79,6 +80,7 @@ interface WorshipPlayerContextType {
   seek: (time: number) => void;
   setVolume: (volume: number) => void;
   toggleMute: () => void;
+  toggleLoop: () => void;
   setMainPlayerVisible: (visible: boolean) => void;
   dismissMiniPlayer: () => void;
   mainPlayerRef: React.RefObject<HTMLDivElement | null>;
@@ -193,8 +195,10 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const [miniPlayerActivated, setMiniPlayerActivated] = useState(false);
   const [playerCreated, setPlayerCreated] = useState(false);
   const [isInitializing, setIsInitializing] = useState(false);
+  const [isLooping, setIsLooping] = useState(false);
   
   const playerRef = useRef<YTPlayer | null>(null);
+  const isLoopingRef = useRef(isLooping);
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
   const mainPlayerRef = useRef<HTMLDivElement | null>(null);
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
@@ -216,6 +220,10 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     volumeRef.current = volume;
   }, [volume]);
+
+  useEffect(() => {
+    isLoopingRef.current = isLooping;
+  }, [isLooping]);
 
   const showMiniPlayer = miniPlayerActivated && !mainPlayerVisible && !miniPlayerDismissed;
 
@@ -308,7 +316,10 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
               clearInterval(progressIntervalRef.current);
               progressIntervalRef.current = null;
             }
-            if (currentIndex < videos.length - 1) {
+            if (isLoopingRef.current) {
+              event.target.seekTo(0, true);
+              event.target.playVideo();
+            } else if (currentIndex < videos.length - 1) {
               setCurrentIndex((prev) => prev + 1);
             }
           }
@@ -425,6 +436,10 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [isMuted]);
 
+  const toggleLoop = useCallback(() => {
+    setIsLooping((prev) => !prev);
+  }, []);
+
   const dismissMiniPlayer = useCallback(() => {
     setMiniPlayerDismissed(true);
     setMiniPlayerActivated(false);
@@ -446,6 +461,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     isInitializing,
     volume,
     isMuted,
+    isLooping,
     currentTime,
     duration,
     playerReady,
@@ -462,6 +478,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     seek,
     setVolume,
     toggleMute,
+    toggleLoop,
     setMainPlayerVisible,
     dismissMiniPlayer,
     mainPlayerRef,
