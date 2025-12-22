@@ -60,6 +60,7 @@ interface WorshipPlayerContextType {
   isLoading: boolean;
   currentIndex: number;
   isPlaying: boolean;
+  isInitializing: boolean;
   volume: number;
   isMuted: boolean;
   currentTime: number;
@@ -191,6 +192,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const [miniPlayerDismissed, setMiniPlayerDismissed] = useState(false);
   const [miniPlayerActivated, setMiniPlayerActivated] = useState(false);
   const [playerCreated, setPlayerCreated] = useState(false);
+  const [isInitializing, setIsInitializing] = useState(false);
   
   const playerRef = useRef<YTPlayer | null>(null);
   const playerContainerRef = useRef<HTMLDivElement | null>(null);
@@ -277,6 +279,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
           if (state === window.YT.PlayerState.PLAYING) {
             setIsPlaying(true);
             setMiniPlayerActivated(true);
+            setIsInitializing(false);
             
             const dur = event.target.getDuration();
             if (dur) setDuration(dur);
@@ -333,9 +336,10 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     if (!playerCreated) {
       setPlayerCreated(true);
       autoPlayOnReadyRef.current = true;
+      setIsInitializing(true);
       return;
     }
-    if (playerRef.current) {
+    if (playerRef.current && playerReady) {
       try {
         playerRef.current.playVideo();
       } catch (e) {
@@ -343,8 +347,9 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
       }
     } else {
       autoPlayOnReadyRef.current = true;
+      setIsInitializing(true);
     }
-  }, [playerCreated]);
+  }, [playerCreated, playerReady]);
 
   const pause = useCallback(() => {
     if (playerRef.current) {
@@ -423,6 +428,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const dismissMiniPlayer = useCallback(() => {
     setMiniPlayerDismissed(true);
     setMiniPlayerActivated(false);
+    setIsInitializing(false);
     if (playerRef.current) {
       try {
         playerRef.current.pauseVideo();
@@ -437,6 +443,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     isLoading,
     currentIndex,
     isPlaying,
+    isInitializing,
     volume,
     isMuted,
     currentTime,

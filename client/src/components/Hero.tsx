@@ -1,7 +1,7 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Radio, Video, LogIn, Music, Square } from "lucide-react";
+import { Radio, Video, LogIn, Music, Square, Loader2 } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
@@ -21,7 +21,7 @@ interface ZoomSettings {
 export function Hero() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
-  const { showMiniPlayer, play, dismissMiniPlayer, videos } = useWorshipPlayer();
+  const { showMiniPlayer, play, dismissMiniPlayer, videos, isInitializing } = useWorshipPlayer();
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
@@ -166,8 +166,10 @@ export function Hero() {
               style={{ 
                 backgroundColor: showMiniPlayer ? "#292929" : "#ffffff", 
                 color: showMiniPlayer ? "#ffffff" : "#b47a5f", 
-                border: "2px solid #ffffff" 
+                border: "2px solid #ffffff",
+                opacity: isInitializing ? 0.8 : 1,
               }}
+              disabled={isInitializing}
               onClick={() => {
                 if (showMiniPlayer) {
                   dismissMiniPlayer();
@@ -177,7 +179,12 @@ export function Hero() {
               }}
               data-testid="button-worship-music-hero"
             >
-              {showMiniPlayer ? (
+              {isInitializing ? (
+                <>
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
+                  Loading...
+                </>
+              ) : showMiniPlayer ? (
                 <>
                   <Square className="w-5 h-5 mr-2" />
                   Stop Music
