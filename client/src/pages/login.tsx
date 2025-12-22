@@ -5,10 +5,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import { ArrowLeft, Home, Eye, EyeOff } from "lucide-react";
 import { MobilePlayerSpacer } from "@/components/MobilePlayerSpacer";
+import { motion, AnimatePresence } from "framer-motion";
 
 export default function LoginPage() {
   const [, setLocation] = useLocation();
@@ -176,7 +177,15 @@ export default function LoginPage() {
               </TabsTrigger>
             </TabsList>
             
-            <TabsContent value="login">
+            <AnimatePresence mode="wait">
+              {activeTab === "login" && (
+                <motion.div
+                  key="login"
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 20 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                >
               <form onSubmit={handleLogin} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="login-username">Username or Email</Label>
@@ -269,9 +278,16 @@ export default function LoginPage() {
                   Sign in with Google
                 </Button>
               </form>
-            </TabsContent>
-            
-            <TabsContent value="register">
+                </motion.div>
+              )}
+              {activeTab === "register" && (
+                <motion.div
+                  key="register"
+                  initial={{ opacity: 0, x: 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: -20 }}
+                  transition={{ duration: 0.2, ease: "easeInOut" }}
+                >
               <form onSubmit={handleRegister} className="space-y-4">
                 <div className="space-y-2">
                   <Label htmlFor="register-username">Username</Label>
@@ -403,7 +419,9 @@ export default function LoginPage() {
                   Sign up with Google
                 </Button>
               </form>
-            </TabsContent>
+                </motion.div>
+              )}
+            </AnimatePresence>
           </Tabs>
           
           <div className="mt-6 text-center">
