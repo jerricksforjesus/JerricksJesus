@@ -3823,7 +3823,7 @@ export default function AdminDashboard() {
                         
                         {/* Show controls only if not viewing yourself AND (you're admin OR the target user is not an admin) */}
                         {user?.id !== u.id && (isAdmin || u.role !== "admin") && (
-                          <div className="flex flex-wrap items-center gap-2 sm:flex-nowrap">
+                          <div className="flex flex-col sm:flex-row sm:flex-nowrap gap-2 w-full sm:w-auto">
                             <Select
                               value={u.role}
                               onValueChange={(newRole) => {
@@ -3831,7 +3831,7 @@ export default function AdminDashboard() {
                               }}
                               disabled={updateUserRoleMutation.isPending}
                             >
-                              <SelectTrigger className="w-[130px]" data-testid={`select-role-${u.id}`}>
+                              <SelectTrigger className="w-full sm:w-[130px]" data-testid={`select-role-${u.id}`}>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -3842,64 +3842,67 @@ export default function AdminDashboard() {
                                 )}
                               </SelectContent>
                             </Select>
-                            {u.googleId ? (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                disabled
-                                data-testid={`button-google-sso-${u.id}`}
-                                className="opacity-60 cursor-not-allowed"
-                              >
-                                <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24">
-                                  <path
-                                    fill="#4285F4"
-                                    d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                                  />
-                                  <path
-                                    fill="#34A853"
-                                    d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                                  />
-                                  <path
-                                    fill="#FBBC05"
-                                    d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                                  />
-                                  <path
-                                    fill="#EA4335"
-                                    d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                                  />
-                                </svg>
-                                Google SSO
-                              </Button>
-                            ) : (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => resetPasswordMutation.mutate(u.id)}
-                                disabled={resetPasswordMutation.isPending}
-                                data-testid={`button-reset-password-${u.id}`}
-                                title="Reset password to Jerrick#1"
-                              >
-                                <Key className="w-4 h-4 mr-1" />
-                                Password Reset
-                              </Button>
-                            )}
-                            {u.role !== "admin" && isAdmin && (
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={() => {
-                                  setUserToDelete({ id: u.id, username: u.username });
-                                  setDeleteConfirmText("");
-                                  setDeleteDialogOpen(true);
-                                }}
-                                disabled={deleteUserMutation.isPending}
-                                data-testid={`button-delete-user-${u.id}`}
-                                title="Delete user"
-                                className="text-red-500 hover:text-red-700 hover:bg-red-50"
-                              >
-                                <Trash2 className="w-4 h-4" />
-                              </Button>
-                            )}
+                            <div className="flex gap-2">
+                              {u.googleId ? (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  disabled
+                                  data-testid={`button-google-sso-${u.id}`}
+                                  className="opacity-60 cursor-not-allowed flex-1 sm:flex-none"
+                                >
+                                  <svg className="w-4 h-4 mr-1" viewBox="0 0 24 24">
+                                    <path
+                                      fill="#4285F4"
+                                      d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
+                                    />
+                                    <path
+                                      fill="#34A853"
+                                      d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
+                                    />
+                                    <path
+                                      fill="#FBBC05"
+                                      d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
+                                    />
+                                    <path
+                                      fill="#EA4335"
+                                      d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
+                                    />
+                                  </svg>
+                                  Google SSO
+                                </Button>
+                              ) : (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => resetPasswordMutation.mutate(u.id)}
+                                  disabled={resetPasswordMutation.isPending}
+                                  data-testid={`button-reset-password-${u.id}`}
+                                  title="Reset password to Jerrick#1"
+                                  className="flex-1 sm:flex-none"
+                                >
+                                  <Key className="w-4 h-4 mr-1" />
+                                  Password Reset
+                                </Button>
+                              )}
+                              {u.role !== "admin" && isAdmin && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => {
+                                    setUserToDelete({ id: u.id, username: u.username });
+                                    setDeleteConfirmText("");
+                                    setDeleteDialogOpen(true);
+                                  }}
+                                  disabled={deleteUserMutation.isPending}
+                                  data-testid={`button-delete-user-${u.id}`}
+                                  title="Delete user"
+                                  className="text-red-500 hover:text-red-700 hover:bg-red-50"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         )}
                         
