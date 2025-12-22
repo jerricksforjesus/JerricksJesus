@@ -782,6 +782,7 @@ export function MemberDashboard() {
                     disabled={!musicVideoInfo || submitMusicRequestMutation.isPending}
                     style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
                     data-testid="button-submit-music-request"
+                    className="w-full sm:w-auto"
                   >
                     {submitMusicRequestMutation.isPending ? (
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
