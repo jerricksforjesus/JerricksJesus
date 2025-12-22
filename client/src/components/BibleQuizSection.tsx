@@ -502,7 +502,7 @@ export function BibleQuizSection() {
                     data-testid="button-view-history"
                   >
                     <History className="w-4 h-4 mr-2" />
-                    My Quiz History
+                    View My Quiz History
                   </Button>
                 ) : (
                   <Button
