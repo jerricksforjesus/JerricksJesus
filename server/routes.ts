@@ -803,6 +803,11 @@ export async function registerRoutes(
         return res.status(400).json({ error: "Invalid events array" });
       }
       
+      // Capture IP address from request
+      const ipAddress = req.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() 
+        || req.socket?.remoteAddress 
+        || null;
+      
       const logs = events.map((event: { eventType: string; videoId?: string; videoIndex?: number; playerState?: number; payload?: unknown }) => ({
         userId: req.user!.id,
         userRole: req.user!.role,
@@ -813,6 +818,7 @@ export async function registerRoutes(
         payload: event.payload ? JSON.stringify(event.payload) : null,
         userAgent: userAgent || req.headers["user-agent"] || null,
         sessionId: sessionId || null,
+        ipAddress: ipAddress,
       }));
       
       await storage.createPlayerLogs(logs);
@@ -820,6 +826,22 @@ export async function registerRoutes(
     } catch (error) {
       console.error("Error saving player logs:", error);
       res.status(500).json({ error: "Failed to save logs" });
+    }
+  });
+
+  // Force logout all other sessions for superadmin (for clean testing)
+  app.post("/api/auth/force-logout-others", requireAuth, requireRole(USER_ROLES.SUPERADMIN), async (req, res) => {
+    try {
+      const currentSessionToken = req.cookies?.session_token;
+      if (!currentSessionToken) {
+        return res.status(400).json({ error: "No current session found" });
+      }
+      
+      const deletedCount = await storage.deleteOtherSessions(req.user!.id, currentSessionToken);
+      res.json({ success: true, deletedSessions: deletedCount });
+    } catch (error) {
+      console.error("Error forcing logout:", error);
+      res.status(500).json({ error: "Failed to force logout other sessions" });
     }
   });
 

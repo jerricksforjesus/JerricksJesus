@@ -330,6 +330,7 @@ export const playerLogs = pgTable("player_logs", {
   payload: text("payload"), // JSON string for additional data
   userAgent: text("user_agent"),
   sessionId: text("session_id"), // To group events from same page session
+  ipAddress: varchar("ip_address", { length: 100 }), // Client IP for location tracking
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

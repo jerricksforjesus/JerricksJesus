@@ -31,6 +31,7 @@ export interface IStorage {
   getSessionByToken(token: string): Promise<Session | undefined>;
   deleteSession(token: string): Promise<void>;
   deleteExpiredSessions(): Promise<void>;
+  deleteOtherSessions(userId: string, currentToken: string): Promise<number>;
   
   getAllVideos(): Promise<Video[]>;
   getVideo(id: number): Promise<Video | undefined>;
@@ -283,6 +284,16 @@ export class DbStorage implements IStorage {
 
   async deleteExpiredSessions(): Promise<void> {
     await db.delete(sessions).where(sql`${sessions.expiresAt} < NOW()`);
+  }
+
+  async deleteOtherSessions(userId: string, currentToken: string): Promise<number> {
+    const result = await db.delete(sessions)
+      .where(and(
+        eq(sessions.userId, userId),
+        sql`${sessions.token} != ${currentToken}`
+      ))
+      .returning();
+    return result.length;
   }
 
   async getAllVideos(): Promise<Video[]> {

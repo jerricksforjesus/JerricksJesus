@@ -1,13 +1,15 @@
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, SkipBack, SkipForward, X, Volume2, VolumeX, Volume1, Repeat, ChevronUp, Music } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, X, Volume2, VolumeX, Volume1, Repeat, ChevronUp, Music, LogOut, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { EqualizerBars } from "@/components/EqualizerBars";
 import { useWorshipPlayer } from "@/contexts/WorshipPlayerContext";
 import { usePlayerLogger } from "@/hooks/usePlayerLogger";
+import { useAuth } from "@/lib/auth";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 function formatTime(seconds: number): string {
   if (!seconds || isNaN(seconds)) return "0:00";
@@ -18,8 +20,11 @@ function formatTime(seconds: number): string {
 
 export function MiniMusicPlayer() {
   const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const [isForceLoggingOut, setIsForceLoggingOut] = useState(false);
   const volumeRef = useRef<HTMLDivElement>(null);
   const { logEvent } = usePlayerLogger();
+  const { user } = useAuth();
+  const isSuperAdmin = user?.role === "superadmin";
 
   // Close volume slider when clicking outside
   useEffect(() => {
@@ -100,6 +105,28 @@ export function MiniMusicPlayer() {
   const handleTogglePlaylist = () => {
     logEvent("UI_TAP_TOGGLE_PLAYLIST", { payload: { showPlaylist: !showPlaylist, component: "MiniMusicPlayer" } });
     setShowPlaylist(!showPlaylist);
+  };
+
+  const handleForceLogoutOthers = async () => {
+    if (!isSuperAdmin || isForceLoggingOut) return;
+    setIsForceLoggingOut(true);
+    try {
+      const res = await fetch("/api/auth/force-logout-others", {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`Logged out ${data.deletedSessions} other session(s)`);
+        logEvent("FORCE_LOGOUT_SUCCESS", { payload: { deletedSessions: data.deletedSessions } });
+      } else {
+        toast.error(data.error || "Failed to logout other sessions");
+      }
+    } catch (error) {
+      toast.error("Failed to logout other sessions");
+    } finally {
+      setIsForceLoggingOut(false);
+    }
   };
 
   // Scroll to current track when playlist opens or when track changes while playlist is visible
@@ -374,6 +401,25 @@ export function MiniMusicPlayer() {
               >
                 <ChevronUp className="w-4 h-4" />
               </Button>
+
+              {/* Force Logout Others (superadmin only) */}
+              {isSuperAdmin && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={handleForceLogoutOthers}
+                  disabled={isForceLoggingOut}
+                  className="h-8 w-8 text-orange-500 hover:text-orange-600 hover:bg-orange-500/10"
+                  data-testid="mini-button-force-logout"
+                  title="Force logout all other sessions"
+                >
+                  {isForceLoggingOut ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <LogOut className="w-4 h-4" />
+                  )}
+                </Button>
+              )}
 
               {/* Close */}
               <Button
