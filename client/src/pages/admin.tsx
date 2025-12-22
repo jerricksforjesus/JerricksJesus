@@ -562,13 +562,14 @@ function WorshipPlaylistManager() {
               <p className="text-xs text-muted-foreground">
                 Videos will be synced from your YouTube playlist. Use the sync button to fetch the latest videos.
               </p>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-col sm:flex-row sm:flex-wrap gap-2">
                 <Button 
                   variant="outline" 
                   size="sm" 
                   onClick={syncFromYouTube}
                   disabled={isSyncing}
                   data-testid="button-sync-youtube"
+                  className="w-full sm:w-auto"
                 >
                   {isSyncing ? (
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -577,7 +578,7 @@ function WorshipPlaylistManager() {
                   )}
                   {isSyncing ? "Syncing..." : "Sync from YouTube"}
                 </Button>
-                <Button variant="outline" size="sm" onClick={disconnectYouTube} data-testid="button-disconnect-youtube">
+                <Button variant="outline" size="sm" onClick={disconnectYouTube} data-testid="button-disconnect-youtube" className="w-full sm:w-auto">
                   Disconnect YouTube
                 </Button>
               </div>
@@ -644,9 +645,9 @@ function WorshipPlaylistManager() {
       </div>
 
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
           <h3 className="font-medium">Current Playlist ({videos.length} videos)</h3>
-          <Button variant="outline" size="sm" asChild>
+          <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
             <a
               href="https://youtube.com/playlist?list=PLkDsdLHKY8laSsy8xYfILnVzFMedR0Rgy"
               target="_blank"
