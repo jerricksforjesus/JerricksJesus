@@ -959,6 +959,100 @@ export async function registerRoutes(
       res.status(500).json({ error: "Failed to get sync status" });
     }
   });
+
+  // Worship Request endpoints
+  
+  // Submit a worship music request (any logged-in user)
+  app.post("/api/worship-requests", requireAuth, async (req, res) => {
+    try {
+      const { youtubeUrl, youtubeVideoId, title, thumbnailUrl } = req.body;
+      
+      if (!youtubeUrl || !youtubeVideoId || !title) {
+        return res.status(400).json({ error: "YouTube URL, video ID, and title are required" });
+      }
+
+      const request = await storage.createWorshipRequest({
+        userId: req.user!.id,
+        youtubeUrl,
+        youtubeVideoId,
+        title,
+        thumbnailUrl: thumbnailUrl || null,
+        status: "pending",
+      });
+      
+      res.status(201).json(request);
+    } catch (error) {
+      console.error("Error creating worship request:", error);
+      res.status(500).json({ error: "Failed to submit worship request" });
+    }
+  });
+
+  // Get my worship requests
+  app.get("/api/worship-requests/my", requireAuth, async (req, res) => {
+    try {
+      const requests = await storage.getWorshipRequestsByUser(req.user!.id);
+      res.json(requests);
+    } catch (error) {
+      console.error("Error fetching my worship requests:", error);
+      res.status(500).json({ error: "Failed to fetch worship requests" });
+    }
+  });
+
+  // Get pending worship requests (admin/foundational only)
+  app.get("/api/worship-requests/pending", requireAuth, requireRole(USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
+    try {
+      const requests = await storage.getPendingWorshipRequests();
+      // Get user info for each request
+      const requestsWithUser = await Promise.all(requests.map(async (r) => {
+        const user = await storage.getUser(r.userId);
+        return {
+          ...r,
+          username: user?.username || "Unknown",
+        };
+      }));
+      res.json(requestsWithUser);
+    } catch (error) {
+      console.error("Error fetching pending worship requests:", error);
+      res.status(500).json({ error: "Failed to fetch pending requests" });
+    }
+  });
+
+  // Approve/reject a worship request (admin/foundational only)
+  app.patch("/api/worship-requests/:id/status", requireAuth, requireRole(USER_ROLES.ADMIN, USER_ROLES.FOUNDATIONAL), async (req, res) => {
+    try {
+      const { id } = req.params;
+      const { status } = req.body;
+      
+      if (!["approved", "rejected"].includes(status)) {
+        return res.status(400).json({ error: "Status must be 'approved' or 'rejected'" });
+      }
+
+      const updated = await storage.updateWorshipRequestStatus(
+        parseInt(id),
+        status,
+        req.user!.id
+      );
+      
+      if (!updated) {
+        return res.status(404).json({ error: "Request not found" });
+      }
+
+      // If approved, add the video to the worship playlist
+      if (status === "approved" && updated.youtubeVideoId && updated.title) {
+        await storage.createWorshipVideo({
+          youtubeVideoId: updated.youtubeVideoId,
+          title: updated.title,
+          description: null,
+          thumbnailUrl: updated.thumbnailUrl,
+        });
+      }
+
+      res.json(updated);
+    } catch (error) {
+      console.error("Error updating worship request status:", error);
+      res.status(500).json({ error: "Failed to update request status" });
+    }
+  });
   
   // Admin/Foundational: Get all users
   app.get("/api/admin/users", requireAuth, async (req, res) => {
