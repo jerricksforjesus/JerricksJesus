@@ -3550,7 +3550,7 @@ export default function AdminDashboard() {
                     <div className="space-y-4">
                       <div>
                         <h4 className="text-sm font-medium text-muted-foreground mb-2">Old Testament</h4>
-                        <div className="grid grid-cols-3 gap-1">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
                           {quizBooks.filter(b => (BIBLE_BOOKS.oldTestament as readonly string[]).includes(b.name)).map((book) => (
                             <button
                               key={book.name}
@@ -3578,7 +3578,7 @@ export default function AdminDashboard() {
                       </div>
                       <div>
                         <h4 className="text-sm font-medium text-muted-foreground mb-2">New Testament</h4>
-                        <div className="grid grid-cols-3 gap-1">
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-1">
                           {quizBooks.filter(b => (BIBLE_BOOKS.newTestament as readonly string[]).includes(b.name)).map((book) => (
                             <button
                               key={book.name}
