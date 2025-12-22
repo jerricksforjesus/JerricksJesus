@@ -4083,13 +4083,13 @@ export default function AdminDashboard() {
                       Account Information
                     </h4>
                     <div className="grid gap-2 text-sm">
-                      <div className="flex justify-between items-center py-2 border-b border-border/50">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 border-b border-border/50 gap-1">
                         <span className="text-muted-foreground">Username:</span>
-                        <span className="font-medium" data-testid="text-profile-username">{user?.username || "N/A"}</span>
+                        <span className="font-medium break-all" data-testid="text-profile-username">{user?.username || "N/A"}</span>
                       </div>
-                      <div className="flex justify-between items-center py-2">
+                      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center py-2 gap-1">
                         <span className="text-muted-foreground">Email:</span>
-                        <span className="font-medium" data-testid="text-profile-email">{user?.email || "Not set"}</span>
+                        <span className="font-medium break-all" data-testid="text-profile-email">{user?.email || "Not set"}</span>
                       </div>
                     </div>
                   </div>
@@ -4097,20 +4097,21 @@ export default function AdminDashboard() {
                   <div className="space-y-6">
                     <div className="space-y-4">
                       <h4 className="font-medium">Update Username</h4>
-                      <div className="flex gap-3">
+                      <div className="flex flex-col sm:flex-row gap-3 max-w-md">
                         <Input
                           id="profile-username"
                           data-testid="input-profile-username"
                           value={profileUsername}
                           onChange={(e) => setProfileUsername(e.target.value)}
                           placeholder="Enter new username"
-                          className="flex-1 max-w-md"
+                          className="flex-1"
                         />
                         <Button
                           onClick={() => updateUsernameMutation.mutate(profileUsername)}
                           disabled={updateUsernameMutation.isPending || !profileUsername || profileUsername === user?.username}
                           style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
                           data-testid="button-update-username"
+                          className="w-full sm:w-auto"
                         >
                           {updateUsernameMutation.isPending ? (
                             <Loader2 className="w-4 h-4 animate-spin mr-2" />
