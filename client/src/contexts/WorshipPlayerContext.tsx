@@ -222,6 +222,8 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const trackChangeDebounceRef = useRef<NodeJS.Timeout | null>(null);
   // Target index for debounced track changes
   const targetIndexRef = useRef<number | null>(null);
+  // Track the currently loaded video ID in the player (for iOS gesture chain)
+  const loadedVideoIdRef = useRef<string | null>(null);
 
   const { data: videos = [], isLoading } = useQuery<WorshipVideo[]>({
     queryKey: ["worship-videos"],
@@ -504,6 +506,8 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
           playerRef.current = event.target;
           setPlayerReady(true);
           event.target.setVolume(volumeRef.current);
+          // Track the initially loaded video ID
+          loadedVideoIdRef.current = currentVideo.youtubeVideoId;
           
           // Handle pending play callback for iOS - maintains user gesture chain
           if (pendingPlayCallbackRef.current) {
@@ -617,9 +621,11 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
       if (shouldAutoPlay) {
         // Use loadVideoById which auto-plays
         playerRef.current.loadVideoById(currentVideo.youtubeVideoId);
+        loadedVideoIdRef.current = currentVideo.youtubeVideoId;
       } else {
         // Use cueVideoById which does NOT auto-play
         playerRef.current.cueVideoById(currentVideo.youtubeVideoId);
+        loadedVideoIdRef.current = currentVideo.youtubeVideoId;
       }
     }, 150);
     
