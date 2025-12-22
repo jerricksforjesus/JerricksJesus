@@ -237,6 +237,10 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
       // Check if music was playing using ref (not state, as state might be stale)
       const wasPlaying = isPlayingRef.current || miniPlayerActivated;
       
+      // Clear all auto-play flags to prevent any auto-play after user change
+      autoPlayOnReadyRef.current = false;
+      shouldContinuePlayingRef.current = false;
+      
       if (wasPlaying || previousUserId !== null || currentUserId !== null) {
         // Stop the YouTube player completely - try multiple methods
         const stopPlayer = () => {
@@ -561,31 +565,25 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
       const isTrackChange = prevIndexRef.current !== currentIndex;
       prevIndexRef.current = currentIndex;
       
-      // Skip loadVideoById on initial mount - player was already created with this video
+      // Skip on initial mount - player was already created with this video
       if (!playerInitializedRef.current) {
         playerInitializedRef.current = true;
         return;
       }
       
-      // Load the new video only on track changes
-      playerRef.current.loadVideoById(currentVideo.youtubeVideoId);
+      // Determine if we should auto-play: only when we were actually playing
+      const shouldAutoPlay = isTrackChange && (shouldContinuePlayingRef.current || isPlayingRef.current);
+      shouldContinuePlayingRef.current = false; // Reset the flag
+      
       setCurrentTime(0);
       setDuration(0);
       
-      // Only auto-play on track change if we were actually playing (not just mini player shown)
-      // Use shouldContinuePlayingRef which is set when song ends or isPlayingRef if user initiated
-      if (isTrackChange && (shouldContinuePlayingRef.current || isPlayingRef.current)) {
-        shouldContinuePlayingRef.current = false; // Reset the flag
-        // Small delay to let the video load before playing
-        setTimeout(() => {
-          if (playerRef.current && playerReady) {
-            try {
-              playerRef.current.playVideo();
-            } catch (e) {
-              console.error("Error auto-playing after track change:", e);
-            }
-          }
-        }, 100);
+      if (shouldAutoPlay) {
+        // Use loadVideoById which auto-plays
+        playerRef.current.loadVideoById(currentVideo.youtubeVideoId);
+      } else {
+        // Use cueVideoById which does NOT auto-play
+        playerRef.current.cueVideoById(currentVideo.youtubeVideoId);
       }
     }
   }, [currentIndex, currentVideo, playerReady]);
