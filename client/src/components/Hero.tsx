@@ -168,7 +168,6 @@ export function Hero() {
                 border: showMiniPlayer ? "2px solid #dc2626" : "2px solid #ffffff",
                 opacity: isInitializing ? 0.8 : 1,
               }}
-              disabled={isInitializing}
               onClick={() => {
                 if (showMiniPlayer) {
                   dismissMiniPlayer();

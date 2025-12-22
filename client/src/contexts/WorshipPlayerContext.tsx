@@ -590,23 +590,34 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
 
   const play = useCallback(() => {
     setMiniPlayerDismissed(false);
+    setIsInitializing(true);
+    
+    // Reset initializing state after timeout in case playback fails
+    // This prevents the button from being stuck in loading state
+    setTimeout(() => {
+      setIsInitializing(false);
+    }, 5000);
+    
     if (!playerCreated) {
+      // Player not created yet - create it and queue auto-play
       setPlayerCreated(true);
       autoPlayOnReadyRef.current = true;
-      setIsInitializing(true);
       return;
     }
-    if (playerRef.current && playerReady) {
+    
+    // Always set the flag in case onReady hasn't fired yet
+    autoPlayOnReadyRef.current = true;
+    
+    // Try to play immediately - this is crucial for iOS which requires
+    // playVideo() to be called within the user gesture callback
+    if (playerRef.current) {
       try {
         playerRef.current.playVideo();
       } catch (e) {
         console.error("Error playing:", e);
       }
-    } else {
-      autoPlayOnReadyRef.current = true;
-      setIsInitializing(true);
     }
-  }, [playerCreated, playerReady]);
+  }, [playerCreated]);
 
   const pause = useCallback(() => {
     // Clear any pending auto-play to prevent pause from being overridden
