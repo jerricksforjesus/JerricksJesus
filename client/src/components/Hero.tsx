@@ -21,7 +21,7 @@ interface ZoomSettings {
 export function Hero() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
-  const { showMiniPlayer, play, dismissMiniPlayer, videos, isInitializing } = useWorshipPlayer();
+  const { showMiniPlayer, play, dismissMiniPlayer, videos, isInitializing, isPlaying } = useWorshipPlayer();
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
@@ -186,11 +186,11 @@ export function Hero() {
                 <>
                   <span>Stop Music</span>
                   <div className="flex items-end gap-[2px] h-4 mx-2">
-                    <div className="equalizer-bar" />
-                    <div className="equalizer-bar" />
-                    <div className="equalizer-bar" />
-                    <div className="equalizer-bar" />
-                    <div className="equalizer-bar" />
+                    <div className={`equalizer-bar ${!isPlaying ? 'paused' : ''}`} />
+                    <div className={`equalizer-bar ${!isPlaying ? 'paused' : ''}`} />
+                    <div className={`equalizer-bar ${!isPlaying ? 'paused' : ''}`} />
+                    <div className={`equalizer-bar ${!isPlaying ? 'paused' : ''}`} />
+                    <div className={`equalizer-bar ${!isPlaying ? 'paused' : ''}`} />
                   </div>
                   <Square className="w-5 h-5" />
                 </>
