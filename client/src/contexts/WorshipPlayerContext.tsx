@@ -224,18 +224,30 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   // Reset state when user changes (login/logout/different user)
   useEffect(() => {
     const currentUserId = user?.id ?? null;
-    if (lastUserIdRef.current !== currentUserId) {
+    const previousUserId = lastUserIdRef.current;
+    
+    if (previousUserId !== currentUserId) {
       // User changed - stop music for any user change (login or logout)
-      if (lastUserIdRef.current !== null || currentUserId !== null) {
+      if (previousUserId !== null || currentUserId !== null) {
+        // Stop the YouTube player completely
         if (playerRef.current) {
           try {
+            playerRef.current.stopVideo();
             playerRef.current.pauseVideo();
           } catch (e) {
             // Player might not be ready
           }
         }
+        
+        // Clear progress interval
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+        
         setIsPlaying(false);
         setCurrentTime(0);
+        setDuration(0);
         setMiniPlayerDismissed(true);
         setMiniPlayerActivated(false);
         
