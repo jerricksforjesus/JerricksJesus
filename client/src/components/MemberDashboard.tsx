@@ -11,7 +11,8 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
-import { BookOpen, Camera, ClipboardList, LogOut, Loader2, Trash2, Clock, CheckCircle, XCircle, Upload, Key, Settings, Save, User as UserIcon, Music, Plus, ExternalLink } from "lucide-react";
+import { BookOpen, Camera, ClipboardList, LogOut, Loader2, Trash2, Clock, CheckCircle, XCircle, Upload, Key, Settings, Save, User as UserIcon, Music, Plus, ExternalLink, Cake } from "lucide-react";
+import { DatePicker } from "@/components/ui/date-picker";
 import type { UploadResult } from "@uppy/core";
 import {
   Dialog,
@@ -61,6 +62,46 @@ export function MemberDashboard() {
   const [profileCurrentPassword, setProfileCurrentPassword] = useState("");
   const [profileNewPassword, setProfileNewPassword] = useState("");
   const [profileConfirmPassword, setProfileConfirmPassword] = useState("");
+  const [profileDateOfBirth, setProfileDateOfBirth] = useState("");
+
+  // Fetch date of birth
+  const { data: dobData } = useQuery<{ dateOfBirth: string | null }>({
+    queryKey: ["profile-date-of-birth"],
+    queryFn: async () => {
+      const response = await fetch("/api/profile/date-of-birth", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch date of birth");
+      return response.json();
+    },
+  });
+
+  useEffect(() => {
+    if (dobData?.dateOfBirth) {
+      setProfileDateOfBirth(dobData.dateOfBirth);
+    }
+  }, [dobData]);
+
+  const updateDateOfBirthMutation = useMutation({
+    mutationFn: async (dateOfBirth: string) => {
+      const response = await fetch("/api/profile/date-of-birth", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ dateOfBirth }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update date of birth");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Birthday Saved", description: "Your date of birth has been saved and a birthday event will be created." });
+      queryClient.invalidateQueries({ queryKey: ["profile-date-of-birth"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
 
   const forcePasswordChangeMutation = useMutation({
     mutationFn: async (newPassword: string) => {
@@ -802,6 +843,37 @@ export function MemberDashboard() {
                         <Save className="w-4 h-4 mr-2" />
                       )}
                       Update
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="border-t pt-6 space-y-4">
+                  <div className="flex items-center gap-3 mb-4">
+                    <Cake className="w-5 h-5" style={{ color: "#b47a5f" }} />
+                    <h3 className="font-medium text-lg">Date of Birth</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Add your birthday to automatically create a birthday event for you each year.
+                  </p>
+                  <div className="flex gap-3 items-center max-w-md">
+                    <DatePicker
+                      value={profileDateOfBirth}
+                      onChange={(value) => setProfileDateOfBirth(value)}
+                      placeholder="Select your birthday"
+                      data-testid="input-date-of-birth"
+                    />
+                    <Button
+                      onClick={() => updateDateOfBirthMutation.mutate(profileDateOfBirth)}
+                      disabled={updateDateOfBirthMutation.isPending || !profileDateOfBirth || profileDateOfBirth === dobData?.dateOfBirth}
+                      style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+                      data-testid="button-save-birthday"
+                    >
+                      {updateDateOfBirthMutation.isPending ? (
+                        <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                      ) : (
+                        <Save className="w-4 h-4 mr-2" />
+                      )}
+                      Save
                     </Button>
                   </div>
                 </div>
