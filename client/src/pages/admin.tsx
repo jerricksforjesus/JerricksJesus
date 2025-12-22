@@ -111,7 +111,7 @@ function SortablePhotoItem({ photo, photoUrl, canEdit, onCrop, onDelete }: Sorta
           <span>Needs Cropping</span>
         </div>
       ) : photo.wasCropped === 1 ? (
-        <div className="absolute top-0 left-0 right-0 bg-green-600/90 text-white text-xs px-2 py-1 flex items-center justify-center gap-1 z-10">
+        <div className="absolute top-0 left-0 right-0 text-white text-xs px-2 py-1 flex items-center justify-center gap-1 z-10" style={{ backgroundColor: "rgba(180, 122, 95, 0.9)" }}>
           <Check className="w-3 h-3" />
           <span>Cropped</span>
         </div>
