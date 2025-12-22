@@ -91,11 +91,13 @@ export function WorshipMusicPlayer() {
       className="mt-6 rounded-xl bg-gradient-to-br from-card to-muted/30 border shadow-lg overflow-hidden" 
       data-testid="worship-music-player"
     >
-      <div className="p-4">
-        <div className="flex gap-3 mb-3">
+      <div className="p-4 lg:p-6">
+        {/* Responsive Layout - Mobile stacked, Desktop horizontal */}
+        <div className="flex flex-col lg:flex-row lg:items-center gap-3 lg:gap-6">
+          {/* Thumbnail - responsive sizing */}
           <div 
             ref={mainPlayerRef as React.RefObject<HTMLDivElement>}
-            className="relative w-24 h-16 flex-shrink-0 rounded-lg overflow-hidden bg-black"
+            className="relative w-24 h-16 lg:w-32 lg:h-32 flex-shrink-0 rounded-lg lg:rounded-xl overflow-hidden bg-black lg:shadow-md"
           >
             {currentVideo?.thumbnailUrl && (
               <img 
@@ -106,75 +108,98 @@ export function WorshipMusicPlayer() {
             )}
           </div>
 
+          {/* Track Info & Progress - expands on desktop */}
           <div className="flex-1 min-w-0 overflow-hidden">
-            <h3 className="font-semibold text-base line-clamp-1" data-testid="current-track-title">
+            <h3 className="font-semibold text-base lg:font-serif lg:text-xl line-clamp-1 lg:mb-1" data-testid="current-track-title">
               {currentVideo?.title || "No track selected"}
             </h3>
-            <p className="text-xs text-muted-foreground mb-2">
+            <p className="text-xs lg:text-sm text-muted-foreground mb-2 lg:mb-4">
               Track {currentIndex + 1} of {videos.length}
             </p>
-            <Slider
-              value={[currentTime]}
-              max={duration || 100}
-              step={1}
-              onValueChange={(value) => seek(value[0])}
-              className="w-full"
-              data-testid="progress-slider"
-            />
-            <div className="flex justify-between text-xs text-muted-foreground mt-1">
-              <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(duration)}</span>
+            
+            {/* Mobile Progress */}
+            <div className="lg:hidden">
+              <Slider
+                value={[currentTime]}
+                max={duration || 100}
+                step={1}
+                onValueChange={(value) => seek(value[0])}
+                className="w-full"
+                data-testid="progress-slider"
+              />
+              <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(duration)}</span>
+              </div>
+            </div>
+            
+            {/* Desktop Progress - inline with timestamps */}
+            <div className="hidden lg:flex items-center gap-4">
+              <span className="text-sm text-muted-foreground w-12 text-right">{formatTime(currentTime)}</span>
+              <Slider
+                value={[currentTime]}
+                max={duration || 100}
+                step={1}
+                onValueChange={(value) => seek(value[0])}
+                className="flex-1"
+                data-testid="progress-slider-desktop"
+              />
+              <span className="text-sm text-muted-foreground w-12">{formatTime(duration)}</span>
             </div>
           </div>
-        </div>
 
-        <div className="flex items-center justify-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={previous}
-            disabled={currentIndex === 0}
-            className="h-9 w-9"
-            data-testid="button-previous"
-          >
-            <SkipBack className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="default"
-            size="icon"
-            onClick={togglePlay}
-            className="h-11 w-11 rounded-full"
-            data-testid="button-play-pause"
-          >
-            {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={next}
-            disabled={currentIndex === videos.length - 1}
-            className="h-9 w-9"
-            data-testid="button-next"
-          >
-            <SkipForward className="w-4 h-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={toggleMute}
-            className="h-9 w-9"
-            data-testid="button-mute"
-          >
-            {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-          </Button>
-          <Slider
-            value={[isMuted ? 0 : volume]}
-            max={100}
-            step={1}
-            onValueChange={(value) => setVolume(value[0])}
-            className="w-20"
-            data-testid="volume-slider"
-          />
+          {/* Controls - centered on mobile, right on desktop */}
+          <div className="flex items-center justify-center lg:justify-end gap-2 lg:gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={previous}
+              disabled={currentIndex === 0}
+              className="h-9 w-9 lg:h-10 lg:w-10"
+              data-testid="button-previous"
+            >
+              <SkipBack className="w-4 h-4 lg:w-5 lg:h-5" />
+            </Button>
+            <Button
+              variant="default"
+              size="icon"
+              onClick={togglePlay}
+              className="h-11 w-11 lg:h-14 lg:w-14 rounded-full lg:shadow-md"
+              data-testid="button-play-pause"
+            >
+              {isPlaying ? <Pause className="w-5 h-5 lg:w-6 lg:h-6" /> : <Play className="w-5 h-5 lg:w-6 lg:h-6 ml-0.5" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={next}
+              disabled={currentIndex === videos.length - 1}
+              className="h-9 w-9 lg:h-10 lg:w-10"
+              data-testid="button-next"
+            >
+              <SkipForward className="w-4 h-4 lg:w-5 lg:h-5" />
+            </Button>
+            
+            <div className="flex items-center gap-2 lg:ml-4 lg:pl-4 lg:border-l">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleMute}
+                className="h-9 w-9"
+                data-testid="button-mute"
+              >
+                {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+              </Button>
+              <Slider
+                value={[isMuted ? 0 : volume]}
+                max={100}
+                step={1}
+                onValueChange={(value) => setVolume(value[0])}
+                className="w-20 lg:w-24"
+                data-testid="volume-slider"
+              />
+            </div>
+          </div>
         </div>
       </div>
 
