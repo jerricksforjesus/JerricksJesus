@@ -1305,17 +1305,19 @@ function EventsManagementTab() {
         <CardContent className="space-y-4">
           <div className="space-y-2">
             <Label>Hero Image Path</Label>
-            <div className="flex gap-2">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Input
                 value={heroImagePath}
                 onChange={(e) => setHeroImagePath(e.target.value)}
                 placeholder="Enter image path or upload below"
                 data-testid="input-events-hero-path"
+                className="flex-1"
               />
               <Button
                 onClick={() => updateHeroMutation.mutate(heroImagePath)}
                 disabled={updateHeroMutation.isPending || !heroImagePath}
                 data-testid="button-save-events-hero"
+                className="w-full sm:w-auto"
               >
                 <Save className="w-4 h-4 mr-2" />
                 Save
@@ -1364,23 +1366,23 @@ function EventsManagementTab() {
         </CardHeader>
         <CardContent className="space-y-6">
           {/* Title row with action button */}
-          <div className="flex items-center justify-between">
-            <div className="flex-1 mr-4">
+          <div className="space-y-4">
+            <div className="space-y-2">
               <Label htmlFor="event-title">Event Title *</Label>
               <Input
                 id="event-title"
                 value={eventTitle}
                 onChange={(e) => setEventTitle(e.target.value)}
                 placeholder="e.g. Family Fellowship Picnic"
-                className="mt-1"
                 data-testid="input-event-title"
               />
             </div>
-            <div className="flex gap-2 pt-6">
+            <div className="flex flex-col sm:flex-row gap-2">
               <Button
                 onClick={handleSubmit}
                 disabled={createEventMutation.isPending || updateEventMutation.isPending}
                 data-testid="button-save-event"
+                className="w-full sm:w-auto"
               >
                 {(createEventMutation.isPending || updateEventMutation.isPending) ? (
                   <Loader2 className="w-4 h-4 mr-2 animate-spin" />
@@ -1390,7 +1392,7 @@ function EventsManagementTab() {
                 {editingEvent ? "Update Event" : "Add Event"}
               </Button>
               {editingEvent && (
-                <Button variant="outline" onClick={resetForm} data-testid="button-cancel-edit-event">
+                <Button variant="outline" onClick={resetForm} data-testid="button-cancel-edit-event" className="w-full sm:w-auto">
                   Cancel
                 </Button>
               )}
@@ -1666,7 +1668,7 @@ function EventsManagementTab() {
           {/* Thumbnail */}
           <div className="space-y-2">
             <Label>Event Thumbnail (optional)</Label>
-            <div className="flex gap-2 items-center">
+            <div className="flex flex-col sm:flex-row gap-2 sm:items-center">
               <Input
                 value={eventThumbnailPath}
                 onChange={(e) => setEventThumbnailPath(e.target.value)}
@@ -1720,56 +1722,110 @@ function EventsManagementTab() {
               {events.map((event) => (
                 <div
                   key={event.id}
-                  className="flex items-center justify-between p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
+                  className="p-4 rounded-lg border bg-card hover:bg-muted/50 transition-colors"
                   data-testid={`event-row-${event.id}`}
                 >
-                  <div className="flex items-center gap-4">
+                  {/* Mobile Layout: Stacked */}
+                  <div className="sm:hidden space-y-3">
                     {event.thumbnailPath ? (
                       <img
                         src={event.thumbnailPath.startsWith('/') ? event.thumbnailPath : `/objects/${event.thumbnailPath}`}
                         alt={event.title}
-                        className="w-16 h-16 rounded-lg object-cover"
+                        className="w-full aspect-video rounded-lg object-cover"
                       />
                     ) : (
-                      <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center">
-                        <Calendar className="w-6 h-6 text-muted-foreground" />
+                      <div className="w-full aspect-video rounded-lg bg-muted flex items-center justify-center">
+                        <Calendar className="w-8 h-8 text-muted-foreground" />
                       </div>
                     )}
-                    <div>
-                      <p className="font-medium">{event.title}</p>
-                      <p className="text-sm text-muted-foreground flex items-center gap-2">
-                        <Calendar className="w-3 h-3" />
-                        {formatDate(event.eventDate)} at {formatTime(event.eventTime)}
-                      </p>
-                      <p className="text-sm text-muted-foreground flex items-center gap-2">
-                        <MapPin className="w-3 h-3" />
+                    <p className="font-medium">{event.title}</p>
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <Calendar className="w-3 h-3 flex-shrink-0" />
+                      {formatDate(event.eventDate)} at {formatTime(event.eventTime)}
+                    </p>
+                    <p className="text-sm text-muted-foreground flex items-center gap-2">
+                      <MapPin className="w-3 h-3 flex-shrink-0" />
+                      <span className="break-words">
                         {event.locationType === "online" 
                           ? "Online Meeting" 
                           : event.locationType === "phone" 
                             ? "Phone Call" 
                             : [event.streetAddress, event.city, event.state, event.zipCode].filter(Boolean).join(", ") || "Location TBD"}
-                      </p>
+                      </span>
+                    </p>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(event)}
+                        data-testid={`button-edit-event-${event.id}`}
+                        className="flex-1"
+                      >
+                        <Pencil className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => deleteEventMutation.mutate(event.id)}
+                        disabled={deleteEventMutation.isPending}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        data-testid={`button-delete-event-${event.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => handleEdit(event)}
-                      data-testid={`button-edit-event-${event.id}`}
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => deleteEventMutation.mutate(event.id)}
-                      disabled={deleteEventMutation.isPending}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      data-testid={`button-delete-event-${event.id}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
+                  {/* Desktop Layout: Horizontal */}
+                  <div className="hidden sm:flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      {event.thumbnailPath ? (
+                        <img
+                          src={event.thumbnailPath.startsWith('/') ? event.thumbnailPath : `/objects/${event.thumbnailPath}`}
+                          alt={event.title}
+                          className="w-16 h-16 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 rounded-lg bg-muted flex items-center justify-center">
+                          <Calendar className="w-6 h-6 text-muted-foreground" />
+                        </div>
+                      )}
+                      <div>
+                        <p className="font-medium">{event.title}</p>
+                        <p className="text-sm text-muted-foreground flex items-center gap-2">
+                          <Calendar className="w-3 h-3" />
+                          {formatDate(event.eventDate)} at {formatTime(event.eventTime)}
+                        </p>
+                        <p className="text-sm text-muted-foreground flex items-center gap-2">
+                          <MapPin className="w-3 h-3" />
+                          {event.locationType === "online" 
+                            ? "Online Meeting" 
+                            : event.locationType === "phone" 
+                              ? "Phone Call" 
+                              : [event.streetAddress, event.city, event.state, event.zipCode].filter(Boolean).join(", ") || "Location TBD"}
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(event)}
+                        data-testid={`button-edit-event-${event.id}`}
+                      >
+                        <Pencil className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => deleteEventMutation.mutate(event.id)}
+                        disabled={deleteEventMutation.isPending}
+                        className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                        data-testid={`button-delete-event-${event.id}`}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               ))}
