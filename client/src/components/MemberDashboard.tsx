@@ -813,58 +813,59 @@ export function MemberDashboard() {
                       {myMusicRequests.map((request) => (
                         <Card key={request.id} className="overflow-hidden">
                           <CardContent className="p-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-20 h-12 rounded overflow-hidden bg-muted flex-shrink-0">
-                                {request.thumbnailUrl ? (
-                                  <img
-                                    src={request.thumbnailUrl}
-                                    alt={request.title || "Video thumbnail"}
-                                    className="w-full h-full object-cover"
-                                  />
-                                ) : (
-                                  <div className="w-full h-full flex items-center justify-center">
-                                    <Music className="w-5 h-5 text-muted-foreground" />
-                                  </div>
-                                )}
+                            <div className="flex flex-col sm:flex-row sm:items-center gap-3">
+                              {/* Thumbnail and Title Row */}
+                              <div className="flex items-center gap-3 flex-1 min-w-0">
+                                <div className="w-16 h-10 sm:w-20 sm:h-12 rounded overflow-hidden bg-muted flex-shrink-0">
+                                  {request.thumbnailUrl ? (
+                                    <img
+                                      src={request.thumbnailUrl}
+                                      alt={request.title || "Video thumbnail"}
+                                      className="w-full h-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-full h-full flex items-center justify-center">
+                                      <Music className="w-5 h-5 text-muted-foreground" />
+                                    </div>
+                                  )}
+                                </div>
+                                <div className="flex-1 min-w-0">
+                                  <p className="font-medium text-sm line-clamp-1">
+                                    {request.title && !request.title.startsWith("YouTube Video ") 
+                                      ? request.title 
+                                      : "Untitled Video"}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground">
+                                    {new Date(request.createdAt).toLocaleDateString()}
+                                  </p>
+                                </div>
                               </div>
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm line-clamp-1">
-                                  {request.title && !request.title.startsWith("YouTube Video ") 
-                                    ? request.title 
-                                    : "Untitled Video"}
-                                </p>
-                                <p className="text-xs text-muted-foreground line-clamp-1">
-                                  {request.youtubeUrl}
-                                </p>
-                                <p className="text-xs text-muted-foreground">
-                                  {new Date(request.createdAt).toLocaleDateString()}
-                                </p>
-                              </div>
-                              <div className="flex items-center gap-2">
+                              {/* Status and Actions Row */}
+                              <div className="flex items-center justify-between sm:justify-end gap-2 pl-0 sm:pl-2">
                                 {request.status === "pending" && (
                                   <>
-                                    <span className="flex items-center gap-1 text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
+                                    <span className="flex items-center gap-1 text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded whitespace-nowrap">
                                       <Clock className="w-3 h-3" />
                                       Pending
                                     </span>
                                     <button
                                       onClick={() => cancelMusicRequestMutation.mutate(request.id)}
                                       disabled={cancelMusicRequestMutation.isPending}
-                                      className="text-xs text-red-600 hover:text-red-700 hover:underline disabled:opacity-50"
+                                      className="text-xs text-red-600 hover:text-red-700 hover:underline disabled:opacity-50 whitespace-nowrap"
                                       data-testid={`button-cancel-request-${request.id}`}
                                     >
-                                      Cancel Request
+                                      Cancel
                                     </button>
                                   </>
                                 )}
                                 {request.status === "approved" && (
-                                  <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                                  <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded whitespace-nowrap">
                                     <CheckCircle className="w-3 h-3" />
                                     Approved
                                   </span>
                                 )}
                                 {request.status === "rejected" && (
-                                  <span className="flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+                                  <span className="flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-1 rounded whitespace-nowrap">
                                     <XCircle className="w-3 h-3" />
                                     Rejected
                                   </span>
@@ -873,7 +874,7 @@ export function MemberDashboard() {
                                   variant="ghost"
                                   size="sm"
                                   asChild
-                                  className="text-muted-foreground hover:text-foreground"
+                                  className="text-muted-foreground hover:text-foreground flex-shrink-0"
                                 >
                                   <a
                                     href={request.youtubeUrl}
