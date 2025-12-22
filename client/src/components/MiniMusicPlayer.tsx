@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Play, Pause, SkipBack, SkipForward, X, Volume2, VolumeX, Repeat, ChevronUp, Music } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, X, Volume2, VolumeX, Volume1, Repeat, ChevronUp, Music } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -15,6 +15,22 @@ function formatTime(seconds: number): string {
 }
 
 export function MiniMusicPlayer() {
+  const [showVolumeSlider, setShowVolumeSlider] = useState(false);
+  const volumeRef = useRef<HTMLDivElement>(null);
+
+  // Close volume slider when clicking outside
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (volumeRef.current && !volumeRef.current.contains(event.target as Node)) {
+        setShowVolumeSlider(false);
+      }
+    }
+    if (showVolumeSlider) {
+      document.addEventListener("mousedown", handleClickOutside);
+      return () => document.removeEventListener("mousedown", handleClickOutside);
+    }
+  }, [showVolumeSlider]);
+
   const {
     videos,
     currentVideo,
@@ -153,25 +169,55 @@ export function MiniMusicPlayer() {
                 {formatTime(currentTime)} / {formatTime(duration)}
               </div>
 
-              {/* Volume Controls */}
-              <div className="flex items-center gap-1">
+              {/* Volume Control with Popup */}
+              <div className="relative" ref={volumeRef}>
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={toggleMute}
+                  onClick={() => setShowVolumeSlider(!showVolumeSlider)}
+                  onDoubleClick={toggleMute}
                   className="h-8 w-8"
-                  data-testid="mini-button-mute"
+                  data-testid="mini-button-volume"
+                  title="Click to adjust volume, double-click to mute"
                 >
-                  {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                  {isMuted || volume === 0 ? (
+                    <VolumeX className="w-4 h-4" />
+                  ) : volume < 50 ? (
+                    <Volume1 className="w-4 h-4" />
+                  ) : (
+                    <Volume2 className="w-4 h-4" />
+                  )}
                 </Button>
-                <Slider
-                  value={[isMuted ? 0 : volume]}
-                  max={100}
-                  step={1}
-                  onValueChange={(value) => setVolume(value[0])}
-                  className="w-16"
-                  data-testid="mini-volume-slider"
-                />
+                
+                <AnimatePresence>
+                  {showVolumeSlider && (
+                    <motion.div
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      exit={{ opacity: 0, y: 10 }}
+                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-card border rounded-lg shadow-lg p-3 flex flex-col items-center gap-2"
+                    >
+                      <Slider
+                        value={[isMuted ? 0 : volume]}
+                        max={100}
+                        step={1}
+                        orientation="vertical"
+                        onValueChange={(value) => setVolume(value[0])}
+                        className="h-24"
+                        data-testid="mini-volume-slider"
+                      />
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={toggleMute}
+                        className="h-7 w-7"
+                        data-testid="mini-button-mute"
+                      >
+                        {isMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+                      </Button>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               </div>
 
               {/* Playback Controls */}
