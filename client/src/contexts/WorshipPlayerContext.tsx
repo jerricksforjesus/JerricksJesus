@@ -147,15 +147,16 @@ function PlayerPortal({
     };
   }, [mainPlayerRef, mainPlayerVisible]);
 
-  if (!currentVideo) return null;
-
+  // Always keep the portal mounted to prevent React removeChild errors
+  // YouTube takes over the DOM node, so we can't unmount it
   const hasValidMainPosition = mainPlayerVisible && 
+    currentVideo &&
     position.width > 50 && 
     position.height > 30 && 
     position.top > 100 && 
     position.left > 50;
   const isMainMode = hasValidMainPosition;
-  const isMiniMode = showMiniPlayer && !mainPlayerVisible;
+  const isMiniMode = showMiniPlayer && !mainPlayerVisible && currentVideo;
   const shouldHide = !isMainMode && !isMiniMode;
 
   return createPortal(
@@ -434,9 +435,8 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
 
   const showMiniPlayer = miniPlayerActivated && !mainPlayerVisible && !miniPlayerDismissed;
 
+  // Load YouTube API immediately on mount (don't wait for videos or user interaction)
   useEffect(() => {
-    if (videos.length === 0) return;
-
     const loadAPI = () => {
       if (window.YT && window.YT.Player) {
         setApiLoaded(true);
@@ -457,7 +457,14 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     };
 
     loadAPI();
-  }, [videos.length]);
+  }, []);
+  
+  // Pre-create player when videos load and API is ready (don't wait for user tap)
+  useEffect(() => {
+    if (apiLoaded && videos.length > 0 && !playerCreated) {
+      setPlayerCreated(true);
+    }
+  }, [apiLoaded, videos.length, playerCreated]);
 
   useEffect(() => {
     if (!apiLoaded || !currentVideo || !playerContainerRef.current) return;
@@ -541,13 +548,35 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     };
   }, [apiLoaded, currentVideo, videos.length, currentIndex, playerCreated]);
 
+  // Track the previous index to detect track changes
+  const prevIndexRef = useRef(currentIndex);
+  
   useEffect(() => {
     if (playerRef.current && currentVideo && playerReady) {
+      const isTrackChange = prevIndexRef.current !== currentIndex;
+      prevIndexRef.current = currentIndex;
+      
+      // Load the new video
       playerRef.current.loadVideoById(currentVideo.youtubeVideoId);
       setCurrentTime(0);
       setDuration(0);
+      
+      // If this was a track change (next/prev/select), auto-play the new track
+      // Also auto-play if mini player is active (user was listening)
+      if (isTrackChange && miniPlayerActivated) {
+        // Small delay to let the video load before playing
+        setTimeout(() => {
+          if (playerRef.current) {
+            try {
+              playerRef.current.playVideo();
+            } catch (e) {
+              console.error("Error auto-playing after track change:", e);
+            }
+          }
+        }, 100);
+      }
     }
-  }, [currentIndex, currentVideo, playerReady]);
+  }, [currentIndex, currentVideo, playerReady, miniPlayerActivated]);
 
   const play = useCallback(() => {
     setMiniPlayerDismissed(false);
