@@ -1,9 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { Music, ExternalLink } from "lucide-react";
+import { Music, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorshipMusicPlayer } from "./WorshipMusicPlayer";
-
-const WORSHIP_PLAYLIST_ID = "PLkDsdLHKY8laSsy8xYfILnVzFMedR0Rgy";
+import { useAuth } from "@/lib/auth";
+import { Link } from "wouter";
 
 interface WorshipVideo {
   id: number;
@@ -16,6 +16,8 @@ interface WorshipVideo {
 }
 
 export function WorshipMusicSection() {
+  const { canEdit } = useAuth();
+  
   const { data: videos = [], isLoading } = useQuery<WorshipVideo[]>({
     queryKey: ["worship-videos"],
     queryFn: async () => {
@@ -42,21 +44,19 @@ export function WorshipMusicSection() {
       <div className="py-8 text-center">
         <Music className="w-12 h-12 mx-auto text-muted-foreground/50 mb-4" />
         <p className="text-muted-foreground">No worship videos available yet.</p>
-        <Button
-          variant="outline"
-          asChild
-          className="mt-4 gap-2"
-          data-testid="button-view-youtube-playlist"
-        >
-          <a
-            href={`https://youtube.com/playlist?list=${WORSHIP_PLAYLIST_ID}`}
-            target="_blank"
-            rel="noopener noreferrer"
+        {canEdit && (
+          <Button
+            variant="outline"
+            asChild
+            className="mt-4 gap-2"
+            data-testid="button-add-worship-playlist"
           >
-            View on YouTube
-            <ExternalLink className="w-4 h-4" />
-          </a>
-        </Button>
+            <Link href="/admin?section=worship">
+              <Plus className="w-4 h-4" />
+              Add to Worship Playlist
+            </Link>
+          </Button>
+        )}
       </div>
     );
   }
@@ -65,24 +65,22 @@ export function WorshipMusicSection() {
     <div className="py-4">
       <WorshipMusicPlayer />
       
-      <div className="mt-4 text-center">
-        <Button
-          variant="ghost"
-          size="sm"
-          asChild
-          className="gap-2 text-muted-foreground hover:text-foreground"
-          data-testid="button-view-youtube-playlist"
-        >
-          <a
-            href={`https://youtube.com/playlist?list=${WORSHIP_PLAYLIST_ID}`}
-            target="_blank"
-            rel="noopener noreferrer"
+      {canEdit && (
+        <div className="mt-4 text-center">
+          <Button
+            variant="ghost"
+            size="sm"
+            asChild
+            className="gap-2 text-muted-foreground hover:text-foreground"
+            data-testid="button-add-worship-playlist"
           >
-            View full playlist on YouTube
-            <ExternalLink className="w-4 h-4" />
-          </a>
-        </Button>
-      </div>
+            <Link href="/admin?section=worship">
+              <Plus className="w-4 h-4" />
+              Add to Worship Playlist
+            </Link>
+          </Button>
+        </div>
+      )}
     </div>
   );
 }
