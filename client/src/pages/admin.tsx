@@ -1973,13 +1973,16 @@ export default function AdminDashboard() {
     },
   });
 
+  const dayOrder = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  
   const toggleDayInSchedule = (day: string) => {
     setAlternativeZoomSchedule(prev => {
       const exists = prev.find(s => s.day === day);
       if (exists) {
         return prev.filter(s => s.day !== day);
       } else {
-        return [...prev, { day, slots: [] }];
+        const newSchedule = [...prev, { day, slots: [] }];
+        return newSchedule.sort((a, b) => dayOrder.indexOf(a.day) - dayOrder.indexOf(b.day));
       }
     });
   };
