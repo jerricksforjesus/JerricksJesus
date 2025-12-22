@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Music, Plus } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { WorshipMusicPlayer } from "./WorshipMusicPlayer";
+import { WorshipRequestForm } from "./WorshipRequestForm";
 import { useAuth } from "@/lib/auth";
 import { Link } from "wouter";
 
@@ -16,7 +17,7 @@ interface WorshipVideo {
 }
 
 export function WorshipMusicSection() {
-  const { canEdit } = useAuth();
+  const { user, canEdit } = useAuth();
   
   const { data: videos = [], isLoading } = useQuery<WorshipVideo[]>({
     queryKey: ["worship-videos"],
@@ -65,8 +66,8 @@ export function WorshipMusicSection() {
     <div className="py-4">
       <WorshipMusicPlayer />
       
-      {canEdit && (
-        <div className="mt-4 text-center">
+      <div className="mt-4 flex justify-center gap-4 flex-wrap">
+        {canEdit && (
           <Button
             variant="ghost"
             size="sm"
@@ -79,8 +80,11 @@ export function WorshipMusicSection() {
               Add to Worship Playlist
             </Link>
           </Button>
-        </div>
-      )}
+        )}
+        {user && !canEdit && (
+          <WorshipRequestForm />
+        )}
+      </div>
     </div>
   );
 }
