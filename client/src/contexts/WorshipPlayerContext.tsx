@@ -168,6 +168,8 @@ function PlayerPortal({
         top: isMainMode ? position.top : '-9999px',
         left: isMainMode ? position.left : '-9999px',
         bottom: 'auto',
+        // Always keep a minimum size for the player container on mobile
+        // This helps iOS Safari properly initialize the YouTube player
         width: isMainMode ? position.width : '1px',
         height: isMainMode ? position.height : '1px',
         zIndex: isMainMode ? 50 : -1,
@@ -175,7 +177,8 @@ function PlayerPortal({
         borderRadius: '8px',
         pointerEvents: shouldHide ? 'none' : 'auto',
         opacity: shouldHide ? 0 : 1,
-        visibility: shouldHide ? 'hidden' : 'visible',
+        // IMPORTANT: Never use visibility:hidden on iOS - it breaks YouTube player
+        // Keep the element visible but off-screen instead
         transition: 'none',
       }}
     />,
@@ -213,6 +216,12 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const autoPlayOnReadyRef = useRef(false);
   const lastBackPressRef = useRef<number>(0);
   const shouldContinuePlayingRef = useRef(false);
+  // Pending play callback for iOS - called when player becomes ready after user tap
+  const pendingPlayCallbackRef = useRef<(() => void) | null>(null);
+  // Debounce timer for rapid track changes
+  const trackChangeDebounceRef = useRef<NodeJS.Timeout | null>(null);
+  // Target index for debounced track changes
+  const targetIndexRef = useRef<number | null>(null);
 
   const { data: videos = [], isLoading } = useQuery<WorshipVideo[]>({
     queryKey: ["worship-videos"],
@@ -496,7 +505,11 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
           setPlayerReady(true);
           event.target.setVolume(volumeRef.current);
           
-          if (autoPlayOnReadyRef.current) {
+          // Handle pending play callback for iOS - maintains user gesture chain
+          if (pendingPlayCallbackRef.current) {
+            pendingPlayCallbackRef.current();
+            pendingPlayCallbackRef.current = null;
+          } else if (autoPlayOnReadyRef.current) {
             event.target.playVideo();
             autoPlayOnReadyRef.current = false;
           }
@@ -559,21 +572,44 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const prevIndexRef = useRef(currentIndex);
   // Track if player has been initialized (to avoid loadVideoById on first load)
   const playerInitializedRef = useRef(false);
+  // Track if we captured shouldAutoPlay before debounce
+  const pendingAutoPlayRef = useRef(false);
   
   useEffect(() => {
-    if (playerRef.current && currentVideo && playerReady) {
-      const isTrackChange = prevIndexRef.current !== currentIndex;
+    if (!playerRef.current || !currentVideo || !playerReady) return;
+    
+    const isTrackChange = prevIndexRef.current !== currentIndex;
+    
+    // Skip on initial mount - player was already created with this video
+    if (!playerInitializedRef.current) {
+      playerInitializedRef.current = true;
+      prevIndexRef.current = currentIndex;
+      return;
+    }
+    
+    // If this is a track change, capture autoplay intent NOW before any debounce
+    // This preserves the playing state even during rapid skips
+    if (isTrackChange) {
+      if (shouldContinuePlayingRef.current || isPlayingRef.current) {
+        pendingAutoPlayRef.current = true;
+      }
+    }
+    
+    // Cancel any pending debounced track change
+    if (trackChangeDebounceRef.current) {
+      clearTimeout(trackChangeDebounceRef.current);
+    }
+    
+    // Debounce rapid track changes - wait 150ms before executing
+    trackChangeDebounceRef.current = setTimeout(() => {
+      if (!playerRef.current || !currentVideo) return;
+      
       prevIndexRef.current = currentIndex;
       
-      // Skip on initial mount - player was already created with this video
-      if (!playerInitializedRef.current) {
-        playerInitializedRef.current = true;
-        return;
-      }
-      
-      // Determine if we should auto-play: only when we were actually playing
-      const shouldAutoPlay = isTrackChange && (shouldContinuePlayingRef.current || isPlayingRef.current);
-      shouldContinuePlayingRef.current = false; // Reset the flag
+      // Use the captured autoplay intent
+      const shouldAutoPlay = pendingAutoPlayRef.current;
+      pendingAutoPlayRef.current = false;
+      shouldContinuePlayingRef.current = false;
       
       setCurrentTime(0);
       setDuration(0);
@@ -585,7 +621,13 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
         // Use cueVideoById which does NOT auto-play
         playerRef.current.cueVideoById(currentVideo.youtubeVideoId);
       }
-    }
+    }, 150);
+    
+    return () => {
+      if (trackChangeDebounceRef.current) {
+        clearTimeout(trackChangeDebounceRef.current);
+      }
+    };
   }, [currentIndex, currentVideo, playerReady]);
 
   const play = useCallback(() => {
@@ -594,35 +636,47 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     
     // Reset initializing state after timeout in case playback fails
     // This prevents the button from being stuck in loading state
-    setTimeout(() => {
+    const initTimeoutId = setTimeout(() => {
       setIsInitializing(false);
     }, 5000);
     
+    // Define the actual play action - this must be called within user gesture or onReady
+    const executePlay = () => {
+      if (playerRef.current) {
+        try {
+          playerRef.current.playVideo();
+        } catch (e) {
+          console.error("Error playing:", e);
+        }
+      }
+    };
+    
     if (!playerCreated) {
-      // Player not created yet - create it and queue auto-play
+      // Player not created yet - create it and queue play for when ready
       setPlayerCreated(true);
+      // Store the play action as a pending callback for iOS
+      pendingPlayCallbackRef.current = executePlay;
       autoPlayOnReadyRef.current = true;
       return;
     }
     
-    // Always set the flag in case onReady hasn't fired yet
-    autoPlayOnReadyRef.current = true;
-    
-    // Try to play immediately - this is crucial for iOS which requires
-    // playVideo() to be called within the user gesture callback
-    if (playerRef.current) {
-      try {
-        playerRef.current.playVideo();
-      } catch (e) {
-        console.error("Error playing:", e);
-      }
+    // If player exists and is ready, play immediately (within user gesture)
+    if (playerRef.current && playerReady) {
+      executePlay();
+      clearTimeout(initTimeoutId);
+      // isInitializing will be cleared by onStateChange when PLAYING fires
+    } else {
+      // Player exists but not ready - queue for when ready
+      pendingPlayCallbackRef.current = executePlay;
+      autoPlayOnReadyRef.current = true;
     }
-  }, [playerCreated]);
+  }, [playerCreated, playerReady]);
 
   const pause = useCallback(() => {
     // Clear any pending auto-play to prevent pause from being overridden
     autoPlayOnReadyRef.current = false;
     shouldContinuePlayingRef.current = false;
+    pendingPlayCallbackRef.current = null;
     if (playerRef.current) {
       try {
         playerRef.current.pauseVideo();
@@ -641,6 +695,11 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   }, [isPlaying, play, pause]);
 
   const next = useCallback(() => {
+    // Mark that we should continue playing if currently playing
+    if (isPlayingRef.current) {
+      shouldContinuePlayingRef.current = true;
+    }
+    
     if (currentIndex < videos.length - 1) {
       setCurrentIndex((prev) => prev + 1);
     } else if (videos.length > 0) {
@@ -655,6 +714,11 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     
     // If within first 3 seconds of song OR double-tapped within 3 seconds, go to previous track
     if (currentTime < 3 || timeSinceLastPress < 3000) {
+      // Mark that we should continue playing if currently playing
+      if (isPlayingRef.current) {
+        shouldContinuePlayingRef.current = true;
+      }
+      
       if (currentIndex > 0) {
         setCurrentIndex((prev) => prev - 1);
       } else if (videos.length > 0) {
