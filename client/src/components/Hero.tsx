@@ -162,9 +162,9 @@ export function Hero() {
               size="lg" 
               className="font-bold px-8 w-[220px] justify-between"
               style={{ 
-                backgroundColor: showMiniPlayer ? "#292929" : "#ffffff", 
+                backgroundColor: showMiniPlayer ? "#dc2626" : "#ffffff", 
                 color: showMiniPlayer ? "#ffffff" : "#b47a5f", 
-                border: "2px solid #ffffff",
+                border: showMiniPlayer ? "2px solid #dc2626" : "2px solid #ffffff",
                 opacity: isInitializing ? 0.8 : 1,
               }}
               disabled={isInitializing}
