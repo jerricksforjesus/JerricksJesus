@@ -40,6 +40,12 @@ import {
 } from "@/components/ui/select";
 import { motion, AnimatePresence } from "framer-motion";
 import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
+import {
   DndContext,
   closestCenter,
   KeyboardSensor,
@@ -616,168 +622,194 @@ function WorshipPlaylistManager() {
         </div>
       )}
 
-      <div className="space-y-4">
-        <h3 className="font-medium">Add Video to Playlist</h3>
-        <form onSubmit={handleAddVideo} className="flex flex-col sm:flex-row gap-3">
-          <div className="flex-1">
-            <Input
-              value={youtubeUrl}
-              onChange={(e) => setYoutubeUrl(e.target.value)}
-              placeholder="Paste YouTube video URL (e.g., https://youtube.com/watch?v=...)"
-              data-testid="input-youtube-url"
-            />
-          </div>
-          <Button
-            type="submit"
-            disabled={addVideoMutation.isPending || !youtubeUrl.trim()}
-            style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
-            data-testid="button-add-video"
-          >
-            {addVideoMutation.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            ) : (
-              <Plus className="w-4 h-4 mr-2" />
-            )}
-            Add Video
-          </Button>
-        </form>
-      </div>
-
-      <div className="space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
-          <h3 className="font-medium">Current Playlist ({videos.length} videos)</h3>
-          <Button variant="outline" size="sm" asChild className="w-full sm:w-auto">
-            <a
-              href="https://youtube.com/playlist?list=PLkDsdLHKY8laSsy8xYfILnVzFMedR0Rgy"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              <ExternalLink className="w-4 h-4 mr-2" />
-              View on YouTube
-            </a>
-          </Button>
-        </div>
-
-        {isLoading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-          </div>
-        ) : videos.length === 0 ? (
-          <div className="text-center py-8 text-muted-foreground border rounded-lg bg-muted/20">
-            <Music className="h-12 w-12 mx-auto mb-4 opacity-50" />
-            <p>No videos in the playlist yet.</p>
-            <p className="text-sm mt-1">Add a YouTube URL above to get started.</p>
-          </div>
-        ) : (
-          <div className="space-y-2">
-            {videos.map((video) => (
-              <div
-                key={video.id}
-                className="p-3 border rounded-lg bg-card hover:bg-muted/30 transition-colors"
-                data-testid={`worship-video-item-${video.id}`}
-              >
-                {/* Mobile Layout: Stacked */}
-                <div className="sm:hidden space-y-2">
-                  <div className="w-full aspect-video rounded overflow-hidden bg-muted">
-                    {video.thumbnailUrl ? (
-                      <img
-                        src={video.thumbnailUrl}
-                        alt={video.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Play className="w-8 h-8 text-muted-foreground" />
-                      </div>
-                    )}
-                  </div>
-                  <h4 className="font-medium text-sm">{video.title}</h4>
-                  <p className="text-xs text-muted-foreground">
-                    ID: {video.youtubeVideoId}
-                  </p>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      asChild
-                      className="flex-1"
-                    >
-                      <a
-                        href={`https://youtube.com/watch?v=${video.youtubeVideoId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <ExternalLink className="w-4 h-4 mr-2" />
-                        View
-                      </a>
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => deleteVideoMutation.mutate(video.id)}
-                      disabled={deleteVideoMutation.isPending}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      data-testid={`button-delete-video-${video.id}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-                {/* Desktop Layout: Horizontal */}
-                <div className="hidden sm:flex items-center gap-4">
-                  <div className="w-24 h-14 rounded overflow-hidden bg-muted flex-shrink-0">
-                    {video.thumbnailUrl ? (
-                      <img
-                        src={video.thumbnailUrl}
-                        alt={video.title}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-full flex items-center justify-center">
-                        <Play className="w-6 h-6 text-muted-foreground" />
-                      </div>
-                    )}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-sm line-clamp-1">{video.title}</h4>
-                    <p className="text-xs text-muted-foreground mt-0.5">
-                      ID: {video.youtubeVideoId}
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      asChild
-                      className="text-muted-foreground hover:text-foreground"
-                    >
-                      <a
-                        href={`https://youtube.com/watch?v=${video.youtubeVideoId}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                      >
-                        <ExternalLink className="w-4 h-4" />
-                      </a>
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => deleteVideoMutation.mutate(video.id)}
-                      disabled={deleteVideoMutation.isPending}
-                      className="text-destructive hover:text-destructive hover:bg-destructive/10"
-                      data-testid={`button-delete-video-${video.id}`}
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
+      <Accordion type="multiple" defaultValue={["add-video"]} className="space-y-4">
+        <AccordionItem value="add-video" className="border rounded-lg overflow-hidden">
+          <AccordionTrigger className="px-4 py-3 hover:no-underline bg-muted/30" data-testid="accordion-add-video">
+            <div className="flex items-center gap-2">
+              <Plus className="w-4 h-4" />
+              <span className="font-medium">Add Video to Playlist</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-4 pb-4 pt-2">
+            <form onSubmit={handleAddVideo} className="flex flex-col sm:flex-row gap-3">
+              <div className="flex-1">
+                <Input
+                  value={youtubeUrl}
+                  onChange={(e) => setYoutubeUrl(e.target.value)}
+                  placeholder="Paste YouTube video URL (e.g., https://youtube.com/watch?v=...)"
+                  data-testid="input-youtube-url"
+                />
               </div>
-            ))}
-          </div>
-        )}
-      </div>
+              <Button
+                type="submit"
+                disabled={addVideoMutation.isPending || !youtubeUrl.trim()}
+                style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+                data-testid="button-add-video"
+              >
+                {addVideoMutation.isPending ? (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-2" />
+                )}
+                Add Video
+              </Button>
+            </form>
+          </AccordionContent>
+        </AccordionItem>
 
-      <WorshipMusicRequests />
+        <AccordionItem value="current-playlist" className="border rounded-lg overflow-hidden">
+          <AccordionTrigger className="px-4 py-3 hover:no-underline bg-muted/30" data-testid="accordion-current-playlist">
+            <div className="flex items-center gap-2">
+              <Music className="w-4 h-4" />
+              <span className="font-medium">Current Playlist ({videos.length} videos)</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-4 pb-4 pt-2">
+            <div className="flex justify-end mb-3">
+              <Button variant="outline" size="sm" asChild>
+                <a
+                  href="https://youtube.com/playlist?list=PLkDsdLHKY8laSsy8xYfILnVzFMedR0Rgy"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <ExternalLink className="w-4 h-4 mr-2" />
+                  View on YouTube
+                </a>
+              </Button>
+            </div>
+
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
+              </div>
+            ) : videos.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground border rounded-lg bg-muted/20">
+                <Music className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                <p>No videos in the playlist yet.</p>
+                <p className="text-sm mt-1">Add a YouTube URL above to get started.</p>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                {videos.map((video) => (
+                  <div
+                    key={video.id}
+                    className="p-3 border rounded-lg bg-card hover:bg-muted/30 transition-colors"
+                    data-testid={`worship-video-item-${video.id}`}
+                  >
+                    {/* Mobile Layout: Stacked */}
+                    <div className="sm:hidden space-y-2">
+                      <div className="w-full aspect-video rounded overflow-hidden bg-muted">
+                        {video.thumbnailUrl ? (
+                          <img
+                            src={video.thumbnailUrl}
+                            alt={video.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Play className="w-8 h-8 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <h4 className="font-medium text-sm">{video.title}</h4>
+                      <p className="text-xs text-muted-foreground">
+                        ID: {video.youtubeVideoId}
+                      </p>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          asChild
+                          className="flex-1"
+                        >
+                          <a
+                            href={`https://youtube.com/watch?v=${video.youtubeVideoId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="w-4 h-4 mr-2" />
+                            View
+                          </a>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => deleteVideoMutation.mutate(video.id)}
+                          disabled={deleteVideoMutation.isPending}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          data-testid={`button-delete-video-${video.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                    {/* Desktop Layout: Horizontal */}
+                    <div className="hidden sm:flex items-center gap-4">
+                      <div className="w-24 h-14 rounded overflow-hidden bg-muted flex-shrink-0">
+                        {video.thumbnailUrl ? (
+                          <img
+                            src={video.thumbnailUrl}
+                            alt={video.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center">
+                            <Play className="w-6 h-6 text-muted-foreground" />
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-medium text-sm line-clamp-1">{video.title}</h4>
+                        <p className="text-xs text-muted-foreground mt-0.5">
+                          ID: {video.youtubeVideoId}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          asChild
+                          className="text-muted-foreground hover:text-foreground"
+                        >
+                          <a
+                            href={`https://youtube.com/watch?v=${video.youtubeVideoId}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="w-4 h-4" />
+                          </a>
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => deleteVideoMutation.mutate(video.id)}
+                          disabled={deleteVideoMutation.isPending}
+                          className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                          data-testid={`button-delete-video-${video.id}`}
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </AccordionContent>
+        </AccordionItem>
+
+        <AccordionItem value="pending-requests" className="border rounded-lg overflow-hidden">
+          <AccordionTrigger className="px-4 py-3 hover:no-underline bg-muted/30" data-testid="accordion-pending-requests">
+            <div className="flex items-center gap-2">
+              <Clock className="w-4 h-4" />
+              <span className="font-medium">Pending Music Requests</span>
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-4 pb-4 pt-2">
+            <WorshipMusicRequests />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
     </div>
   );
 }
@@ -841,21 +873,14 @@ function WorshipMusicRequests() {
 
   if (isLoading) {
     return (
-      <div className="space-y-4">
-        <h3 className="font-medium">Pending Music Requests</h3>
-        <div className="flex items-center justify-center py-8">
-          <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
-        </div>
+      <div className="flex items-center justify-center py-8">
+        <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
       </div>
     );
   }
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="font-medium">Pending Music Requests ({pendingRequests.length})</h3>
-      </div>
-
       {pendingRequests.length === 0 ? (
         <div className="text-center py-8 text-muted-foreground border rounded-lg bg-muted/20">
           <Music className="h-10 w-10 mx-auto mb-3 opacity-50" />
