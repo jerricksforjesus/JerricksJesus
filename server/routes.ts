@@ -790,14 +790,9 @@ export async function registerRoutes(
     }
   });
 
-  // Player debug logs - receive logs from superadmin only
-  app.post("/api/player-logs", requireAuth, async (req, res) => {
+  // Player debug logs - receive logs from superadmin only (privacy: no other roles tracked)
+  app.post("/api/player-logs", requireAuth, requireRole(USER_ROLES.SUPERADMIN), async (req, res) => {
     try {
-      // Only allow superadmin to send logs
-      if (req.user!.role !== USER_ROLES.SUPERADMIN) {
-        return res.status(403).json({ error: "Not authorized" });
-      }
-      
       const { events, sessionId, userAgent } = req.body;
       if (!Array.isArray(events) || events.length === 0) {
         return res.status(400).json({ error: "Invalid events array" });
