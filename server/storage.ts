@@ -126,6 +126,7 @@ export interface IStorage {
   getPlayerLogsBySession(sessionId: string): Promise<PlayerLog[]>;
   getRecentPlayerLogs(limit?: number): Promise<PlayerLog[]>;
   clearOldPlayerLogs(daysOld?: number): Promise<number>;
+  clearAllPlayerLogs(): Promise<number>;
 }
 
 export class DbStorage implements IStorage {
@@ -876,6 +877,11 @@ export class DbStorage implements IStorage {
     const result = await db.delete(playerLogs)
       .where(sql`${playerLogs.createdAt} < ${cutoff}`)
       .returning();
+    return result.length;
+  }
+
+  async clearAllPlayerLogs(): Promise<number> {
+    const result = await db.delete(playerLogs).returning();
     return result.length;
   }
 }

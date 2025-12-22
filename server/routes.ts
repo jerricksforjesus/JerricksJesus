@@ -852,6 +852,17 @@ export async function registerRoutes(
     }
   });
 
+  // Clear all player logs (for fresh recording session)
+  app.delete("/api/player-logs", requireAuth, requireRole(USER_ROLES.SUPERADMIN), async (req, res) => {
+    try {
+      const deletedCount = await storage.clearAllPlayerLogs();
+      res.json({ success: true, deletedLogs: deletedCount });
+    } catch (error) {
+      console.error("Error clearing player logs:", error);
+      res.status(500).json({ error: "Failed to clear logs" });
+    }
+  });
+
   // Get user's last played video ID
   app.get("/api/user/last-played", requireAuth, async (req, res) => {
     try {

@@ -105,18 +105,34 @@ export function usePlayerLogger() {
     }
   }, [shouldLog, flush]);
 
-  // Log session start with device info
+  // Clear previous logs and log session start with device info (fresh recording session)
   useEffect(() => {
     if (!shouldLog || hasLoggedSessionStart.current) return;
     hasLoggedSessionStart.current = true;
     
-    logEvent("SESSION_START", {
-      payload: {
-        ...DEVICE_INFO,
-        url: window.location.href,
-        timestamp: new Date().toISOString(),
-      },
-    });
+    // Clear all previous logs for a fresh recording session
+    const startNewSession = async () => {
+      try {
+        await fetch("/api/player-logs", {
+          method: "DELETE",
+          credentials: "include",
+        });
+        console.debug("[PlayerLogger] Cleared previous session logs");
+      } catch (error) {
+        console.debug("[PlayerLogger] Failed to clear previous logs:", error);
+      }
+      
+      // Now log the session start
+      logEvent("SESSION_START", {
+        payload: {
+          ...DEVICE_INFO,
+          url: window.location.href,
+          timestamp: new Date().toISOString(),
+        },
+      });
+    };
+    
+    startNewSession();
   }, [shouldLog, logEvent]);
 
   // Global event listeners for comprehensive tracking
