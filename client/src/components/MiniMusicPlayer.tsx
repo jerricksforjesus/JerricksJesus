@@ -124,7 +124,7 @@ export function MiniMusicPlayer() {
             />
           </div>
 
-          <div className="container mx-auto px-4 py-3">
+          <div className="container mx-auto px-6 py-3">
             {/* Row 1: Thumbnail and Title */}
             <div className="flex items-center gap-3 mb-3">
               <div className="w-14 h-10 flex-shrink-0 rounded overflow-hidden bg-black flex items-center justify-center">
@@ -147,19 +147,19 @@ export function MiniMusicPlayer() {
             </div>
 
             {/* Row 2: Time + All Controls - evenly spaced */}
-            <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between gap-2">
               {/* Time Display */}
-              <div className="flex-shrink-0 text-xs text-muted-foreground tabular-nums min-w-[70px]" data-testid="mini-track-time">
+              <div className="flex-shrink-0 text-xs text-muted-foreground tabular-nums" data-testid="mini-track-time">
                 {formatTime(currentTime)} / {formatTime(duration)}
               </div>
 
               {/* Volume Controls */}
-              <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="flex items-center gap-1">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={toggleMute}
-                  className="h-9 w-9"
+                  className="h-8 w-8"
                   data-testid="mini-button-mute"
                 >
                   {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
@@ -169,18 +169,18 @@ export function MiniMusicPlayer() {
                   max={100}
                   step={1}
                   onValueChange={(value) => setVolume(value[0])}
-                  className="w-16 sm:w-20"
+                  className="w-16"
                   data-testid="mini-volume-slider"
                 />
               </div>
 
               {/* Playback Controls */}
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-0.5">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={previous}
-                  className="h-9 w-9"
+                  className="h-8 w-8"
                   data-testid="mini-button-previous"
                 >
                   <SkipBack className="w-4 h-4" />
@@ -198,7 +198,7 @@ export function MiniMusicPlayer() {
                   variant="ghost"
                   size="icon"
                   onClick={next}
-                  className="h-9 w-9"
+                  className="h-8 w-8"
                   data-testid="mini-button-next"
                 >
                   <SkipForward className="w-4 h-4" />
@@ -206,13 +206,13 @@ export function MiniMusicPlayer() {
               </div>
 
               {/* Right Controls: Loop, Playlist, Close */}
-              <div className="flex items-center gap-1 flex-shrink-0">
+              <div className="flex items-center gap-0.5">
                 <Button
                   variant="ghost"
                   size="icon"
                   onClick={toggleLoop}
                   className={cn(
-                    "h-9 w-9",
+                    "h-8 w-8",
                     isLooping && "text-primary bg-primary/10"
                   )}
                   data-testid="mini-button-loop"
@@ -224,7 +224,7 @@ export function MiniMusicPlayer() {
                   size="icon"
                   onClick={() => setShowPlaylist(!showPlaylist)}
                   className={cn(
-                    "h-9 w-9 transition-transform",
+                    "h-8 w-8 transition-transform",
                     showPlaylist && "rotate-180"
                   )}
                   data-testid="mini-button-playlist-toggle"
@@ -235,7 +235,7 @@ export function MiniMusicPlayer() {
                   variant="ghost"
                   size="icon"
                   onClick={dismissMiniPlayer}
-                  className="h-9 w-9 text-muted-foreground hover:text-foreground"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
                   data-testid="mini-button-close"
                 >
                   <X className="w-4 h-4" />
