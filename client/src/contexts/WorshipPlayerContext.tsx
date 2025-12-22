@@ -208,6 +208,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const volumeRef = useRef(volume);
   const autoPlayOnReadyRef = useRef(false);
+  const lastBackPressRef = useRef<number>(0);
 
   const { data: videos = [], isLoading } = useQuery<WorshipVideo[]>({
     queryKey: ["worship-videos"],
@@ -495,10 +496,26 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   }, [currentIndex, videos.length]);
 
   const previous = useCallback(() => {
-    if (currentIndex > 0) {
+    const now = Date.now();
+    const timeSinceLastPress = now - lastBackPressRef.current;
+    
+    // If within first 3 seconds of song OR double-tapped within 3 seconds, go to previous track
+    if ((currentTime < 3 || timeSinceLastPress < 3000) && currentIndex > 0) {
       setCurrentIndex((prev) => prev - 1);
+      lastBackPressRef.current = 0; // Reset so next press restarts song
+    } else {
+      // Otherwise restart the current song
+      if (playerRef.current) {
+        try {
+          playerRef.current.seekTo(0, true);
+          setCurrentTime(0);
+        } catch (e) {
+          console.error("Error seeking to start:", e);
+        }
+      }
+      lastBackPressRef.current = now; // Record this press
     }
-  }, [currentIndex]);
+  }, [currentIndex, currentTime]);
 
   const selectTrack = useCallback((index: number) => {
     if (index >= 0 && index < videos.length) {
