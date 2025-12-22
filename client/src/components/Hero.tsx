@@ -1,10 +1,11 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Radio, Video, LogIn } from "lucide-react";
+import { Radio, Video, LogIn, Music, Square } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/lib/auth";
+import { useWorshipPlayer } from "@/contexts/WorshipPlayerContext";
 import heroBg from "@assets/generated_images/sunlight_through_stained_glass_in_modern_church.png";
 
 interface LiveStatus {
@@ -20,6 +21,7 @@ interface ZoomSettings {
 export function Hero() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
+  const { showMiniPlayer, play, dismissMiniPlayer, videos } = useWorshipPlayer();
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
@@ -115,7 +117,7 @@ export function Hero() {
             <Button 
               asChild
               size="lg" 
-              className="font-bold px-8 min-w-[200px]"
+              className="font-bold px-8 w-[220px]"
               style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
               data-testid="button-join-zoom-hero"
             >
@@ -138,7 +140,7 @@ export function Hero() {
             <Button 
               asChild
               size="lg" 
-              className="font-bold px-8 min-w-[200px]"
+              className="font-bold px-8 w-[220px]"
               style={{ backgroundColor: "#ffffff", color: "#b47a5f", border: "2px solid #ffffff" }}
               data-testid="button-sign-in-hero"
             >
@@ -146,6 +148,46 @@ export function Hero() {
                 <LogIn className="w-5 h-5 mr-2" />
                 Sign In
               </Link>
+            </Button>
+          </motion.div>
+        )}
+
+        {/* Play Worship Music / Stop Music Button */}
+        {videos.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8, delay: 1.0 }}
+            className="mt-4"
+          >
+            <Button 
+              size="lg" 
+              className="font-bold px-8 w-[220px]"
+              style={{ 
+                backgroundColor: showMiniPlayer ? "#292929" : "#ffffff", 
+                color: showMiniPlayer ? "#ffffff" : "#b47a5f", 
+                border: "2px solid #ffffff" 
+              }}
+              onClick={() => {
+                if (showMiniPlayer) {
+                  dismissMiniPlayer();
+                } else {
+                  play();
+                }
+              }}
+              data-testid="button-worship-music-hero"
+            >
+              {showMiniPlayer ? (
+                <>
+                  <Square className="w-5 h-5 mr-2" />
+                  Stop Music
+                </>
+              ) : (
+                <>
+                  <Music className="w-5 h-5 mr-2" />
+                  Play Worship Music
+                </>
+              )}
             </Button>
           </motion.div>
         )}
