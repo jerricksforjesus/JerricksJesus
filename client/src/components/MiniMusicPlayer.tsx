@@ -176,7 +176,7 @@ export function MiniMusicPlayer() {
                   size="icon"
                   onClick={() => setShowVolumeSlider(!showVolumeSlider)}
                   onDoubleClick={toggleMute}
-                  className="h-8 w-8"
+                  className={cn("h-8 w-8", showVolumeSlider && "invisible")}
                   data-testid="mini-button-volume"
                   title="Click to adjust volume, double-click to mute"
                 >
@@ -195,25 +195,40 @@ export function MiniMusicPlayer() {
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
                       exit={{ opacity: 0, y: 10 }}
-                      className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 bg-card border rounded-lg shadow-lg p-3 flex flex-col items-center gap-2"
+                      className="absolute bottom-0 left-1/2 -translate-x-1/2 bg-card border rounded-lg shadow-lg p-3 flex flex-col items-center gap-2 z-50"
                     >
-                      <Slider
-                        value={[isMuted ? 0 : volume]}
-                        max={100}
-                        step={1}
-                        orientation="vertical"
-                        onValueChange={(value) => setVolume(value[0])}
-                        className="h-24"
-                        data-testid="mini-volume-slider"
-                      />
+                      <div className="h-24 flex items-center justify-center">
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          value={isMuted ? 0 : volume}
+                          onChange={(e) => setVolume(Number(e.target.value))}
+                          className="h-24 w-2 appearance-none bg-muted rounded-full cursor-pointer accent-primary"
+                          style={{
+                            writingMode: "vertical-lr",
+                            direction: "rtl",
+                          }}
+                          data-testid="mini-volume-slider"
+                        />
+                      </div>
                       <Button
                         variant="ghost"
                         size="icon"
-                        onClick={toggleMute}
-                        className="h-7 w-7"
+                        onClick={() => {
+                          toggleMute();
+                          setShowVolumeSlider(false);
+                        }}
+                        className="h-8 w-8"
                         data-testid="mini-button-mute"
                       >
-                        {isMuted ? <VolumeX className="w-3 h-3" /> : <Volume2 className="w-3 h-3" />}
+                        {isMuted || volume === 0 ? (
+                          <VolumeX className="w-4 h-4" />
+                        ) : volume < 50 ? (
+                          <Volume1 className="w-4 h-4" />
+                        ) : (
+                          <Volume2 className="w-4 h-4" />
+                        )}
                       </Button>
                     </motion.div>
                   )}
