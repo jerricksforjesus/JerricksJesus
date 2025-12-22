@@ -1912,7 +1912,7 @@ export async function registerRoutes(
           email: "family@jerricksforjesus.com",
           phone: "516-240-5503"
         },
-        copyright: "© 2024 Jerricks for Jesus. All rights reserved."
+        copyright: `© ${new Date().getFullYear()} Jerricks for Jesus. All rights reserved.`
       };
 
       const footerJson = await storage.getSetting("footer_info");
