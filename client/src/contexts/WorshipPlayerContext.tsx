@@ -553,13 +553,21 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
 
   // Track the previous index to detect track changes
   const prevIndexRef = useRef(currentIndex);
+  // Track if player has been initialized (to avoid loadVideoById on first load)
+  const playerInitializedRef = useRef(false);
   
   useEffect(() => {
     if (playerRef.current && currentVideo && playerReady) {
       const isTrackChange = prevIndexRef.current !== currentIndex;
       prevIndexRef.current = currentIndex;
       
-      // Load the new video
+      // Skip loadVideoById on initial mount - player was already created with this video
+      if (!playerInitializedRef.current) {
+        playerInitializedRef.current = true;
+        return;
+      }
+      
+      // Load the new video only on track changes
       playerRef.current.loadVideoById(currentVideo.youtubeVideoId);
       setCurrentTime(0);
       setDuration(0);
