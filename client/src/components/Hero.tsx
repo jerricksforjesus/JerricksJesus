@@ -185,6 +185,13 @@ export function Hero() {
               ) : showMiniPlayer ? (
                 <>
                   <span>Stop Music</span>
+                  <div className="flex items-end gap-[2px] h-4 mx-2">
+                    <div className="equalizer-bar" />
+                    <div className="equalizer-bar" />
+                    <div className="equalizer-bar" />
+                    <div className="equalizer-bar" />
+                    <div className="equalizer-bar" />
+                  </div>
                   <Square className="w-5 h-5" />
                 </>
               ) : (
