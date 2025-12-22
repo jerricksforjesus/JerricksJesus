@@ -3400,10 +3400,11 @@ export default function AdminDashboard() {
                     <p className="text-center text-muted-foreground py-8">No videos uploaded yet.</p>
                   ) : (
                     videos.map((video, index) => (
-                      <div key={video.id} className="flex items-center justify-between p-4 border rounded-lg bg-card hover:shadow-sm transition-shadow" data-testid={`video-item-${video.id}`}>
-                        <div className="flex gap-4 items-center flex-1 min-w-0">
+                      <div key={video.id} className="p-4 border rounded-lg bg-card hover:shadow-sm transition-shadow" data-testid={`video-item-${video.id}`}>
+                        {/* Mobile Layout */}
+                        <div className="sm:hidden space-y-3">
                           <div 
-                            className="w-20 h-12 bg-muted rounded overflow-hidden flex-shrink-0 cursor-pointer group relative"
+                            className="w-full aspect-video bg-muted rounded overflow-hidden cursor-pointer group relative"
                             onClick={() => handlePlayVideo(video)}
                           >
                             <img 
@@ -3412,38 +3413,88 @@ export default function AdminDashboard() {
                               className="w-full h-full object-cover"
                             />
                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                              <Play className="w-5 h-5 text-white" fill="white" />
+                              <Play className="w-8 h-8 text-white" fill="white" />
                             </div>
                           </div>
-                          <div className="min-w-0 flex-1">
-                            <h4 className="font-medium truncate" data-testid={`text-video-title-${video.id}`}>{video.title}</h4>
-                            <p className="text-xs text-muted-foreground">
+                          <div>
+                            <h4 className="font-medium" data-testid={`text-video-title-${video.id}`}>{video.title}</h4>
+                            <p className="text-xs text-muted-foreground mt-1">
                               {new Date(video.recordedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                               {video.duration && ` • ${video.duration}`}
                               {` • ${video.views} views`}
                             </p>
                           </div>
+                          <div className="flex gap-2">
+                            <Button 
+                              variant="outline" 
+                              size="sm"
+                              className="flex-1"
+                              onClick={() => handleEditVideo(video)}
+                              data-testid={`button-edit-${video.id}`}
+                            >
+                              <Pencil className="w-4 h-4 mr-2" />
+                              Edit
+                            </Button>
+                            {isAdmin && (
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                                onClick={() => deleteVideoMutation.mutate(video.id)}
+                                data-testid={`button-delete-${video.id}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
-                        <div className="flex gap-2 flex-shrink-0">
-                          <Button 
-                            variant="ghost" 
-                            size="icon"
-                            onClick={() => handleEditVideo(video)}
-                            data-testid={`button-edit-${video.id}`}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          {isAdmin && (
+                        
+                        {/* Desktop Layout */}
+                        <div className="hidden sm:flex items-center justify-between">
+                          <div className="flex gap-4 items-center flex-1 min-w-0">
+                            <div 
+                              className="w-20 h-12 bg-muted rounded overflow-hidden flex-shrink-0 cursor-pointer group relative"
+                              onClick={() => handlePlayVideo(video)}
+                            >
+                              <img 
+                                src={getThumbnail(video, index)} 
+                                alt={video.title}
+                                className="w-full h-full object-cover"
+                              />
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                                <Play className="w-5 h-5 text-white" fill="white" />
+                              </div>
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <h4 className="font-medium truncate" data-testid={`text-video-title-desktop-${video.id}`}>{video.title}</h4>
+                              <p className="text-xs text-muted-foreground">
+                                {new Date(video.recordedDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                                {video.duration && ` • ${video.duration}`}
+                                {` • ${video.views} views`}
+                              </p>
+                            </div>
+                          </div>
+                          <div className="flex gap-2 flex-shrink-0">
                             <Button 
                               variant="ghost" 
-                              size="icon" 
-                              className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
-                              onClick={() => deleteVideoMutation.mutate(video.id)}
-                              data-testid={`button-delete-${video.id}`}
+                              size="icon"
+                              onClick={() => handleEditVideo(video)}
+                              data-testid={`button-edit-desktop-${video.id}`}
                             >
-                              <Trash2 className="w-4 h-4" />
+                              <Pencil className="w-4 h-4" />
                             </Button>
-                          )}
+                            {isAdmin && (
+                              <Button 
+                                variant="ghost" 
+                                size="icon" 
+                                className="text-destructive hover:text-destructive/90 hover:bg-destructive/10"
+                                onClick={() => deleteVideoMutation.mutate(video.id)}
+                                data-testid={`button-delete-desktop-${video.id}`}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            )}
+                          </div>
                         </div>
                       </div>
                     ))
