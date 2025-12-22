@@ -150,10 +150,7 @@ export function MiniMusicPlayer() {
                       <button
                         key={video.id}
                         ref={index === currentIndex ? currentTrackRef : null}
-                        onClick={() => {
-                          selectTrack(index);
-                          setShowPlaylist(false);
-                        }}
+                        onClick={() => handleSelectTrack(index)}
                         className={cn(
                           "w-full flex items-center gap-3 p-2 rounded-lg transition-colors text-left",
                           index === currentIndex 
@@ -298,7 +295,7 @@ export function MiniMusicPlayer() {
                         variant="ghost"
                         size="icon"
                         onClick={() => {
-                          toggleMute();
+                          handleToggleMute();
                           setShowVolumeSlider(false);
                         }}
                         className="h-8 w-8"
@@ -321,7 +318,7 @@ export function MiniMusicPlayer() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={previous}
+                onClick={handlePrevious}
                 className="h-8 w-8"
                 data-testid="mini-button-previous"
               >
@@ -332,7 +329,7 @@ export function MiniMusicPlayer() {
               <Button
                 variant="default"
                 size="icon"
-                onClick={togglePlay}
+                onClick={handlePlayPause}
                 className="h-10 w-10 rounded-full"
                 data-testid="mini-button-play-pause"
               >
@@ -343,7 +340,7 @@ export function MiniMusicPlayer() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={next}
+                onClick={handleNext}
                 className="h-8 w-8"
                 data-testid="mini-button-next"
               >
@@ -354,7 +351,7 @@ export function MiniMusicPlayer() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={toggleLoop}
+                onClick={handleToggleLoop}
                 className={cn(
                   "h-8 w-8",
                   isLooping && "text-primary bg-primary/10"
@@ -368,7 +365,7 @@ export function MiniMusicPlayer() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setShowPlaylist(!showPlaylist)}
+                onClick={handleTogglePlaylist}
                 className={cn(
                   "h-8 w-8 transition-transform",
                   showPlaylist && "rotate-180"
@@ -382,7 +379,7 @@ export function MiniMusicPlayer() {
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={dismissMiniPlayer}
+                onClick={handleDismiss}
                 className="h-8 w-8 text-muted-foreground hover:text-foreground"
                 data-testid="mini-button-close"
               >
