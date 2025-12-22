@@ -492,6 +492,9 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   const next = useCallback(() => {
     if (currentIndex < videos.length - 1) {
       setCurrentIndex((prev) => prev + 1);
+    } else if (videos.length > 0) {
+      // At end of playlist, wrap to beginning
+      setCurrentIndex(0);
     }
   }, [currentIndex, videos.length]);
 
@@ -500,8 +503,13 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     const timeSinceLastPress = now - lastBackPressRef.current;
     
     // If within first 3 seconds of song OR double-tapped within 3 seconds, go to previous track
-    if ((currentTime < 3 || timeSinceLastPress < 3000) && currentIndex > 0) {
-      setCurrentIndex((prev) => prev - 1);
+    if (currentTime < 3 || timeSinceLastPress < 3000) {
+      if (currentIndex > 0) {
+        setCurrentIndex((prev) => prev - 1);
+      } else if (videos.length > 0) {
+        // At beginning of playlist, wrap to end
+        setCurrentIndex(videos.length - 1);
+      }
       lastBackPressRef.current = 0; // Reset so next press restarts song
     } else {
       // Otherwise restart the current song
@@ -515,7 +523,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
       }
       lastBackPressRef.current = now; // Record this press
     }
-  }, [currentIndex, currentTime]);
+  }, [currentIndex, currentTime, videos.length]);
 
   const selectTrack = useCallback((index: number) => {
     if (index >= 0 && index < videos.length) {
