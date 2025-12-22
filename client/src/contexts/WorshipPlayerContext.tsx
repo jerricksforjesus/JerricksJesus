@@ -778,31 +778,65 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
         hasPlayerRef: !!playerRef.current, 
         loadedVideoId, 
         needsVideoChange,
+        isIOS,
       },
     });
     
+    // iOS FIX: Call playVideo() SYNCHRONOUSLY before any React state updates
+    // iOS Safari requires the play call to happen in the same synchronous call stack as the user tap
+    // Any async operations (setState, setTimeout) break the gesture chain
+    let playedSynchronously = false;
+    
+    if (playerRef.current && playerReady) {
+      try {
+        const currentVideoId = videos[currentIndex]?.youtubeVideoId;
+        const currentlyLoadedId = loadedVideoIdRef.current;
+        
+        if (currentVideoId && currentVideoId !== currentlyLoadedId) {
+          logEvent("SYNC_LOAD_VIDEO_BY_ID", { 
+            videoId: currentVideoId, 
+            videoIndex: currentIndex,
+            payload: { previousLoadedId: currentlyLoadedId, isIOS },
+          });
+          playerRef.current.loadVideoById(currentVideoId);
+          loadedVideoIdRef.current = currentVideoId;
+        } else {
+          logEvent("SYNC_PLAY_VIDEO", { videoId: currentVideoId, videoIndex: currentIndex, payload: { isIOS } });
+          playerRef.current.playVideo();
+        }
+        playedSynchronously = true;
+      } catch (e) {
+        logEvent("SYNC_PLAY_ERROR", { videoId, videoIndex: currentIndex, payload: { error: String(e) } });
+        console.error("Error playing synchronously:", e);
+      }
+    }
+    
+    // Now do state updates AFTER the synchronous play call
     setMiniPlayerDismissed(false);
     setIsInitializing(true);
     
     // Reset initializing state after timeout in case playback fails
-    // This prevents the button from being stuck in loading state
     const initTimeoutId = setTimeout(() => {
       logEvent("PLAY_TIMEOUT", { videoId, videoIndex: currentIndex, payload: { reason: "5s timeout reached" } });
       setIsInitializing(false);
     }, 5000);
     
-    // Define the actual play action - this must be called within user gesture or onReady
+    // If we already played synchronously, we're done - just clear the timeout when state changes
+    if (playedSynchronously) {
+      logEvent("PLAY_SYNC_SUCCESS", { videoId, videoIndex: currentIndex });
+      // isInitializing will be cleared by onStateChange when PLAYING fires
+      return;
+    }
+    
+    // Define the play action for deferred execution (when player isn't ready yet)
     const executePlay = () => {
       if (playerRef.current) {
         try {
-          // iOS FIX: Check if the video we want to play is different from what's loaded
-          // If so, use loadVideoById (which loads + plays atomically) to maintain gesture chain
           const currentVideoId = videos[currentIndex]?.youtubeVideoId;
           const currentlyLoadedId = loadedVideoIdRef.current;
           
           if (currentVideoId && currentVideoId !== currentlyLoadedId) {
-            // Different video - use loadVideoById which loads AND plays in one gesture
-            logEvent("EXECUTE_LOAD_VIDEO_BY_ID_IOS_FIX", { 
+            logEvent("DEFERRED_LOAD_VIDEO_BY_ID", { 
               videoId: currentVideoId, 
               videoIndex: currentIndex,
               payload: { previousLoadedId: currentlyLoadedId },
@@ -810,12 +844,11 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
             playerRef.current.loadVideoById(currentVideoId);
             loadedVideoIdRef.current = currentVideoId;
           } else {
-            // Same video - just call playVideo
-            logEvent("EXECUTE_PLAY_VIDEO", { videoId: currentVideoId, videoIndex: currentIndex });
+            logEvent("DEFERRED_PLAY_VIDEO", { videoId: currentVideoId, videoIndex: currentIndex });
             playerRef.current.playVideo();
           }
         } catch (e) {
-          logEvent("PLAY_ERROR", { videoId, videoIndex: currentIndex, payload: { error: String(e) } });
+          logEvent("DEFERRED_PLAY_ERROR", { videoId, videoIndex: currentIndex, payload: { error: String(e) } });
           console.error("Error playing:", e);
         }
       } else {
@@ -827,25 +860,16 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
       // Player not created yet - create it and queue play for when ready
       logEvent("PLAY_CREATE_PLAYER", { videoId, videoIndex: currentIndex });
       setPlayerCreated(true);
-      // Store the play action as a pending callback for iOS
       pendingPlayCallbackRef.current = executePlay;
       autoPlayOnReadyRef.current = true;
       return;
     }
     
-    // If player exists and is ready, play immediately (within user gesture)
-    if (playerRef.current && playerReady) {
-      logEvent("PLAY_IMMEDIATE", { videoId, videoIndex: currentIndex });
-      executePlay();
-      clearTimeout(initTimeoutId);
-      // isInitializing will be cleared by onStateChange when PLAYING fires
-    } else {
-      // Player exists but not ready - queue for when ready
-      logEvent("PLAY_QUEUE_PENDING", { videoId, videoIndex: currentIndex, payload: { playerExists: !!playerRef.current, playerReady } });
-      pendingPlayCallbackRef.current = executePlay;
-      autoPlayOnReadyRef.current = true;
-    }
-  }, [playerCreated, playerReady, currentIndex, videos, logEvent]);
+    // Player exists but not ready - queue for when ready
+    logEvent("PLAY_QUEUE_PENDING", { videoId, videoIndex: currentIndex, payload: { playerExists: !!playerRef.current, playerReady } });
+    pendingPlayCallbackRef.current = executePlay;
+    autoPlayOnReadyRef.current = true;
+  }, [playerCreated, playerReady, currentIndex, videos, logEvent, isIOS]);
 
   const pause = useCallback(() => {
     logEvent("PAUSE_CALLED", { videoId: videos[currentIndex]?.youtubeVideoId, videoIndex: currentIndex });

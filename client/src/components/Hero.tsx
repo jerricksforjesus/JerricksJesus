@@ -7,7 +7,6 @@ import { Button } from "@/components/ui/button";
 import { EqualizerBars } from "@/components/EqualizerBars";
 import { useAuth } from "@/lib/auth";
 import { useWorshipPlayer } from "@/contexts/WorshipPlayerContext";
-import { toast } from "sonner";
 import heroBg from "@assets/generated_images/sunlight_through_stained_glass_in_modern_church.png";
 
 interface LiveStatus {
@@ -23,7 +22,7 @@ interface ZoomSettings {
 export function Hero() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
-  const { showMiniPlayer, play, dismissMiniPlayer, videos, isInitializing, isPlaying, isMuted, iOSNeedsTap, scrollToMainPlayer } = useWorshipPlayer();
+  const { showMiniPlayer, play, dismissMiniPlayer, videos, isInitializing, isPlaying, isMuted } = useWorshipPlayer();
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
@@ -172,10 +171,6 @@ export function Hero() {
               onClick={() => {
                 if (showMiniPlayer) {
                   dismissMiniPlayer();
-                } else if (iOSNeedsTap) {
-                  // iOS Safari requires first tap directly on YouTube player
-                  scrollToMainPlayer();
-                  toast.info("Tap the play button on the video player below to start music", { duration: 5000 });
                 } else {
                   play();
                 }
