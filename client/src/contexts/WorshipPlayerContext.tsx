@@ -109,16 +109,23 @@ function PlayerPortal({
   const [position, setPosition] = useState({ top: 0, left: 0, width: 96, height: 64 });
 
   useEffect(() => {
+    if (!mainPlayerVisible) {
+      setPosition({ top: -9999, left: -9999, width: 0, height: 0 });
+      return;
+    }
+
     const updatePosition = () => {
-      if (mainPlayerRef.current) {
+      if (mainPlayerRef.current && mainPlayerVisible) {
         const rect = mainPlayerRef.current.getBoundingClientRect();
-        if (rect.width > 0 && rect.height > 0) {
+        if (rect.width > 0 && rect.height > 0 && rect.top >= -100) {
           setPosition({
             top: rect.top + window.scrollY,
             left: rect.left + window.scrollX,
             width: rect.width,
             height: rect.height,
           });
+        } else {
+          setPosition({ top: -9999, left: -9999, width: 0, height: 0 });
         }
       }
     };
@@ -138,9 +145,9 @@ function PlayerPortal({
 
   if (!currentVideo) return null;
 
-  const isMainMode = mainPlayerVisible && position.width > 0;
+  const hasValidMainPosition = mainPlayerVisible && position.width > 0 && position.height > 0 && position.top >= 0;
+  const isMainMode = hasValidMainPosition;
   const isMiniMode = showMiniPlayer && !mainPlayerVisible;
-  const isHidden = !isMainMode && !isMiniMode;
 
   return createPortal(
     <div
@@ -156,8 +163,8 @@ function PlayerPortal({
         zIndex: isMainMode ? 50 : (isMiniMode ? 60 : -1),
         overflow: 'hidden',
         borderRadius: isMainMode ? '8px' : '4px',
-        pointerEvents: isHidden ? 'none' : 'auto',
-        opacity: isHidden ? 0 : 1,
+        pointerEvents: (isMainMode || isMiniMode) ? 'auto' : 'none',
+        opacity: (isMainMode || isMiniMode) ? 1 : 0,
         transition: 'none',
       }}
     />,
