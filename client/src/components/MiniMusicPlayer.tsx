@@ -113,11 +113,13 @@ export function MiniMusicPlayer() {
                             {video.title}
                           </p>
                         </div>
-                        {index === currentIndex && isPlaying && (
-                          <div className="flex gap-0.5">
-                            <span className="w-1 h-3 bg-primary rounded-full animate-pulse" />
-                            <span className="w-1 h-4 bg-primary rounded-full animate-pulse delay-75" />
-                            <span className="w-1 h-2 bg-primary rounded-full animate-pulse delay-150" />
+                        {index === currentIndex && (
+                          <div className="flex gap-0.5 items-end h-3">
+                            <span className={cn("equalizer-bar text-primary", !isPlaying && "paused")} />
+                            <span className={cn("equalizer-bar text-primary", !isPlaying && "paused")} />
+                            <span className={cn("equalizer-bar text-primary", !isPlaying && "paused")} />
+                            <span className={cn("equalizer-bar text-primary", !isPlaying && "paused")} />
+                            <span className={cn("equalizer-bar text-primary", !isPlaying && "paused")} />
                           </div>
                         )}
                       </button>

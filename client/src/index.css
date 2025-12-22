@@ -85,6 +85,7 @@
   background-color: currentColor;
   border-radius: 1px;
   animation: equalize 0.8s ease-in-out infinite;
+  transition: height 0.3s ease-out;
 }
 
 .equalizer-bar:nth-child(1) { animation-delay: 0s; }
@@ -92,3 +93,9 @@
 .equalizer-bar:nth-child(3) { animation-delay: 0.4s; }
 .equalizer-bar:nth-child(4) { animation-delay: 0.1s; }
 .equalizer-bar:nth-child(5) { animation-delay: 0.3s; }
+
+/* Paused state - flatline */
+.equalizer-bar.paused {
+  animation: none;
+  height: 3px !important;
+}
