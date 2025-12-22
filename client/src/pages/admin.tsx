@@ -4681,7 +4681,7 @@ export default function AdminDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <MobilePlayerSpacer />
+      <MobilePlayerSpacer variant="admin" />
     </div>
   );
 }

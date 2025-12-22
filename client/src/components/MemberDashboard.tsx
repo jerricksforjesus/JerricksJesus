@@ -1145,7 +1145,7 @@ export function MemberDashboard() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      <MobilePlayerSpacer />
+      <MobilePlayerSpacer variant="admin" />
     </div>
   );
 }
