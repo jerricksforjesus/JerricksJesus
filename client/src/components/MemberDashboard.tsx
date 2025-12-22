@@ -11,7 +11,7 @@ import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 import { useLocation } from "wouter";
-import { BookOpen, Camera, ClipboardList, LogOut, Loader2, Trash2, Clock, CheckCircle, XCircle, Upload, Key, Settings, Save, User as UserIcon } from "lucide-react";
+import { BookOpen, Camera, ClipboardList, LogOut, Loader2, Trash2, Clock, CheckCircle, XCircle, Upload, Key, Settings, Save, User as UserIcon, Music, Plus, ExternalLink } from "lucide-react";
 import type { UploadResult } from "@uppy/core";
 import {
   Dialog,
@@ -28,6 +28,19 @@ interface MemberPhoto {
   imagePath: string;
   caption: string | null;
   status: string;
+  createdAt: string;
+}
+
+interface WorshipRequest {
+  id: number;
+  userId: string;
+  youtubeUrl: string;
+  youtubeVideoId: string | null;
+  title: string | null;
+  thumbnailUrl: string | null;
+  status: string;
+  reviewedBy: string | null;
+  reviewedAt: string | null;
   createdAt: string;
 }
 
@@ -169,6 +182,87 @@ export function MemberDashboard() {
     },
   });
 
+  const { data: myMusicRequests = [], isLoading: loadingMusicRequests } = useQuery<WorshipRequest[]>({
+    queryKey: ["worship-requests-my"],
+    queryFn: async () => {
+      const response = await fetch("/api/worship-requests/my", { credentials: "include" });
+      if (!response.ok) throw new Error("Failed to fetch music requests");
+      return response.json();
+    },
+  });
+
+  const [musicYoutubeUrl, setMusicYoutubeUrl] = useState("");
+  const [musicVideoInfo, setMusicVideoInfo] = useState<{ youtubeVideoId: string; title: string; thumbnailUrl: string | null } | null>(null);
+  const [fetchingMusicInfo, setFetchingMusicInfo] = useState(false);
+
+  const extractVideoId = (url: string): string | null => {
+    const patterns = [
+      /(?:youtube\.com\/watch\?v=|youtu\.be\/|youtube\.com\/embed\/|youtube\.com\/v\/)([^&\n?#]+)/,
+      /^([a-zA-Z0-9_-]{11})$/,
+    ];
+    for (const pattern of patterns) {
+      const match = url.match(pattern);
+      if (match) return match[1];
+    }
+    return null;
+  };
+
+  const fetchVideoInfo = async (videoId: string) => {
+    try {
+      const response = await fetch(`/api/youtube/video/${videoId}`);
+      if (response.ok) {
+        const data = await response.json();
+        return { youtubeVideoId: videoId, title: data.title, thumbnailUrl: data.thumbnailUrl };
+      }
+    } catch (e) {
+      console.error("Failed to fetch video info:", e);
+    }
+    return { youtubeVideoId: videoId, title: `YouTube Video ${videoId}`, thumbnailUrl: `https://img.youtube.com/vi/${videoId}/mqdefault.jpg` };
+  };
+
+  const handleMusicUrlChange = async (url: string) => {
+    setMusicYoutubeUrl(url);
+    setMusicVideoInfo(null);
+    const videoId = extractVideoId(url);
+    if (videoId) {
+      setFetchingMusicInfo(true);
+      const info = await fetchVideoInfo(videoId);
+      setMusicVideoInfo(info);
+      setFetchingMusicInfo(false);
+    }
+  };
+
+  const submitMusicRequestMutation = useMutation({
+    mutationFn: async () => {
+      if (!musicVideoInfo) throw new Error("No video info");
+      const response = await fetch("/api/worship-requests", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({
+          youtubeUrl: musicYoutubeUrl,
+          youtubeVideoId: musicVideoInfo.youtubeVideoId,
+          title: musicVideoInfo.title,
+          thumbnailUrl: musicVideoInfo.thumbnailUrl,
+        }),
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to submit request");
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({ title: "Request Submitted", description: "Your music request will be reviewed by an admin." });
+      setMusicYoutubeUrl("");
+      setMusicVideoInfo(null);
+      queryClient.invalidateQueries({ queryKey: ["worship-requests-my"] });
+    },
+    onError: (error: Error) => {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    },
+  });
+
   useEffect(() => {
     const fetchSignedUrls = async () => {
       for (const photo of myPhotos) {
@@ -302,7 +396,7 @@ export function MemberDashboard() {
         </div>
 
         <Tabs defaultValue="quiz" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5 lg:w-auto lg:inline-grid">
+          <TabsList className="grid w-full grid-cols-6 lg:w-auto lg:inline-grid">
             <TabsTrigger value="quiz" data-testid="tab-quiz" className="flex items-center gap-2">
               <BookOpen className="h-4 w-4" />
               <span className="hidden sm:inline">Bible Quiz</span>
@@ -312,6 +406,11 @@ export function MemberDashboard() {
               <Camera className="h-4 w-4" />
               <span className="hidden sm:inline">Family Photos</span>
               <span className="sm:hidden">Photos</span>
+            </TabsTrigger>
+            <TabsTrigger value="music" data-testid="tab-music" className="flex items-center gap-2">
+              <Music className="h-4 w-4" />
+              <span className="hidden sm:inline">Request Music</span>
+              <span className="sm:hidden">Music</span>
             </TabsTrigger>
             <TabsTrigger value="questionnaire" data-testid="tab-questionnaire" className="flex items-center gap-2">
               <ClipboardList className="h-4 w-4" />
@@ -435,6 +534,151 @@ export function MemberDashboard() {
                     <Camera className="h-12 w-12 mx-auto mb-4 opacity-50" />
                     <p>You haven't uploaded any photos yet.</p>
                     <p className="text-sm">Upload a photo above to share with the congregation!</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="music" className="space-y-6">
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-serif">Request Worship Music</CardTitle>
+                <CardDescription>
+                  Suggest new songs to add to our worship playlist. Your requests will be reviewed by church admins.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="music-youtube-url">YouTube Video URL</Label>
+                    <Input
+                      id="music-youtube-url"
+                      placeholder="https://youtube.com/watch?v=..."
+                      value={musicYoutubeUrl}
+                      onChange={(e) => handleMusicUrlChange(e.target.value)}
+                      data-testid="input-music-youtube-url"
+                    />
+                  </div>
+
+                  {fetchingMusicInfo && (
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                      Fetching video info...
+                    </div>
+                  )}
+
+                  {musicVideoInfo && (
+                    <div className="border rounded-lg p-3 bg-muted/30">
+                      <div className="flex gap-3">
+                        {musicVideoInfo.thumbnailUrl && (
+                          <img
+                            src={musicVideoInfo.thumbnailUrl}
+                            alt={musicVideoInfo.title}
+                            className="w-24 h-16 object-cover rounded"
+                          />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium text-sm line-clamp-2">{musicVideoInfo.title}</p>
+                          <p className="text-xs text-muted-foreground mt-1">
+                            Video ID: {musicVideoInfo.youtubeVideoId}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={() => submitMusicRequestMutation.mutate()}
+                    disabled={!musicVideoInfo || submitMusicRequestMutation.isPending}
+                    style={{ backgroundColor: "#b47a5f", color: "#ffffff" }}
+                    data-testid="button-submit-music-request"
+                  >
+                    {submitMusicRequestMutation.isPending ? (
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    ) : (
+                      <Plus className="w-4 h-4 mr-2" />
+                    )}
+                    Submit Request
+                  </Button>
+                </div>
+
+                {loadingMusicRequests ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-6 w-6 animate-spin" style={{ color: "var(--burnt-clay)" }} />
+                  </div>
+                ) : myMusicRequests.length > 0 ? (
+                  <div className="space-y-4">
+                    <h3 className="font-medium text-lg">Your Music Requests</h3>
+                    <div className="space-y-2">
+                      {myMusicRequests.map((request) => (
+                        <Card key={request.id} className="overflow-hidden">
+                          <CardContent className="p-3">
+                            <div className="flex items-center gap-3">
+                              <div className="w-20 h-12 rounded overflow-hidden bg-muted flex-shrink-0">
+                                {request.thumbnailUrl ? (
+                                  <img
+                                    src={request.thumbnailUrl}
+                                    alt={request.title || "Video thumbnail"}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <div className="w-full h-full flex items-center justify-center">
+                                    <Music className="w-5 h-5 text-muted-foreground" />
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-medium text-sm line-clamp-1">{request.title || "Unknown Title"}</p>
+                                <p className="text-xs text-muted-foreground">
+                                  {new Date(request.createdAt).toLocaleDateString()}
+                                </p>
+                              </div>
+                              <div className="flex items-center gap-2">
+                                {request.status === "pending" && (
+                                  <span className="flex items-center gap-1 text-xs text-yellow-600 bg-yellow-50 px-2 py-1 rounded">
+                                    <Clock className="w-3 h-3" />
+                                    Pending
+                                  </span>
+                                )}
+                                {request.status === "approved" && (
+                                  <span className="flex items-center gap-1 text-xs text-green-600 bg-green-50 px-2 py-1 rounded">
+                                    <CheckCircle className="w-3 h-3" />
+                                    Approved
+                                  </span>
+                                )}
+                                {request.status === "rejected" && (
+                                  <span className="flex items-center gap-1 text-xs text-red-600 bg-red-50 px-2 py-1 rounded">
+                                    <XCircle className="w-3 h-3" />
+                                    Rejected
+                                  </span>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  asChild
+                                  className="text-muted-foreground hover:text-foreground"
+                                >
+                                  <a
+                                    href={request.youtubeUrl}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                  >
+                                    <ExternalLink className="w-4 h-4" />
+                                  </a>
+                                </Button>
+                              </div>
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Music className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                    <p>You haven't submitted any music requests yet.</p>
+                    <p className="text-sm">Paste a YouTube URL above to request a song!</p>
                   </div>
                 )}
               </CardContent>
