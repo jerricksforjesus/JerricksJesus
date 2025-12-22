@@ -861,6 +861,7 @@ export function MemberDashboard() {
                       onChange={(value) => setProfileDateOfBirth(value)}
                       placeholder="Select your birthday"
                       data-testid="input-date-of-birth"
+                      disableFuture={true}
                     />
                     <Button
                       onClick={() => updateDateOfBirthMutation.mutate(profileDateOfBirth)}
