@@ -56,15 +56,27 @@ export function MiniMusicPlayer() {
 
   const [showPlaylist, setShowPlaylist] = useState(false);
   const currentTrackRef = useRef<HTMLButtonElement>(null);
+  const prevIndexRef = useRef(currentIndex);
 
-  // Scroll to current track when playlist opens
+  // Scroll to current track when playlist opens or when track changes while playlist is visible
   useEffect(() => {
-    if (showPlaylist && currentTrackRef.current) {
-      setTimeout(() => {
-        currentTrackRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      }, 100);
-    }
-  }, [showPlaylist]);
+    const prevIndex = prevIndexRef.current;
+    prevIndexRef.current = currentIndex; // Update ref for next change
+    
+    if (!showPlaylist || !currentTrackRef.current) return;
+    
+    // Detect wrap-around in either direction
+    const isForwardWrap = prevIndex === videos.length - 1 && currentIndex === 0;
+    const isBackwardWrap = prevIndex === 0 && currentIndex === videos.length - 1;
+    const isWrapAround = isForwardWrap || isBackwardWrap;
+    
+    // Use instant scroll for wrap-around, smooth for normal navigation
+    const behavior = isWrapAround ? 'auto' : 'smooth';
+    
+    setTimeout(() => {
+      currentTrackRef.current?.scrollIntoView({ behavior, block: 'center' });
+    }, 50);
+  }, [showPlaylist, currentIndex, videos.length]);
 
   return (
     <AnimatePresence>
