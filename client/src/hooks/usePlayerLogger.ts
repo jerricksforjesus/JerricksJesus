@@ -131,24 +131,34 @@ export function usePlayerLogger() {
     }
   }, [shouldLog, location, logEvent]);
 
-  // Clear previous logs and log session start with device info (fresh recording session)
+  // Register session with server and log session start
   useEffect(() => {
     if (!shouldLog || hasLoggedSessionStart.current) return;
     hasLoggedSessionStart.current = true;
     
-    // Clear all previous logs for a fresh recording session
+    // Register new session with server (this clears previous session data)
     const startNewSession = async () => {
       try {
-        await fetch("/api/player-logs", {
-          method: "DELETE",
+        const response = await fetch("/api/player-logs/start-session", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           credentials: "include",
+          body: JSON.stringify({
+            sessionId: SESSION_ID,
+            deviceInfo: DEVICE_INFO,
+          }),
         });
-        console.debug("[PlayerLogger] Cleared previous session logs");
+        
+        if (response.ok) {
+          console.debug("[PlayerLogger] Session registered with server:", SESSION_ID);
+        } else {
+          console.debug("[PlayerLogger] Failed to register session:", await response.text());
+        }
       } catch (error) {
-        console.debug("[PlayerLogger] Failed to clear previous logs:", error);
+        console.debug("[PlayerLogger] Failed to register session:", error);
       }
       
-      // Now log the session start
+      // Log the session start event
       logEvent("SESSION_START", {
         payload: {
           ...DEVICE_INFO,
@@ -276,9 +286,15 @@ export function usePlayerLogger() {
     };
 
     const handleBeforeUnload = () => {
-      logEvent("PAGE_UNLOAD", { payload: {} });
+      // Log the unload event
+      bufferRef.current.push({
+        eventType: "SESSION_END",
+        timestamp: Date.now(),
+        payload: { reason: "page_unload" },
+      });
+      
+      // Send remaining logs via beacon
       if (bufferRef.current.length > 0) {
-        // Use sendBeacon for reliable delivery on page unload
         navigator.sendBeacon(
           "/api/player-logs",
           JSON.stringify({
@@ -288,6 +304,12 @@ export function usePlayerLogger() {
           })
         );
       }
+      
+      // Seal the session via beacon (best effort)
+      navigator.sendBeacon(
+        "/api/player-logs/seal",
+        JSON.stringify({ sessionId: SESSION_ID })
+      );
     };
 
     // Add all listeners
@@ -321,5 +343,29 @@ export function usePlayerLogger() {
     };
   }, [shouldLog, logEvent, flush]);
 
-  return { logEvent, flush, sessionId: SESSION_ID, deviceInfo: DEVICE_INFO };
+  // Function to seal the current session (call on explicit logout)
+  const sealSession = useCallback(async () => {
+    if (!shouldLog) return;
+    
+    // Log the logout event
+    logEvent("SESSION_END", { payload: { reason: "logout" } });
+    
+    // Flush remaining events
+    await flush();
+    
+    // Seal the session
+    try {
+      await fetch("/api/player-logs/seal", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ sessionId: SESSION_ID }),
+      });
+      console.debug("[PlayerLogger] Session sealed:", SESSION_ID);
+    } catch (error) {
+      console.debug("[PlayerLogger] Failed to seal session:", error);
+    }
+  }, [shouldLog, logEvent, flush]);
+
+  return { logEvent, flush, sealSession, sessionId: SESSION_ID, deviceInfo: DEVICE_INFO };
 }

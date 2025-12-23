@@ -817,6 +817,12 @@ export async function registerRoutes(
       }));
       
       await storage.createPlayerLogs(logs);
+      
+      // Update session activity timestamp
+      if (sessionId) {
+        await storage.updateSessionActivity(sessionId);
+      }
+      
       res.json({ success: true, count: logs.length });
     } catch (error) {
       console.error("Error saving player logs:", error);
@@ -840,50 +846,111 @@ export async function registerRoutes(
     }
   });
 
-  // Get recent player logs (for debugging) - NO AUTH
-  // Query params: limit, minutes, event_type, session_id, user_agent
+  // Get player logs - returns latest SEALED session by default (the snapshot)
+  // Query params: active=true to get active session, event_type, limit
   app.get("/api/player-logs", async (req, res) => {
     try {
-      const limit = parseInt(req.query.limit as string) || 500;
-      const minutes = parseInt(req.query.minutes as string) || 0;
+      const showActive = req.query.active === "true";
       const eventType = req.query.event_type as string || '';
-      const sessionId = req.query.session_id as string || '';
-      const userAgentFilter = req.query.user_agent as string || '';
+      const limit = parseInt(req.query.limit as string) || 1000;
       
-      let logs = await storage.getRecentPlayerLogs(limit * 2); // Fetch more for filtering
+      // Get the appropriate session (sealed by default, active if requested)
+      const session = showActive 
+        ? await storage.getActivePlayerLogSession()
+        : await storage.getLatestSealedPlayerLogSession();
       
-      // Filter by time if minutes specified
-      if (minutes > 0) {
-        const cutoff = new Date(Date.now() - minutes * 60 * 1000);
-        logs = logs.filter(log => new Date(log.createdAt) > cutoff);
+      if (!session) {
+        return res.json({
+          message: showActive ? "No active debugging session" : "No sealed debugging session found. Login as superadmin, interact with the site, then logout to create a snapshot.",
+          session: null,
+          logs: [],
+          count: 0
+        });
       }
+      
+      // Get logs for this session
+      let logs = await storage.getPlayerLogsBySession(session.sessionId);
       
       // Filter by event type if specified
       if (eventType) {
-        logs = logs.filter(log => log.eventType.includes(eventType.toUpperCase()));
+        logs = logs.filter(log => log.eventType.toUpperCase().includes(eventType.toUpperCase()));
       }
       
-      // Filter by session ID if specified
-      if (sessionId) {
-        logs = logs.filter(log => log.sessionId?.includes(sessionId));
-      }
-      
-      // Filter by user agent if specified (e.g., "iPhone", "CriOS")
-      if (userAgentFilter) {
-        logs = logs.filter(log => log.userAgent?.toLowerCase().includes(userAgentFilter.toLowerCase()));
-      }
-      
-      // Apply limit after filtering
+      // Apply limit
       logs = logs.slice(0, limit);
       
       res.json({
+        session: {
+          sessionId: session.sessionId,
+          status: session.status,
+          startedAt: session.startedAt,
+          endedAt: session.endedAt,
+          userAgent: session.userAgent,
+          deviceInfo: session.deviceInfo ? JSON.parse(session.deviceInfo) : null,
+        },
         count: logs.length,
-        filters: { limit, minutes, eventType, sessionId, userAgentFilter },
         logs
       });
     } catch (error) {
       console.error("Error fetching player logs:", error);
       res.status(500).json({ error: "Failed to fetch logs" });
+    }
+  });
+
+  // Start a new player log session (called on superadmin login)
+  app.post("/api/player-logs/start-session", requireAuth, requireRole(USER_ROLES.SUPERADMIN), async (req, res) => {
+    try {
+      const { sessionId, deviceInfo } = req.body;
+      if (!sessionId) {
+        return res.status(400).json({ error: "sessionId is required" });
+      }
+      
+      // Seal any existing active sessions and clear their logs (overwrite previous)
+      const activeSession = await storage.getActivePlayerLogSession();
+      if (activeSession) {
+        await storage.sealPlayerLogSession(activeSession.sessionId);
+        await storage.deletePlayerLogsBySessionId(activeSession.sessionId);
+      }
+      
+      // Also clear any previous sealed session's logs (keep only one snapshot)
+      const sealedSession = await storage.getLatestSealedPlayerLogSession();
+      if (sealedSession) {
+        await storage.deletePlayerLogsBySessionId(sealedSession.sessionId);
+      }
+      
+      // Create new session
+      const newSession = await storage.createPlayerLogSession({
+        sessionId,
+        userId: req.user!.id,
+        status: "active",
+        userAgent: req.headers["user-agent"] || null,
+        deviceInfo: deviceInfo ? JSON.stringify(deviceInfo) : null,
+      });
+      
+      res.json({ success: true, session: newSession });
+    } catch (error) {
+      console.error("Error starting player log session:", error);
+      res.status(500).json({ error: "Failed to start session" });
+    }
+  });
+
+  // Seal the current session (called on superadmin logout)
+  app.post("/api/player-logs/seal", requireAuth, requireRole(USER_ROLES.SUPERADMIN), async (req, res) => {
+    try {
+      const { sessionId } = req.body;
+      
+      if (sessionId) {
+        // Seal specific session
+        const sealed = await storage.sealPlayerLogSession(sessionId);
+        res.json({ success: true, session: sealed });
+      } else {
+        // Seal all active sessions
+        const count = await storage.sealAllActiveSessions();
+        res.json({ success: true, sealedCount: count });
+      }
+    } catch (error) {
+      console.error("Error sealing player log session:", error);
+      res.status(500).json({ error: "Failed to seal session" });
     }
   });
 
