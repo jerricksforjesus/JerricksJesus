@@ -846,8 +846,9 @@ export async function registerRoutes(
     try {
       // Simple API key check for testing access
       const apiKey = req.query.key as string;
-      if (apiKey !== "jfj-debug-2024") {
-        return res.status(401).json({ error: "Invalid API key. Use ?key=jfj-debug-2024" });
+      const expectedKey = process.env.PLAYER_LOGS_API_KEY || "jfj-debug-2024";
+      if (apiKey !== expectedKey) {
+        return res.status(401).json({ error: "Invalid API key" });
       }
       
       const limit = parseInt(req.query.limit as string) || 500;
