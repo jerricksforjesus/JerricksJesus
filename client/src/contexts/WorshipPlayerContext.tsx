@@ -1215,6 +1215,41 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     }
   }, [isPlaying, iOSModalVisible, logEvent]);
 
+  // Resize YouTube player when iOS modal is visible AND player is ready
+  // This fixes the timing issue where setSize() was called before player existed
+  useEffect(() => {
+    if (iOSModalVisible && playerReady && playerRef.current) {
+      const resizePlayer = () => {
+        if (playerRef.current && typeof playerRef.current.setSize === 'function') {
+          const viewportWidth = window.innerWidth;
+          const containerWidth = Math.min(viewportWidth * 0.9, 500);
+          const containerHeight = Math.floor(containerWidth * (9 / 16));
+          
+          try {
+            playerRef.current.setSize(Math.floor(containerWidth), containerHeight);
+            logEvent("IOS_MODAL_SETSIZE", {
+              payload: { width: Math.floor(containerWidth), height: containerHeight },
+            });
+          } catch (err) {
+            console.warn('[iOS Modal] setSize failed:', err);
+          }
+        }
+      };
+      
+      // Call immediately and again after a short delay to ensure it takes effect
+      resizePlayer();
+      const timeout1 = setTimeout(resizePlayer, 100);
+      const timeout2 = setTimeout(resizePlayer, 300);
+      const timeout3 = setTimeout(resizePlayer, 500);
+      
+      return () => {
+        clearTimeout(timeout1);
+        clearTimeout(timeout2);
+        clearTimeout(timeout3);
+      };
+    }
+  }, [iOSModalVisible, playerReady, logEvent]);
+
   const value: WorshipPlayerContextType = {
     videos,
     isLoading,
