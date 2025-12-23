@@ -1,5 +1,6 @@
 import { useRef, useCallback, useEffect } from "react";
 import { useAuth } from "@/lib/auth";
+import { useLocation } from "wouter";
 
 interface LogEvent {
   eventType: string;
@@ -44,10 +45,12 @@ const MAX_BUFFER_SIZE = 15; // Flush if buffer exceeds this size
 
 export function usePlayerLogger() {
   const { user } = useAuth();
+  const [location] = useLocation();
   const bufferRef = useRef<LogEvent[]>([]);
   const flushTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const isFlushingRef = useRef(false);
   const hasLoggedSessionStart = useRef(false);
+  const lastLocationRef = useRef<string>("");
 
   // Only log for superadmin
   const shouldLog = user?.role === "superadmin";
@@ -104,6 +107,29 @@ export function usePlayerLogger() {
       flushTimeoutRef.current = setTimeout(flush, FLUSH_INTERVAL);
     }
   }, [shouldLog, flush]);
+
+  // Track navigation/route changes
+  useEffect(() => {
+    if (!shouldLog) return;
+    
+    // Skip initial mount
+    if (lastLocationRef.current === "") {
+      lastLocationRef.current = location;
+      return;
+    }
+    
+    // Log route change
+    if (location !== lastLocationRef.current) {
+      logEvent("ROUTE_CHANGE", {
+        payload: {
+          from: lastLocationRef.current,
+          to: location,
+          fullUrl: window.location.href,
+        },
+      });
+      lastLocationRef.current = location;
+    }
+  }, [shouldLog, location, logEvent]);
 
   // Clear previous logs and log session start with device info (fresh recording session)
   useEffect(() => {
@@ -229,6 +255,26 @@ export function usePlayerLogger() {
       logEvent("WINDOW_BLUR", { payload: {} });
     };
 
+    // Track all click events (for button presses, links, etc.)
+    const handleClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      // Find the closest clickable element or element with data-testid
+      const clickableTarget = target.closest("button, a, [data-testid], [role='button']") as HTMLElement || target;
+      
+      logEvent("CLICK", {
+        payload: {
+          x: e.clientX,
+          y: e.clientY,
+          targetTag: clickableTarget?.tagName,
+          targetId: clickableTarget?.id,
+          targetTestId: clickableTarget?.getAttribute("data-testid"),
+          targetClass: clickableTarget?.className?.slice?.(0, 100),
+          targetText: clickableTarget?.textContent?.slice?.(0, 50),
+          targetHref: (clickableTarget as HTMLAnchorElement)?.href?.slice?.(0, 100),
+        },
+      });
+    };
+
     const handleBeforeUnload = () => {
       logEvent("PAGE_UNLOAD", { payload: {} });
       if (bufferRef.current.length > 0) {
@@ -248,6 +294,7 @@ export function usePlayerLogger() {
     document.addEventListener("visibilitychange", handleVisibilityChange);
     document.addEventListener("touchstart", handleTouchStart, { passive: true });
     document.addEventListener("touchend", handleTouchEnd, { passive: true });
+    document.addEventListener("click", handleClick, { capture: true });
     window.addEventListener("scroll", handleScroll, { passive: true });
     window.addEventListener("error", handleError);
     window.addEventListener("unhandledrejection", handleUnhandledRejection);
@@ -259,6 +306,7 @@ export function usePlayerLogger() {
       document.removeEventListener("visibilitychange", handleVisibilityChange);
       document.removeEventListener("touchstart", handleTouchStart);
       document.removeEventListener("touchend", handleTouchEnd);
+      document.removeEventListener("click", handleClick, { capture: true });
       window.removeEventListener("scroll", handleScroll);
       window.removeEventListener("error", handleError);
       window.removeEventListener("unhandledrejection", handleUnhandledRejection);
