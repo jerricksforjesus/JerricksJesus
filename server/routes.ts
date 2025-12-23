@@ -840,17 +840,10 @@ export async function registerRoutes(
     }
   });
 
-  // Get recent player logs (for debugging) - Simple API key auth
-  // Query params: key, limit, minutes, event_type, session_id, user_agent
+  // Get recent player logs (for debugging) - NO AUTH
+  // Query params: limit, minutes, event_type, session_id, user_agent
   app.get("/api/player-logs", async (req, res) => {
     try {
-      // Simple API key check for testing access
-      const apiKey = req.query.key as string;
-      const expectedKey = process.env.PLAYER_LOGS_API_KEY || "jfj-debug-2024";
-      if (apiKey !== expectedKey) {
-        return res.status(401).json({ error: "Invalid API key" });
-      }
-      
       const limit = parseInt(req.query.limit as string) || 500;
       const minutes = parseInt(req.query.minutes as string) || 0;
       const eventType = req.query.event_type as string || '';
