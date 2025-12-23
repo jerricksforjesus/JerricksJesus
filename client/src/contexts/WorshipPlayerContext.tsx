@@ -110,16 +110,23 @@ function PlayerPortal({
   mainPlayerRef,
   playerContainerRef,
   currentVideo,
+  iOSModalMode = false,
 }: { 
   mainPlayerVisible: boolean;
   showMiniPlayer: boolean;
   mainPlayerRef: React.RefObject<HTMLDivElement | null>;
   playerContainerRef: React.RefObject<HTMLDivElement | null>;
   currentVideo: WorshipVideo | undefined;
+  iOSModalMode?: boolean;
 }) {
   const [position, setPosition] = useState({ top: 0, left: 0, width: 96, height: 64 });
 
   useEffect(() => {
+    // Skip position tracking when in iOS modal mode - we use fixed centering instead
+    if (iOSModalMode) {
+      return;
+    }
+    
     if (!mainPlayerVisible) {
       setPosition({ top: -9999, left: -9999, width: 0, height: 0 });
       return;
@@ -152,7 +159,7 @@ function PlayerPortal({
       window.removeEventListener('scroll', updatePosition);
       clearInterval(interval);
     };
-  }, [mainPlayerRef, mainPlayerVisible]);
+  }, [mainPlayerRef, mainPlayerVisible, iOSModalMode]);
 
   // Always keep the portal mounted to prevent React removeChild errors
   // YouTube takes over the DOM node, so we can't unmount it
@@ -162,32 +169,53 @@ function PlayerPortal({
     position.height > 30 && 
     position.top > 100 && 
     position.left > 50;
-  const isMainMode = hasValidMainPosition;
-  const isMiniMode = showMiniPlayer && !mainPlayerVisible && currentVideo;
-  const shouldHide = !isMainMode && !isMiniMode;
+  const isMainMode = hasValidMainPosition && !iOSModalMode;
+  const isMiniMode = showMiniPlayer && !mainPlayerVisible && currentVideo && !iOSModalMode;
+  const shouldHide = !isMainMode && !isMiniMode && !iOSModalMode;
+
+  // Calculate styles based on current mode
+  let containerStyle: React.CSSProperties;
+  
+  if (iOSModalMode && currentVideo) {
+    // iOS Modal Mode: Show player centered on screen with fixed positioning
+    containerStyle = {
+      position: 'fixed',
+      top: '50%',
+      left: '50%',
+      transform: 'translate(-50%, -50%)',
+      width: 'min(90vw, 500px)',
+      aspectRatio: '16/9',
+      zIndex: 9999,
+      overflow: 'hidden',
+      borderRadius: '12px',
+      boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
+      pointerEvents: 'auto',
+      opacity: 1,
+    };
+  } else {
+    // Normal mode: position based on mainPlayerRef or hide
+    containerStyle = {
+      position: isMiniMode ? 'fixed' : 'absolute',
+      top: isMainMode ? position.top : '-9999px',
+      left: isMainMode ? position.left : '-9999px',
+      transform: 'none',
+      bottom: 'auto',
+      width: isMainMode ? position.width : '1px',
+      height: isMainMode ? position.height : '1px',
+      zIndex: isMainMode ? 50 : -1,
+      overflow: 'hidden',
+      borderRadius: '8px',
+      pointerEvents: shouldHide ? 'none' : 'auto',
+      opacity: shouldHide ? 0 : 1,
+      transition: 'none',
+    };
+  }
 
   return createPortal(
     <div
       ref={playerContainerRef}
       data-testid="global-video-player"
-      style={{
-        position: isMiniMode ? 'fixed' : 'absolute',
-        top: isMainMode ? position.top : '-9999px',
-        left: isMainMode ? position.left : '-9999px',
-        bottom: 'auto',
-        // Always keep a minimum size for the player container on mobile
-        // This helps iOS Safari properly initialize the YouTube player
-        width: isMainMode ? position.width : '1px',
-        height: isMainMode ? position.height : '1px',
-        zIndex: isMainMode ? 50 : -1,
-        overflow: 'hidden',
-        borderRadius: '8px',
-        pointerEvents: shouldHide ? 'none' : 'auto',
-        opacity: shouldHide ? 0 : 1,
-        // IMPORTANT: Never use visibility:hidden on iOS - it breaks YouTube player
-        // Keep the element visible but off-screen instead
-        transition: 'none',
-      }}
+      style={containerStyle}
     />,
     document.body
   );
@@ -1094,53 +1122,37 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   return (
     <WorshipPlayerContext.Provider value={value}>
       {children}
-      {/* iOS Modal - shows a direct YouTube iframe for first-tap interaction */}
+      {/* iOS Modal backdrop - shows behind the centered player */}
       {iOSModalVisible && currentVideo && createPortal(
         <div 
-          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) {
-              hideiOSModal();
-            }
-          }}
+          className="fixed inset-0 z-[9998] bg-black/90"
+          onClick={hideiOSModal}
         >
-          <div className="relative w-[95vw] max-w-xl bg-[#1a1a1a] rounded-xl overflow-hidden shadow-2xl">
-            {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-white/10">
-              <div className="flex-1">
-                <h3 className="text-white font-semibold text-lg">Worship Music</h3>
-                <p className="text-white/60 text-sm mt-1">Tap the play button on the video</p>
-              </div>
-              <button 
-                onClick={hideiOSModal}
-                className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-                aria-label="Close"
-              >
-                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
+          {/* Header and info overlay */}
+          <div className="absolute top-4 left-4 right-4 flex items-center justify-between z-10">
+            <div>
+              <h3 className="text-white font-semibold text-lg">Worship Music</h3>
+              <p className="text-white/60 text-sm">Tap the video to play</p>
             </div>
-            {/* Direct YouTube iframe - iOS users can tap this directly */}
-            <div className="aspect-video bg-black">
-              <iframe
-                src={`https://www.youtube.com/embed/${currentVideo.youtubeVideoId}?playsinline=1&rel=0&modestbranding=1&enablejsapi=0`}
-                className="w-full h-full"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowFullScreen
-                title={currentVideo.title}
-              />
-            </div>
-            {/* Current track info */}
-            <div className="p-4 border-t border-white/10">
-              <p className="text-white font-medium truncate">{currentVideo.title}</p>
-              <p className="text-white/50 text-sm mt-1">After playing, close this to use the mini player</p>
-            </div>
+            <button 
+              onClick={hideiOSModal}
+              className="w-10 h-10 flex items-center justify-center rounded-full bg-white/20"
+              aria-label="Close"
+            >
+              <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+          {/* Track info at bottom */}
+          <div className="absolute bottom-8 left-4 right-4 text-center">
+            <p className="text-white font-medium">{currentVideo.title}</p>
+            <p className="text-white/50 text-sm mt-1">Tap the play button, then close this</p>
           </div>
         </div>,
         document.body
       )}
-      {/* PlayerPortal - always mounted for non-iOS playback */}
+      {/* PlayerPortal - always mounted, shows centered when iOS modal is active */}
       {playerCreated && (
         <PlayerPortal
           mainPlayerVisible={mainPlayerVisible}
@@ -1148,6 +1160,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
           mainPlayerRef={mainPlayerRef}
           playerContainerRef={playerContainerRef}
           currentVideo={currentVideo}
+          iOSModalMode={iOSModalVisible}
         />
       )}
     </WorshipPlayerContext.Provider>
