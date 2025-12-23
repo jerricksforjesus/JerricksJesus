@@ -22,7 +22,7 @@ interface ZoomSettings {
 export function Hero() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
-  const { showMiniPlayer, play, dismissMiniPlayer, videos, isInitializing, isPlaying, isMuted } = useWorshipPlayer();
+  const { showMiniPlayer, play, dismissMiniPlayer, videos, isInitializing, isPlaying, isMuted, iOSNeedsTap, showiOSModal } = useWorshipPlayer();
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
@@ -171,6 +171,9 @@ export function Hero() {
               onClick={() => {
                 if (showMiniPlayer) {
                   dismissMiniPlayer();
+                } else if (iOSNeedsTap) {
+                  // iOS requires direct tap on YouTube player - show modal
+                  showiOSModal();
                 } else {
                   play();
                 }

@@ -75,6 +75,9 @@ interface WorshipPlayerContextType {
   showMiniPlayer: boolean;
   isIOS: boolean;
   iOSNeedsTap: boolean;
+  iOSModalVisible: boolean;
+  showiOSModal: () => void;
+  hideiOSModal: () => void;
   play: () => void;
   pause: () => void;
   togglePlay: () => void;
@@ -214,6 +217,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   // iOS detection and first-tap tracking
   const isIOS = typeof navigator !== 'undefined' && /iPad|iPhone|iPod/.test(navigator.userAgent);
   const [iOSFirstPlayDone, setIOSFirstPlayDone] = useState(false);
+  const [iOSModalVisible, setIOSModalVisible] = useState(false);
   
   const playerRef = useRef<YTPlayer | null>(null);
   const isLoopingRef = useRef(isLooping);
@@ -1027,6 +1031,29 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   // iOS needs a direct tap on the player if first play hasn't been done yet
   const iOSNeedsTap = isIOS && !iOSFirstPlayDone;
 
+  // iOS modal functions
+  const showiOSModal = useCallback(() => {
+    logEvent("IOS_MODAL_SHOW", { payload: { isIOS, iOSFirstPlayDone } });
+    setIOSModalVisible(true);
+    // Make sure the player is created so it appears in the modal
+    if (!playerCreated) {
+      setPlayerCreated(true);
+    }
+  }, [logEvent, isIOS, iOSFirstPlayDone, playerCreated]);
+
+  const hideiOSModal = useCallback(() => {
+    logEvent("IOS_MODAL_HIDE", { payload: { isIOS, iOSFirstPlayDone } });
+    setIOSModalVisible(false);
+  }, [logEvent, isIOS, iOSFirstPlayDone]);
+
+  // Auto-close iOS modal when playback starts
+  useEffect(() => {
+    if (isPlaying && iOSModalVisible) {
+      logEvent("IOS_MODAL_AUTO_CLOSE", { payload: { reason: "playback_started" } });
+      setIOSModalVisible(false);
+    }
+  }, [isPlaying, iOSModalVisible, logEvent]);
+
   const value: WorshipPlayerContextType = {
     videos,
     isLoading,
@@ -1045,6 +1072,9 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     showMiniPlayer,
     isIOS,
     iOSNeedsTap,
+    iOSModalVisible,
+    showiOSModal,
+    hideiOSModal,
     play,
     pause,
     togglePlay,
@@ -1064,10 +1094,55 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   return (
     <WorshipPlayerContext.Provider value={value}>
       {children}
+      {/* iOS Modal backdrop and wrapper - shown when modal is visible */}
+      {iOSModalVisible && createPortal(
+        <div 
+          className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              hideiOSModal();
+            }
+          }}
+        >
+          <div className="relative w-[90vw] max-w-lg bg-[#1a1a1a] rounded-xl overflow-hidden shadow-2xl">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-white/10">
+              <div className="flex-1">
+                <h3 className="text-white font-semibold text-lg">Worship Music</h3>
+                <p className="text-white/60 text-sm mt-1">Tap the play button below to start</p>
+              </div>
+              <button 
+                onClick={hideiOSModal}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                aria-label="Close"
+              >
+                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            {/* Video container - player will be positioned here via PlayerPortal */}
+            <div 
+              ref={mainPlayerRef}
+              className="aspect-video bg-black relative"
+              style={{ minHeight: '200px' }}
+            />
+            {/* Current track info */}
+            {currentVideo && (
+              <div className="p-4 border-t border-white/10">
+                <p className="text-white font-medium truncate">{currentVideo.title}</p>
+                <p className="text-white/50 text-sm mt-1">Tap the video to start playing</p>
+              </div>
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
+      {/* PlayerPortal - always mounted, positions to mainPlayerRef which can be in modal or main page */}
       {playerCreated && (
         <PlayerPortal
-          mainPlayerVisible={mainPlayerVisible}
-          showMiniPlayer={showMiniPlayer}
+          mainPlayerVisible={mainPlayerVisible || iOSModalVisible}
+          showMiniPlayer={showMiniPlayer && !iOSModalVisible}
           mainPlayerRef={mainPlayerRef}
           playerContainerRef={playerContainerRef}
           currentVideo={currentVideo}
