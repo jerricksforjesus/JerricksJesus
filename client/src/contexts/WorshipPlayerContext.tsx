@@ -178,19 +178,25 @@ function PlayerPortal({
   
   if (iOSModalMode && currentVideo) {
     // iOS Modal Mode: Show player centered on screen with fixed positioning
+    // Calculate explicit dimensions since YouTube iframe needs explicit height
+    const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 500;
+    const containerWidth = Math.min(viewportWidth * 0.9, 500);
+    const containerHeight = containerWidth * (9 / 16); // 16:9 aspect ratio
+    
     containerStyle = {
       position: 'fixed',
       top: '50%',
       left: '50%',
       transform: 'translate(-50%, -50%)',
-      width: 'min(90vw, 500px)',
-      aspectRatio: '16/9',
+      width: `${containerWidth}px`,
+      height: `${containerHeight}px`,
       zIndex: 9999,
       overflow: 'hidden',
       borderRadius: '12px',
       boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)',
       pointerEvents: 'auto',
       opacity: 1,
+      backgroundColor: '#000',
     };
   } else {
     // Normal mode: position based on mainPlayerRef or hide
