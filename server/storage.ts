@@ -1,4 +1,4 @@
-import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, type QuizQuestion, type InsertQuizQuestion, type QuizAttempt, type InsertQuizAttempt, type Session, type InsertSession, type MemberPhoto, type InsertMemberPhoto, type SiteSetting, type YoutubeAuth, type InsertYoutubeAuth, type WorshipVideo, type InsertWorshipVideo, type WorshipRequest, type InsertWorshipRequest, type Event, type InsertEvent, type PlayerLog, type InsertPlayerLog, videos, verses, users, photos, quizQuestions, quizAttempts, sessions, memberPhotos, siteSettings, youtubeAuth, worshipVideos, worshipRequests, events, playerLogs } from "@shared/schema";
+import { type User, type InsertUser, type Video, type InsertVideo, type Verse, type InsertVerse, type Photo, type InsertPhoto, type QuizQuestion, type InsertQuizQuestion, type QuizAttempt, type InsertQuizAttempt, type Session, type InsertSession, type MemberPhoto, type InsertMemberPhoto, type SiteSetting, type YoutubeAuth, type InsertYoutubeAuth, type WorshipVideo, type InsertWorshipVideo, type WorshipRequest, type InsertWorshipRequest, type Event, type InsertEvent, type PlayerLog, type InsertPlayerLog, type PlayerLogSession, type InsertPlayerLogSession, videos, verses, users, photos, quizQuestions, quizAttempts, sessions, memberPhotos, siteSettings, youtubeAuth, worshipVideos, worshipRequests, events, playerLogs, playerLogSessions } from "@shared/schema";
 import { db } from "./db";
 import { eq, asc, desc, and, sql, gt, gte } from "drizzle-orm";
 import * as schema from "@shared/schema";
@@ -127,6 +127,16 @@ export interface IStorage {
   getRecentPlayerLogs(limit?: number): Promise<PlayerLog[]>;
   clearOldPlayerLogs(daysOld?: number): Promise<number>;
   clearAllPlayerLogs(): Promise<number>;
+  
+  // Player log sessions (for snapshot debugging)
+  createPlayerLogSession(session: InsertPlayerLogSession): Promise<PlayerLogSession>;
+  getActivePlayerLogSession(): Promise<PlayerLogSession | undefined>;
+  getLatestSealedPlayerLogSession(): Promise<PlayerLogSession | undefined>;
+  sealPlayerLogSession(sessionId: string): Promise<PlayerLogSession | undefined>;
+  sealAllActiveSessions(): Promise<number>;
+  updateSessionActivity(sessionId: string): Promise<void>;
+  deletePlayerLogsBySessionId(sessionId: string): Promise<number>;
+  getPlayerLogSessionWithLogs(sessionId: string): Promise<{ session: PlayerLogSession; logs: PlayerLog[] } | undefined>;
 }
 
 export class DbStorage implements IStorage {
@@ -883,6 +893,65 @@ export class DbStorage implements IStorage {
   async clearAllPlayerLogs(): Promise<number> {
     const result = await db.delete(playerLogs).returning();
     return result.length;
+  }
+
+  // Player log sessions (for snapshot debugging)
+  async createPlayerLogSession(session: InsertPlayerLogSession): Promise<PlayerLogSession> {
+    const [created] = await db.insert(playerLogSessions).values(session).returning();
+    return created;
+  }
+
+  async getActivePlayerLogSession(): Promise<PlayerLogSession | undefined> {
+    return await db.query.playerLogSessions.findFirst({
+      where: (s, { eq }) => eq(s.status, "active"),
+      orderBy: (s, { desc }) => [desc(s.startedAt)],
+    });
+  }
+
+  async getLatestSealedPlayerLogSession(): Promise<PlayerLogSession | undefined> {
+    return await db.query.playerLogSessions.findFirst({
+      where: (s, { eq }) => eq(s.status, "sealed"),
+      orderBy: (s, { desc }) => [desc(s.endedAt)],
+    });
+  }
+
+  async sealPlayerLogSession(sessionId: string): Promise<PlayerLogSession | undefined> {
+    const [updated] = await db.update(playerLogSessions)
+      .set({ status: "sealed", endedAt: new Date() })
+      .where(eq(playerLogSessions.sessionId, sessionId))
+      .returning();
+    return updated;
+  }
+
+  async sealAllActiveSessions(): Promise<number> {
+    const result = await db.update(playerLogSessions)
+      .set({ status: "sealed", endedAt: new Date() })
+      .where(eq(playerLogSessions.status, "active"))
+      .returning();
+    return result.length;
+  }
+
+  async updateSessionActivity(sessionId: string): Promise<void> {
+    await db.update(playerLogSessions)
+      .set({ lastActivityAt: new Date() })
+      .where(eq(playerLogSessions.sessionId, sessionId));
+  }
+
+  async deletePlayerLogsBySessionId(sessionId: string): Promise<number> {
+    const result = await db.delete(playerLogs)
+      .where(eq(playerLogs.sessionId, sessionId))
+      .returning();
+    return result.length;
+  }
+
+  async getPlayerLogSessionWithLogs(sessionId: string): Promise<{ session: PlayerLogSession; logs: PlayerLog[] } | undefined> {
+    const session = await db.query.playerLogSessions.findFirst({
+      where: (s, { eq }) => eq(s.sessionId, sessionId),
+    });
+    if (!session) return undefined;
+    
+    const logs = await this.getPlayerLogsBySession(sessionId);
+    return { session, logs };
   }
 }
 

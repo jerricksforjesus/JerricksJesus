@@ -318,6 +318,28 @@ export type WorshipRequest = typeof worshipRequests.$inferSelect;
 export type InsertEvent = z.infer<typeof insertEventSchema>;
 export type Event = typeof events.$inferSelect;
 
+// Player debug sessions for troubleshooting - one session per superadmin login/logout cycle
+export const playerLogSessions = pgTable("player_log_sessions", {
+  id: serial("id").primaryKey(),
+  sessionId: text("session_id").notNull().unique(), // Client-generated session ID
+  userId: varchar("user_id").references(() => users.id),
+  status: text("status").notNull().default("active"), // "active" or "sealed"
+  userAgent: text("user_agent"),
+  deviceInfo: text("device_info"), // JSON string with device details
+  startedAt: timestamp("started_at").defaultNow().notNull(),
+  endedAt: timestamp("ended_at"), // Set when session is sealed
+  lastActivityAt: timestamp("last_activity_at").defaultNow().notNull(),
+});
+
+export const insertPlayerLogSessionSchema = createInsertSchema(playerLogSessions).omit({
+  id: true,
+  startedAt: true,
+  lastActivityAt: true,
+});
+
+export type InsertPlayerLogSession = z.infer<typeof insertPlayerLogSessionSchema>;
+export type PlayerLogSession = typeof playerLogSessions.$inferSelect;
+
 // Player debug logs for troubleshooting mobile playback issues
 export const playerLogs = pgTable("player_logs", {
   id: serial("id").primaryKey(),
@@ -329,7 +351,7 @@ export const playerLogs = pgTable("player_logs", {
   playerState: integer("player_state"),
   payload: text("payload"), // JSON string for additional data
   userAgent: text("user_agent"),
-  sessionId: text("session_id"), // To group events from same page session
+  sessionId: text("session_id"), // Links to playerLogSessions.sessionId
   ipAddress: varchar("ip_address", { length: 100 }), // Client IP for location tracking
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
