@@ -1094,55 +1094,57 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   return (
     <WorshipPlayerContext.Provider value={value}>
       {children}
-      {/* iOS Modal backdrop and wrapper - shown when modal is visible */}
-      {iOSModalVisible && createPortal(
+      {/* iOS Modal - shows a direct YouTube iframe for first-tap interaction */}
+      {iOSModalVisible && currentVideo && createPortal(
         <div 
-          className="fixed inset-0 z-[9998] flex items-center justify-center bg-black/80 backdrop-blur-sm"
+          className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/90"
           onClick={(e) => {
             if (e.target === e.currentTarget) {
               hideiOSModal();
             }
           }}
         >
-          <div className="relative w-[90vw] max-w-lg bg-[#1a1a1a] rounded-xl overflow-hidden shadow-2xl">
+          <div className="relative w-[95vw] max-w-xl bg-[#1a1a1a] rounded-xl overflow-hidden shadow-2xl">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-white/10">
               <div className="flex-1">
                 <h3 className="text-white font-semibold text-lg">Worship Music</h3>
-                <p className="text-white/60 text-sm mt-1">Tap the play button below to start</p>
+                <p className="text-white/60 text-sm mt-1">Tap the play button on the video</p>
               </div>
               <button 
                 onClick={hideiOSModal}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
+                className="w-10 h-10 flex items-center justify-center rounded-full bg-white/10 hover:bg-white/20 transition-colors"
                 aria-label="Close"
               >
-                <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            {/* Video container - player will be positioned here via PlayerPortal */}
-            <div 
-              ref={mainPlayerRef}
-              className="aspect-video bg-black relative"
-              style={{ minHeight: '200px' }}
-            />
+            {/* Direct YouTube iframe - iOS users can tap this directly */}
+            <div className="aspect-video bg-black">
+              <iframe
+                src={`https://www.youtube.com/embed/${currentVideo.youtubeVideoId}?playsinline=1&rel=0&modestbranding=1&enablejsapi=0`}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+                title={currentVideo.title}
+              />
+            </div>
             {/* Current track info */}
-            {currentVideo && (
-              <div className="p-4 border-t border-white/10">
-                <p className="text-white font-medium truncate">{currentVideo.title}</p>
-                <p className="text-white/50 text-sm mt-1">Tap the video to start playing</p>
-              </div>
-            )}
+            <div className="p-4 border-t border-white/10">
+              <p className="text-white font-medium truncate">{currentVideo.title}</p>
+              <p className="text-white/50 text-sm mt-1">After playing, close this to use the mini player</p>
+            </div>
           </div>
         </div>,
         document.body
       )}
-      {/* PlayerPortal - always mounted, positions to mainPlayerRef which can be in modal or main page */}
+      {/* PlayerPortal - always mounted for non-iOS playback */}
       {playerCreated && (
         <PlayerPortal
-          mainPlayerVisible={mainPlayerVisible || iOSModalVisible}
-          showMiniPlayer={showMiniPlayer && !iOSModalVisible}
+          mainPlayerVisible={mainPlayerVisible}
+          showMiniPlayer={showMiniPlayer}
           mainPlayerRef={mainPlayerRef}
           playerContainerRef={playerContainerRef}
           currentVideo={currentVideo}
