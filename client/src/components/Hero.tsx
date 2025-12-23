@@ -22,7 +22,12 @@ interface ZoomSettings {
 export function Hero() {
   const containerRef = useRef<HTMLDivElement>(null);
   const { user } = useAuth();
-  const { showMiniPlayer, play, dismissMiniPlayer, videos, isInitializing, isPlaying, isMuted, iOSNeedsTap, showiOSModal } = useWorshipPlayer();
+  const { showMiniPlayer, play, dismissMiniPlayer, videos, isInitializing, isPlaying, isMuted, iOSNeedsTap, showiOSModal, isIOS } = useWorshipPlayer();
+  
+  // Hide worship music button for iOS users (temporary fix for WebKit playback issues)
+  // Superadmins can still see it for debugging purposes
+  const isSuperAdmin = user?.role === "superadmin";
+  const showWorshipButton = !isIOS || isSuperAdmin;
   const { scrollYProgress } = useScroll({
     target: containerRef,
     offset: ["start start", "end start"],
@@ -152,7 +157,8 @@ export function Hero() {
         )}
 
         {/* Play Worship Music / Stop Music Button */}
-        {videos.length > 0 && (
+        {/* Hidden for iOS users due to WebKit playback issues - superadmins can still see it */}
+        {videos.length > 0 && showWorshipButton && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
