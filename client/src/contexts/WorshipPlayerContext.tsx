@@ -1218,34 +1218,60 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
   // Resize YouTube player when iOS modal is visible AND player is ready
   // This fixes the timing issue where setSize() was called before player existed
   useEffect(() => {
-    if (iOSModalVisible && playerReady && playerRef.current) {
+    if (iOSModalVisible && playerReady && playerContainerRef.current) {
       const resizePlayer = () => {
+        const viewportWidth = window.innerWidth;
+        const containerWidth = Math.min(viewportWidth * 0.9, 500);
+        const containerHeight = Math.floor(containerWidth * (9 / 16));
+        
+        // Try setSize API first
         if (playerRef.current && typeof playerRef.current.setSize === 'function') {
-          const viewportWidth = window.innerWidth;
-          const containerWidth = Math.min(viewportWidth * 0.9, 500);
-          const containerHeight = Math.floor(containerWidth * (9 / 16));
-          
           try {
             playerRef.current.setSize(Math.floor(containerWidth), containerHeight);
-            logEvent("IOS_MODAL_SETSIZE", {
+            logEvent("IOS_MODAL_SETSIZE_API", {
               payload: { width: Math.floor(containerWidth), height: containerHeight },
             });
           } catch (err) {
-            console.warn('[iOS Modal] setSize failed:', err);
+            console.warn('[iOS Modal] setSize API failed:', err);
           }
+        }
+        
+        // Also directly resize the iframe element as a fallback
+        const iframe = playerContainerRef.current?.querySelector('iframe');
+        if (iframe) {
+          iframe.style.width = `${Math.floor(containerWidth)}px`;
+          iframe.style.height = `${containerHeight}px`;
+          iframe.style.position = 'relative';
+          iframe.style.display = 'block';
+          logEvent("IOS_MODAL_SETSIZE_DIRECT", {
+            payload: { 
+              width: Math.floor(containerWidth), 
+              height: containerHeight,
+              iframeFound: true 
+            },
+          });
+        } else {
+          logEvent("IOS_MODAL_NO_IFRAME", {
+            payload: { 
+              containerExists: !!playerContainerRef.current,
+              containerChildren: playerContainerRef.current?.children?.length || 0
+            },
+          });
         }
       };
       
-      // Call immediately and again after a short delay to ensure it takes effect
+      // Call immediately and again after delays to ensure it takes effect
       resizePlayer();
       const timeout1 = setTimeout(resizePlayer, 100);
       const timeout2 = setTimeout(resizePlayer, 300);
       const timeout3 = setTimeout(resizePlayer, 500);
+      const timeout4 = setTimeout(resizePlayer, 1000);
       
       return () => {
         clearTimeout(timeout1);
         clearTimeout(timeout2);
         clearTimeout(timeout3);
+        clearTimeout(timeout4);
       };
     }
   }, [iOSModalVisible, playerReady, logEvent]);
