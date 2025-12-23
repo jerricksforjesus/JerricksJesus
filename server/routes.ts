@@ -841,11 +841,46 @@ export async function registerRoutes(
   });
 
   // Get recent player logs (for debugging)
+  // Query params: limit, minutes, event_type, session_id, user_agent
   app.get("/api/player-logs", requireAuth, requireRole(USER_ROLES.SUPERADMIN), async (req, res) => {
     try {
       const limit = parseInt(req.query.limit as string) || 500;
-      const logs = await storage.getRecentPlayerLogs(limit);
-      res.json(logs);
+      const minutes = parseInt(req.query.minutes as string) || 0;
+      const eventType = req.query.event_type as string || '';
+      const sessionId = req.query.session_id as string || '';
+      const userAgentFilter = req.query.user_agent as string || '';
+      
+      let logs = await storage.getRecentPlayerLogs(limit * 2); // Fetch more for filtering
+      
+      // Filter by time if minutes specified
+      if (minutes > 0) {
+        const cutoff = new Date(Date.now() - minutes * 60 * 1000);
+        logs = logs.filter(log => new Date(log.createdAt) > cutoff);
+      }
+      
+      // Filter by event type if specified
+      if (eventType) {
+        logs = logs.filter(log => log.eventType.includes(eventType.toUpperCase()));
+      }
+      
+      // Filter by session ID if specified
+      if (sessionId) {
+        logs = logs.filter(log => log.sessionId?.includes(sessionId));
+      }
+      
+      // Filter by user agent if specified (e.g., "iPhone", "CriOS")
+      if (userAgentFilter) {
+        logs = logs.filter(log => log.userAgent?.toLowerCase().includes(userAgentFilter.toLowerCase()));
+      }
+      
+      // Apply limit after filtering
+      logs = logs.slice(0, limit);
+      
+      res.json({
+        count: logs.length,
+        filters: { limit, minutes, eventType, sessionId, userAgentFilter },
+        logs
+      });
     } catch (error) {
       console.error("Error fetching player logs:", error);
       res.status(500).json({ error: "Failed to fetch logs" });
