@@ -1195,14 +1195,7 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
         const containerWidth = Math.min(viewportWidth * 0.9, 500);
         const containerHeight = Math.floor(containerWidth * (9 / 16));
         
-        try {
-          playerRef.current.setSize(Math.floor(containerWidth), containerHeight);
-          console.log('[iOS Modal] Called setSize:', Math.floor(containerWidth), containerHeight);
-        } catch (err) {
-          console.warn('[iOS Modal] setSize failed:', err);
-        }
-      } else {
-        console.warn('[iOS Modal] playerRef not available for setSize');
+        playerRef.current.setSize(Math.floor(containerWidth), containerHeight);
       }
     }, 100);
   }, [logEvent, isIOS, iOSFirstPlayDone, playerCreated]);
