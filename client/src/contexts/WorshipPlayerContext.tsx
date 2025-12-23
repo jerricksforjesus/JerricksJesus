@@ -65,6 +65,7 @@ interface YTPlayer {
   unMute: () => void;
   isMuted: () => boolean;
   getPlayerState: () => number;
+  setSize: (width: number, height: number) => void;
   destroy: () => void;
 }
 
@@ -1185,6 +1186,25 @@ export function WorshipPlayerProvider({ children }: { children: ReactNode }) {
     if (!playerCreated) {
       setPlayerCreated(true);
     }
+    
+    // Use YouTube API's setSize() to resize the iframe directly
+    // CSS changes don't resize YouTube iframes - must use the API method
+    setTimeout(() => {
+      if (playerRef.current && typeof playerRef.current.setSize === 'function') {
+        const viewportWidth = window.innerWidth;
+        const containerWidth = Math.min(viewportWidth * 0.9, 500);
+        const containerHeight = Math.floor(containerWidth * (9 / 16));
+        
+        try {
+          playerRef.current.setSize(Math.floor(containerWidth), containerHeight);
+          console.log('[iOS Modal] Called setSize:', Math.floor(containerWidth), containerHeight);
+        } catch (err) {
+          console.warn('[iOS Modal] setSize failed:', err);
+        }
+      } else {
+        console.warn('[iOS Modal] playerRef not available for setSize');
+      }
+    }, 100);
   }, [logEvent, isIOS, iOSFirstPlayDone, playerCreated]);
 
   const hideiOSModal = useCallback(() => {
