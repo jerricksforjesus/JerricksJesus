@@ -38,10 +38,12 @@ const getDeviceInfo = () => {
   };
 };
 
-const SESSION_ID = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 const DEVICE_INFO = getDeviceInfo();
 const FLUSH_INTERVAL = 3000; // Flush every 3 seconds for faster debugging
 const MAX_BUFFER_SIZE = 15; // Flush if buffer exceeds this size
+
+// Generate a unique session ID
+const generateSessionId = () => `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
 export function usePlayerLogger() {
   const { user } = useAuth();
@@ -51,6 +53,8 @@ export function usePlayerLogger() {
   const isFlushingRef = useRef(false);
   const hasLoggedSessionStart = useRef(false);
   const lastLocationRef = useRef<string>("");
+  const sessionIdRef = useRef<string>(generateSessionId());
+  const prevShouldLogRef = useRef<boolean>(false);
 
   // Only log for superadmin
   const shouldLog = user?.role === "superadmin";
@@ -71,7 +75,7 @@ export function usePlayerLogger() {
         credentials: "include",
         body: JSON.stringify({
           events: eventsToSend,
-          sessionId: SESSION_ID,
+          sessionId: sessionIdRef.current,
           userAgent: navigator.userAgent,
         }),
       });
@@ -131,6 +135,73 @@ export function usePlayerLogger() {
     }
   }, [shouldLog, location, logEvent]);
 
+  // Detect logout transition and seal session + reset state
+  useEffect(() => {
+    // Detect transition from logged in (shouldLog=true) to logged out (shouldLog=false)
+    if (prevShouldLogRef.current && !shouldLog) {
+      const currentSessionId = sessionIdRef.current;
+      
+      // Clear any pending flush timeout to prevent duplicate events
+      if (flushTimeoutRef.current) {
+        clearTimeout(flushTimeoutRef.current);
+        flushTimeoutRef.current = null;
+      }
+      
+      // Add session end event
+      bufferRef.current.push({
+        eventType: "SESSION_END",
+        timestamp: Date.now(),
+        payload: { reason: "logout" },
+      });
+      
+      // Send remaining logs (use sendBeacon if available, otherwise fire-and-forget fetch)
+      const eventsToSend = [...bufferRef.current];
+      bufferRef.current = []; // Clear buffer immediately
+      
+      if (eventsToSend.length > 0) {
+        const logPayload = JSON.stringify({
+          events: eventsToSend,
+          sessionId: currentSessionId,
+          userAgent: navigator.userAgent,
+        });
+        
+        if (typeof navigator.sendBeacon === "function") {
+          navigator.sendBeacon("/api/player-logs", logPayload);
+        } else {
+          // Fallback for non-browser/older environments
+          fetch("/api/player-logs", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: logPayload,
+            keepalive: true,
+          }).catch(() => {});
+        }
+      }
+      
+      // Seal the session
+      const sealPayload = JSON.stringify({ sessionId: currentSessionId });
+      if (typeof navigator.sendBeacon === "function") {
+        navigator.sendBeacon("/api/player-logs/seal", sealPayload);
+      } else {
+        fetch("/api/player-logs/seal", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: sealPayload,
+          keepalive: true,
+        }).catch(() => {});
+      }
+      
+      // Reset state for next login
+      hasLoggedSessionStart.current = false;
+      sessionIdRef.current = generateSessionId();
+      lastLocationRef.current = "";
+      isFlushingRef.current = false;
+      console.debug("[PlayerLogger] Session sealed and state reset");
+    }
+    
+    prevShouldLogRef.current = shouldLog;
+  }, [shouldLog]);
+
   // Register session with server and log session start
   useEffect(() => {
     if (!shouldLog || hasLoggedSessionStart.current) return;
@@ -138,19 +209,20 @@ export function usePlayerLogger() {
     
     // Register new session with server (this clears previous session data)
     const startNewSession = async () => {
+      const currentSessionId = sessionIdRef.current;
       try {
         const response = await fetch("/api/player-logs/start-session", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           credentials: "include",
           body: JSON.stringify({
-            sessionId: SESSION_ID,
+            sessionId: currentSessionId,
             deviceInfo: DEVICE_INFO,
           }),
         });
         
         if (response.ok) {
-          console.debug("[PlayerLogger] Session registered with server:", SESSION_ID);
+          console.debug("[PlayerLogger] Session registered with server:", currentSessionId);
         } else {
           console.debug("[PlayerLogger] Failed to register session:", await response.text());
         }
@@ -286,6 +358,8 @@ export function usePlayerLogger() {
     };
 
     const handleBeforeUnload = () => {
+      const currentSessionId = sessionIdRef.current;
+      
       // Log the unload event
       bufferRef.current.push({
         eventType: "SESSION_END",
@@ -299,7 +373,7 @@ export function usePlayerLogger() {
           "/api/player-logs",
           JSON.stringify({
             events: bufferRef.current,
-            sessionId: SESSION_ID,
+            sessionId: currentSessionId,
             userAgent: navigator.userAgent,
           })
         );
@@ -308,7 +382,7 @@ export function usePlayerLogger() {
       // Seal the session via beacon (best effort)
       navigator.sendBeacon(
         "/api/player-logs/seal",
-        JSON.stringify({ sessionId: SESSION_ID })
+        JSON.stringify({ sessionId: currentSessionId })
       );
     };
 
@@ -347,6 +421,8 @@ export function usePlayerLogger() {
   const sealSession = useCallback(async () => {
     if (!shouldLog) return;
     
+    const currentSessionId = sessionIdRef.current;
+    
     // Log the logout event
     logEvent("SESSION_END", { payload: { reason: "logout" } });
     
@@ -359,13 +435,13 @@ export function usePlayerLogger() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ sessionId: SESSION_ID }),
+        body: JSON.stringify({ sessionId: currentSessionId }),
       });
-      console.debug("[PlayerLogger] Session sealed:", SESSION_ID);
+      console.debug("[PlayerLogger] Session sealed:", currentSessionId);
     } catch (error) {
       console.debug("[PlayerLogger] Failed to seal session:", error);
     }
   }, [shouldLog, logEvent, flush]);
 
-  return { logEvent, flush, sealSession, sessionId: SESSION_ID, deviceInfo: DEVICE_INFO };
+  return { logEvent, flush, sealSession, sessionId: sessionIdRef.current, deviceInfo: DEVICE_INFO };
 }
