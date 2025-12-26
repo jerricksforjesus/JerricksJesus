@@ -528,8 +528,8 @@ export async function registerRoutes(
     }
   });
 
-  // Initiate YouTube OAuth (Admin only)
-  app.get("/api/youtube/connect", requireAuth, requireRole(USER_ROLES.ADMIN), async (req, res) => {
+  // Initiate YouTube OAuth (Superadmin only)
+  app.get("/api/youtube/connect", requireAuth, requireRole(USER_ROLES.SUPERADMIN), async (req, res) => {
     try {
       const clientId = process.env.GOOGLE_CLIENT_ID;
       if (!clientId) {
@@ -683,8 +683,8 @@ export async function registerRoutes(
     }
   });
 
-  // Disconnect YouTube (Admin only)
-  app.post("/api/youtube/disconnect", requireAuth, requireRole(USER_ROLES.ADMIN), async (req, res) => {
+  // Disconnect YouTube (Superadmin only)
+  app.post("/api/youtube/disconnect", requireAuth, requireRole(USER_ROLES.SUPERADMIN), async (req, res) => {
     try {
       await storage.deleteYoutubeAuth();
       res.json({ success: true });

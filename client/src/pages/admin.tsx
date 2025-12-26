@@ -408,7 +408,7 @@ interface SyncStatus {
 function WorshipPlaylistManager() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { isAdmin } = useAuth();
+  const { isAdmin, isSuperAdmin } = useAuth();
   const [youtubeUrl, setYoutubeUrl] = useState("");
   const [isAddingVideo, setIsAddingVideo] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
@@ -549,7 +549,7 @@ function WorshipPlaylistManager() {
 
   return (
     <div className="space-y-6">
-      {isAdmin && (
+      {isSuperAdmin && (
         <div className="border rounded-lg p-4 bg-muted/30">
           <div className="flex items-center gap-3 mb-3">
             <Youtube className="w-5 h-5" style={{ color: "#FF0000" }} />
