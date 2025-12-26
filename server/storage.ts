@@ -148,8 +148,9 @@ export class DbStorage implements IStorage {
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
+    // Case-insensitive username lookup using LOWER()
     const result = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.username, username),
+      where: (users) => sql`LOWER(${users.username}) = LOWER(${username})`,
     });
     return result;
   }
@@ -162,8 +163,9 @@ export class DbStorage implements IStorage {
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
+    // Case-insensitive email lookup using LOWER()
     const result = await db.query.users.findFirst({
-      where: (users, { eq }) => eq(users.email, email),
+      where: (users) => sql`LOWER(${users.email}) = LOWER(${email})`,
     });
     return result;
   }
