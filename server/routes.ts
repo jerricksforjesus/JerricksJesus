@@ -15,7 +15,21 @@ import { OAuth2Client } from "google-auth-library";
 const authRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000, // 15 minutes
   max: 5, // 5 attempts
-  message: { error: "Too many attempts. Please try again after 15 minutes." },
+  handler: (req, res, next, options) => {
+    const retryAfterMs = res.getHeader('RateLimit-Reset');
+    const retryAfterSeconds = typeof retryAfterMs === 'number' ? retryAfterMs : 
+      typeof retryAfterMs === 'string' ? parseInt(retryAfterMs, 10) : 
+      Math.ceil(options.windowMs / 1000);
+    const retryAfterTimestamp = new Date(Date.now() + retryAfterSeconds * 1000).toISOString();
+    const minutesRemaining = Math.ceil(retryAfterSeconds / 60);
+    
+    res.status(429).json({ 
+      error: `Too many login attempts. Please try again in ${minutesRemaining} minute${minutesRemaining !== 1 ? 's' : ''}.`,
+      retryAfter: retryAfterTimestamp,
+      retryAfterSeconds: retryAfterSeconds,
+      isRateLimited: true
+    });
+  },
   standardHeaders: true,
   legacyHeaders: false,
   validate: { xForwardedForHeader: false },

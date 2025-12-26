@@ -54,8 +54,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         body: JSON.stringify({ username, password }),
       });
       if (!res.ok) {
-        const error = await res.json();
-        throw new Error(error.error || "Login failed");
+        const errorData = await res.json();
+        const error = new Error(errorData.error || "Login failed") as any;
+        error.isRateLimited = errorData.isRateLimited || false;
+        error.retryAfter = errorData.retryAfter;
+        error.retryAfterSeconds = errorData.retryAfterSeconds;
+        throw error;
       }
       return res.json();
     },

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Home, Eye, EyeOff } from "lucide-react";
+import { ArrowLeft, Home, Eye, EyeOff, Clock } from "lucide-react";
 import { MobilePlayerSpacer } from "@/components/MobilePlayerSpacer";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -26,6 +26,8 @@ export default function LoginPage() {
   const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [showRegisterPassword, setShowRegisterPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [rateLimitedUntil, setRateLimitedUntil] = useState<Date | null>(null);
+  const [countdown, setCountdown] = useState("");
   
   const getInitialTab = () => {
     const params = new URLSearchParams(window.location.search);
@@ -61,20 +63,76 @@ export default function LoginPage() {
     }
   }, [user, setLocation]);
 
+  const formatCountdown = useCallback((targetDate: Date) => {
+    const now = new Date();
+    const diff = targetDate.getTime() - now.getTime();
+    
+    if (diff <= 0) {
+      setRateLimitedUntil(null);
+      return "";
+    }
+    
+    const minutes = Math.floor(diff / 60000);
+    const seconds = Math.floor((diff % 60000) / 1000);
+    
+    if (minutes > 0) {
+      return `${minutes}m ${seconds}s`;
+    }
+    return `${seconds}s`;
+  }, []);
+
+  useEffect(() => {
+    if (!rateLimitedUntil) {
+      setCountdown("");
+      return;
+    }
+
+    const updateCountdown = () => {
+      const formatted = formatCountdown(rateLimitedUntil);
+      setCountdown(formatted);
+    };
+
+    updateCountdown();
+    const interval = setInterval(updateCountdown, 1000);
+
+    return () => clearInterval(interval);
+  }, [rateLimitedUntil, formatCountdown]);
+
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (rateLimitedUntil && new Date() < rateLimitedUntil) {
+      toast({ 
+        title: "Please wait", 
+        description: `You can try again in ${countdown}`,
+        variant: "destructive" 
+      });
+      return;
+    }
+    
     setIsLoading(true);
     
     try {
       await login(loginUsername, loginPassword);
+      setRateLimitedUntil(null);
       toast({ title: "Welcome back!", description: "You have been logged in successfully." });
       setLocation("/");
     } catch (error: any) {
-      toast({ 
-        title: "Login failed", 
-        description: "Please check your credentials. If you don't have an account yet, click the Register tab to create one.",
-        variant: "destructive" 
-      });
+      if (error.isRateLimited && error.retryAfter) {
+        const retryDate = new Date(error.retryAfter);
+        setRateLimitedUntil(retryDate);
+        toast({ 
+          title: "Too many attempts", 
+          description: error.message,
+          variant: "destructive" 
+        });
+      } else {
+        toast({ 
+          title: "Login failed", 
+          description: "Please check your credentials. If you don't have an account yet, click the Register tab to create one.",
+          variant: "destructive" 
+        });
+      }
     } finally {
       setIsLoading(false);
     }
@@ -235,17 +293,36 @@ export default function LoginPage() {
                     </Button>
                   </div>
                 </div>
+                
+                {rateLimitedUntil && countdown && (
+                  <div 
+                    className="flex items-center gap-2 p-3 rounded-lg mt-4"
+                    style={{ backgroundColor: "rgba(180, 122, 95, 0.1)", border: "1px solid rgba(180, 122, 95, 0.3)" }}
+                    data-testid="rate-limit-countdown"
+                  >
+                    <Clock className="w-5 h-5" style={{ color: "#b47a5f" }} />
+                    <div className="flex-1">
+                      <p className="text-sm font-medium" style={{ color: "#b47a5f" }}>
+                        Too many attempts
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Try again in <span className="font-semibold" style={{ color: "#b47a5f" }}>{countdown}</span>
+                      </p>
+                    </div>
+                  </div>
+                )}
+                
                 <Button 
                   type="submit" 
                   data-testid="button-login"
                   className="w-full font-medium mt-6"
-                  disabled={isLoading}
+                  disabled={isLoading || !!(rateLimitedUntil && new Date() < rateLimitedUntil)}
                   style={{ 
-                    backgroundColor: "#b47a5f",
+                    backgroundColor: rateLimitedUntil && new Date() < rateLimitedUntil ? "#ccc" : "#b47a5f",
                     color: "#ffffff"
                   }}
                 >
-                  {isLoading ? "Signing in..." : "Sign In"}
+                  {isLoading ? "Signing in..." : rateLimitedUntil && countdown ? `Wait ${countdown}` : "Sign In"}
                 </Button>
 
                 <div className="relative my-6">
