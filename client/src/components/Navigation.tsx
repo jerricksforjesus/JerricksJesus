@@ -98,7 +98,7 @@ export function Navigation() {
         <Link href="/">
           <span 
             className={cn(
-              "cursor-pointer font-serif text-2xl md:text-3xl font-bold tracking-tighter hover:opacity-80 transition-colors duration-300",
+              "cursor-pointer font-serif text-xl md:text-2xl lg:text-3xl font-bold tracking-tighter hover:opacity-80 transition-colors duration-300",
               // Mobile: always dark text. Desktop: light text on transparent, dark when scrolled
               "text-foreground",
               useLightText && !isScrolled && "md:text-white"
@@ -109,13 +109,13 @@ export function Navigation() {
 
         {/* Desktop Nav */}
         <div 
-          className="hidden md:flex gap-2 items-center"
+          className="hidden md:flex gap-1 lg:gap-2 items-center"
           onMouseLeave={() => setHoveredIndex(navLinks.findIndex(link => link.href === location))}
         >
           {navLinks.map((link, index) => (
             <Link key={link.label} href={link.href} onClick={link.onClick}>
               <span
-                className="relative cursor-pointer px-5 py-1 block"
+                className="relative cursor-pointer px-2 md:px-3 lg:px-5 py-1 block"
                 onMouseEnter={() => setHoveredIndex(index)}
               >
                 {hoveredIndex === index && (
@@ -130,7 +130,7 @@ export function Navigation() {
                 )}
                 <span
                   className={cn(
-                    "relative z-10 text-xs font-bold tracking-widest uppercase transition-colors duration-300",
+                    "relative z-10 text-[10px] md:text-[11px] lg:text-xs font-bold tracking-wider lg:tracking-widest uppercase transition-colors duration-300 whitespace-nowrap",
                     hoveredIndex === index 
                       ? "text-primary" 
                       : useLightText && !isScrolled ? "text-white/90" : "text-foreground/80"
@@ -142,7 +142,7 @@ export function Navigation() {
             </Link>
           ))}
           <Link href="/live">
-            <span className="cursor-pointer ml-4 px-6 py-2 bg-primary text-primary-foreground rounded-full text-xs font-bold uppercase tracking-widest hover:bg-primary/90 transition-transform hover:scale-105">
+            <span className="cursor-pointer ml-2 lg:ml-4 px-3 md:px-4 lg:px-6 py-1.5 lg:py-2 bg-primary text-primary-foreground rounded-full text-[10px] md:text-[11px] lg:text-xs font-bold uppercase tracking-wider lg:tracking-widest hover:bg-primary/90 transition-transform hover:scale-105 whitespace-nowrap">
               Watch Live
             </span>
           </Link>
