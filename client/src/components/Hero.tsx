@@ -155,14 +155,16 @@ export function Hero() {
             className="mb-[20px]"
           >
             <Button 
+              asChild
               size="lg" 
               className="font-bold px-8 w-[220px] justify-between"
               style={{ backgroundColor: "#4a7c59", color: "#ffffff" }}
               data-testid="button-listen-zoom-hero"
-              onClick={() => setShowDialConfirm(true)}
             >
-              <span>Listen to Zoom</span>
-              <Phone className="w-5 h-5" />
+              <a href={`tel:${ZOOM_ONE_TAP_NUMBER.replace(/\+/g, '%2B').replace(/#/g, '%23').replace(/\*/g, '%2A')}`} className="flex items-center justify-between">
+                <span>Listen to Zoom</span>
+                <Phone className="w-5 h-5" />
+              </a>
             </Button>
           </motion.div>
         )}
