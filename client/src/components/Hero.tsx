@@ -280,18 +280,24 @@ export function Hero() {
               </p>
               
               <div className="bg-gray-100 rounded-xl p-4 mb-4">
-                <p className="text-xs text-gray-500 mb-2 uppercase tracking-wide">Tap to Call</p>
-                <a 
-                  href="tel:+13052241968,,87538675196#,,,,*949343#"
-                  className="block text-xl font-bold text-blue-600 hover:text-blue-700"
-                  data-testid="button-call-zoom"
-                >
+                <p className="text-xs text-gray-500 mb-2 uppercase tracking-wide">Phone Number</p>
+                <p className="text-xl font-bold text-gray-900" data-testid="text-zoom-phone">
                   +1 (305) 224-1968
-                </a>
+                </p>
+              </div>
+              
+              <div className="bg-gray-100 rounded-xl p-4 mb-4">
+                <p className="text-xs text-gray-500 mb-2 uppercase tracking-wide">Meeting ID</p>
+                <p className="text-lg font-bold text-gray-900">875 3867 5196</p>
+              </div>
+              
+              <div className="bg-gray-100 rounded-xl p-4 mb-4">
+                <p className="text-xs text-gray-500 mb-2 uppercase tracking-wide">Passcode</p>
+                <p className="text-lg font-bold text-gray-900">949343</p>
               </div>
               
               <p className="text-gray-500 mb-4 text-xs">
-                The call will auto-enter the meeting ID and passcode for you.
+                Dial the number above, then enter the Meeting ID and Passcode when prompted.
               </p>
               
               <button
