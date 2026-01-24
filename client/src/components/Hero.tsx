@@ -1,7 +1,7 @@
 import { motion, useScroll, useTransform } from "framer-motion";
 import { useRef, useEffect, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Radio, Video, LogIn, Music, Square, Loader2, Phone, X } from "lucide-react";
+import { Radio, Video, LogIn, Music, Square, Loader2, Phone } from "lucide-react";
 import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { EqualizerBars } from "@/components/EqualizerBars";
@@ -26,7 +26,6 @@ export function Hero() {
   const { user } = useAuth();
   const { showMiniPlayer, play, dismissMiniPlayer, videos, isInitializing, isPlaying, isMuted, iOSNeedsTap, showiOSModal, isIOS } = useWorshipPlayer();
   const [isMobileDevice, setIsMobileDevice] = useState(false);
-  const [showDialConfirm, setShowDialConfirm] = useState(false);
 
   useEffect(() => {
     const checkMobile = () => {
@@ -155,14 +154,16 @@ export function Hero() {
             className="mb-[20px]"
           >
             <Button 
+              asChild
               size="lg" 
               className="font-bold px-8 w-[220px] justify-between"
               style={{ backgroundColor: "#4a7c59", color: "#ffffff" }}
               data-testid="button-listen-zoom-hero"
-              onClick={() => setShowDialConfirm(true)}
             >
-              <span>Listen to Zoom</span>
-              <Phone className="w-5 h-5" />
+              <a href={`tel:${ZOOM_ONE_TAP_NUMBER.replace(/\+/g, '%2B').replace(/#/g, '%23').replace(/\*/g, '%2A')}`} className="flex items-center justify-between">
+                <span>Listen to Zoom</span>
+                <Phone className="w-5 h-5" />
+              </a>
             </Button>
           </motion.div>
         )}
@@ -252,57 +253,6 @@ export function Hero() {
         </motion.div>
       </div>
 
-      {/* Listen to Zoom Confirmation Modal */}
-      {showDialConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm px-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-2xl relative"
-          >
-            <button
-              onClick={() => setShowDialConfirm(false)}
-              className="absolute top-3 right-3 text-gray-400 hover:text-gray-600"
-              data-testid="button-close-dial-confirm"
-            >
-              <X className="w-5 h-5" />
-            </button>
-            
-            <div className="text-center pt-2">
-              <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Phone className="w-7 h-7 text-green-600" />
-              </div>
-              <h3 className="text-xl font-serif font-bold text-gray-900 mb-3">
-                Listen to Zoom
-              </h3>
-              <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                Tap the button below to open your phone dialer.
-              </p>
-              
-              <a 
-                href="tel:+13052241968"
-                className="block w-full py-3 px-6 bg-green-600 text-white font-bold rounded-full text-center hover:bg-green-700 transition-colors mb-4"
-                data-testid="button-call-zoom"
-              >
-                Open Phone
-              </a>
-              
-              <div className="bg-gray-100 rounded-xl p-3 mb-4">
-                <p className="text-xs text-gray-500 mb-1">After connecting, enter:</p>
-                <p className="text-sm font-bold text-gray-900">Meeting ID: 875 3867 5196</p>
-                <p className="text-sm font-bold text-gray-900">Passcode: 949343</p>
-              </div>
-              
-              <button
-                onClick={() => setShowDialConfirm(false)}
-                className="text-gray-500 text-sm hover:text-gray-700"
-              >
-                Close
-              </button>
-            </div>
-          </motion.div>
-        </div>
-      )}
     </div>
   );
 }
