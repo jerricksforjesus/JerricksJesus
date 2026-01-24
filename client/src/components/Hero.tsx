@@ -276,29 +276,22 @@ export function Hero() {
                 Listen to Zoom
               </h3>
               <p className="text-gray-600 mb-4 text-sm leading-relaxed">
-                Tap the blue call button below to connect to Zoom.
+                Tap the button below to open your phone dialer.
               </p>
               
-              <div className="bg-gray-100 rounded-xl p-4 mb-4">
-                <p className="text-xs text-gray-500 mb-2 uppercase tracking-wide">Phone Number</p>
-                <p className="text-xl font-bold text-gray-900" data-testid="text-zoom-phone">
-                  +1 (305) 224-1968
-                </p>
-              </div>
+              <a 
+                href="tel:+13052241968"
+                className="block w-full py-3 px-6 bg-green-600 text-white font-bold rounded-full text-center hover:bg-green-700 transition-colors mb-4"
+                data-testid="button-call-zoom"
+              >
+                Open Phone
+              </a>
               
-              <div className="bg-gray-100 rounded-xl p-4 mb-4">
-                <p className="text-xs text-gray-500 mb-2 uppercase tracking-wide">Meeting ID</p>
-                <p className="text-lg font-bold text-gray-900">875 3867 5196</p>
+              <div className="bg-gray-100 rounded-xl p-3 mb-4">
+                <p className="text-xs text-gray-500 mb-1">After connecting, enter:</p>
+                <p className="text-sm font-bold text-gray-900">Meeting ID: 875 3867 5196</p>
+                <p className="text-sm font-bold text-gray-900">Passcode: 949343</p>
               </div>
-              
-              <div className="bg-gray-100 rounded-xl p-4 mb-4">
-                <p className="text-xs text-gray-500 mb-2 uppercase tracking-wide">Passcode</p>
-                <p className="text-lg font-bold text-gray-900">949343</p>
-              </div>
-              
-              <p className="text-gray-500 mb-4 text-xs">
-                Dial the number above, then enter the Meeting ID and Passcode when prompted.
-              </p>
               
               <button
                 onClick={() => setShowDialConfirm(false)}
