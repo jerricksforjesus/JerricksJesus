@@ -275,29 +275,30 @@ export function Hero() {
               <h3 className="text-xl font-serif font-bold text-gray-900 mb-3">
                 Listen to Zoom
               </h3>
-              <p className="text-gray-600 mb-2 text-sm leading-relaxed">
-                This button will <strong>auto dial</strong> and connect you to Zoom.
-              </p>
-              <p className="text-gray-500 mb-2 text-sm">
-                Please wait to connect after pressing Call.
-              </p>
-              <p className="text-gray-500 mb-6 text-sm italic">
-                After tapping "Call Now", tap the blue button to connect.
+              <p className="text-gray-600 mb-4 text-sm leading-relaxed">
+                Tap the blue call button below to connect to Zoom.
               </p>
               
-              <a 
-                href={`tel:${ZOOM_ONE_TAP_NUMBER.replace(/\+/g, '%2B').replace(/#/g, '%23').replace(/\*/g, '%2A')}`}
-                className="block w-full py-3 px-6 bg-green-600 text-white font-bold rounded-full text-center hover:bg-green-700 transition-colors"
-                data-testid="button-call-zoom"
-              >
-                Call Now
-              </a>
+              <div className="bg-gray-100 rounded-xl p-4 mb-4">
+                <p className="text-xs text-gray-500 mb-2 uppercase tracking-wide">Tap to Call</p>
+                <a 
+                  href="tel:+13052241968,,87538675196#,,,,*949343#"
+                  className="block text-xl font-bold text-blue-600 hover:text-blue-700"
+                  data-testid="button-call-zoom"
+                >
+                  +1 (305) 224-1968
+                </a>
+              </div>
+              
+              <p className="text-gray-500 mb-4 text-xs">
+                The call will auto-enter the meeting ID and passcode for you.
+              </p>
               
               <button
                 onClick={() => setShowDialConfirm(false)}
-                className="mt-3 text-gray-500 text-sm hover:text-gray-700"
+                className="text-gray-500 text-sm hover:text-gray-700"
               >
-                Cancel
+                Close
               </button>
             </div>
           </motion.div>
