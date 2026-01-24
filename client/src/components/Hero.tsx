@@ -278,8 +278,11 @@ export function Hero() {
               <p className="text-gray-600 mb-2 text-sm leading-relaxed">
                 This button will <strong>auto dial</strong> and connect you to Zoom.
               </p>
-              <p className="text-gray-500 mb-6 text-sm">
+              <p className="text-gray-500 mb-2 text-sm">
                 Please wait to connect after pressing Call.
+              </p>
+              <p className="text-gray-500 mb-6 text-sm italic">
+                After tapping "Call Now", tap the blue button to connect.
               </p>
               
               <a 
