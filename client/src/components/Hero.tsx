@@ -285,7 +285,6 @@ export function Hero() {
               <a 
                 href={`tel:${ZOOM_ONE_TAP_NUMBER.replace(/\+/g, '%2B').replace(/#/g, '%23').replace(/\*/g, '%2A')}`}
                 className="block w-full py-3 px-6 bg-green-600 text-white font-bold rounded-full text-center hover:bg-green-700 transition-colors"
-                onClick={() => setShowDialConfirm(false)}
                 data-testid="button-call-zoom"
               >
                 Call Now
